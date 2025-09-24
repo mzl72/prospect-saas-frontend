@@ -4,10 +4,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { campaignId: string } }
+  { params }: { params: Promise<{ campaignId: string }> }
 ) {
   try {
-    const { campaignId } = params;
+    const { campaignId } = await params; // ← Adicionar await aqui
 
     // Simulação de status baseado em tempo (temporário)
     const mockStatus = {
