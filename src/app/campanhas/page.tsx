@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Download } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useCampaignStatus } from "@/lib/hooks/useCampaignStatus";
 
 interface Campanha {
   id: string;
@@ -33,76 +32,6 @@ function calcularTempoEstimado(quantidade: number, tipo: string): string {
   if (minutos === 1) return "1 min";
   if (minutos <= 3) return `${minutos - 1}-${minutos} min`;
   return `${Math.floor(minutos * 0.9)}-${minutos} min`;
-}
-
-function CampanhaStatus({ campanha }: { campanha: Campanha }) {
-  const { status } = useCampaignStatus(
-    campanha.id,
-    campanha.status !== "concluido"
-  );
-
-  const currentStatus = status?.status || campanha.status;
-
-  if (currentStatus === "processando") {
-    return (
-      <Badge variant="secondary" className="flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        Processando
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="default" className="flex items-center gap-1">
-      <CheckCircle className="w-3 h-3" />
-      Concluído
-    </Badge>
-  );
-}
-
-function CampanhaContent({ campanha }: { campanha: Campanha }) {
-  const { status } = useCampaignStatus(
-    campanha.id,
-    campanha.status !== "concluido"
-  );
-
-  const currentStatus = status?.status || campanha.status;
-  const planilhaUrl = status?.planilhaUrl || campanha.planilhaUrl;
-
-  if (currentStatus === "processando") {
-    return (
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span>{status?.message || "Iniciando extração de dados..."}</span>
-          </div>
-          <p className="text-xs text-gray-500">
-            Tempo estimado:{" "}
-            {calcularTempoEstimado(campanha.quantidade, campanha.tipo)}
-          </p>
-        </div>
-      </CardContent>
-    );
-  }
-
-  return (
-    <CardContent>
-      <Button
-        className="flex items-center gap-2"
-        onClick={() => {
-          if (planilhaUrl) {
-            window.open(planilhaUrl, "_blank");
-          } else {
-            alert("Link da planilha não disponível");
-          }
-        }}
-      >
-        <Download className="w-4 h-4" />
-        Abrir Planilha
-      </Button>
-    </CardContent>
-  );
 }
 
 export default function CampanhasPage() {
@@ -144,11 +73,65 @@ export default function CampanhasPage() {
                     </p>
                   </div>
 
-                  <CampanhaStatus campanha={campanha} />
+                  {campanha.status === "processando" && (
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      <Clock className="w-3 h-3" />
+                      Processando
+                    </Badge>
+                  )}
+
+                  {campanha.status === "concluido" && (
+                    <Badge
+                      variant="default"
+                      className="flex items-center gap-1"
+                    >
+                      <CheckCircle className="w-3 h-3" />
+                      Concluído
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
 
-              <CampanhaContent campanha={campanha} />
+              <CardContent>
+                {campanha.status === "processando" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span>Iniciando extração de dados...</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-400">
+                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                      <span>Aguardando processamento</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Tempo estimado:{" "}
+                      {calcularTempoEstimado(
+                        campanha.quantidade,
+                        campanha.tipo
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {campanha.status === "concluido" && (
+                  <Button
+                    className="flex items-center gap-2"
+                    onClick={() => {
+                      if (campanha.planilhaUrl) {
+                        window.open(campanha.planilhaUrl, "_blank");
+                      } else {
+                        alert("Link da planilha não disponível");
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    Abrir Planilha
+                  </Button>
+                )}
+              </CardContent>
             </Card>
           ))}
 
