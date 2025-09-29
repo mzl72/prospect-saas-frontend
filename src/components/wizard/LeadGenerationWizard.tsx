@@ -73,13 +73,11 @@ function EtapaConfiguracao() {
       <div>
         <label className="block text-sm font-medium mb-2">Quantos leads?</label>
         <div className="flex gap-2">
-          {[2, 10, 25, 50, 100, 250, 500].map((qty) => (
+          {[2, 10, 25, 50, 100, 250].map((qty) => (
             <Button
               key={qty}
               variant={quantidade === qty ? "default" : "outline"}
-              onClick={() =>
-                setQuantidade(qty as 10 | 25 | 50 | 100 | 250 | 500)
-              }
+              onClick={() => setQuantidade(qty as 10 | 25 | 50 | 100 | 250)}
             >
               {qty}
             </Button>
@@ -109,7 +107,7 @@ function EtapaNivelServico() {
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold">
-          Encontraremos ~{quantidade} leads. Escolha o nível de serviço:
+          Encontraremos de 0 à {quantidade} leads. Escolha o nível de serviço:
         </h3>
       </div>
 

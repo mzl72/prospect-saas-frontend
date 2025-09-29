@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  credits   Int      @default(150)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  campaigns Campaign[]
+  
+  @@map("users")
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  userId      String         @map("user_id")
+  title       String
+  status      CampaignStatus @default(PROCESSING)
+  quantidade  Int
+  tipo        CampaignType
+  termos      String
+  locais      String
+  planilhaUrl String?        @map("planilha_url")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads Lead[]
+  
+  @@map("campaigns")
+}
+
+model Lead {
+  id             String   @id @default(cuid())
+  campaignId     String   @map("campaign_id")
+  nomeEmpresa    String   @map("nome_empresa")
+  endereco       String?
+  website        String?
+  telefone       String?
+  categoria      String?
+  totalReviews   String?  @map("total_reviews")
+  notaMedia      String?  @map("nota_media")
+  linkGoogleMaps String?  @map("link_google_maps")
+  createdAt      DateTime @default(now()) @map("created_at")
+  
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  @@map("leads")
+}
+
+enum CampaignStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum CampaignType {
+  BASICO
+  COMPLETO
+}
