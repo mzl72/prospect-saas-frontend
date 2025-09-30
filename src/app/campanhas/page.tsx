@@ -16,6 +16,16 @@ interface Campanha {
   planilhaUrl?: string;
 }
 
+interface CampaignResponse {
+  id: string;
+  title: string;
+  status: string;
+  quantidade: number;
+  tipo: string;
+  createdAt: string;
+  planilhaUrl: string | null;
+}
+
 function calcularTempoEstimado(quantidade: number, tipo: string): string {
   let segundosPorLead: number;
 
@@ -38,16 +48,30 @@ export default function CampanhasPage() {
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
 
   useEffect(() => {
-    const ultimaCampanha = localStorage.getItem("ultimaCampanha");
-
-    if (ultimaCampanha) {
+    const fetchCampanhas = async () => {
       try {
-        const campanha: Campanha = JSON.parse(ultimaCampanha);
-        setCampanhas([campanha]);
+        const response = await fetch("/api/campaigns");
+        const data = await response.json();
+
+        if (data.success) {
+          setCampanhas(
+            data.campaigns.map((c: CampaignResponse) => ({
+              id: c.id,
+              titulo: c.title,
+              status: c.status === "PROCESSING" ? "processando" : "concluido",
+              quantidade: c.quantidade,
+              tipo: c.tipo.toLowerCase(),
+              criadoEm: new Date(c.createdAt).toLocaleString("pt-BR"),
+              planilhaUrl: c.planilhaUrl,
+            }))
+          );
+        }
       } catch (error) {
-        console.error("Erro ao ler campanha do localStorage:", error);
+        console.error("Erro ao buscar campanhas:", error);
       }
-    }
+    };
+
+    fetchCampanhas();
   }, []);
 
   return (

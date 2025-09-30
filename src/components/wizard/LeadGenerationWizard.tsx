@@ -4,9 +4,10 @@ import { useLeadStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useEffect, useState } from "react";
 
 export function LeadGenerationWizard() {
-  const { currentStep, creditos } = useLeadStore();
+  const { currentStep } = useLeadStore();
 
   const progress = (currentStep / 3) * 100;
 
@@ -15,7 +16,7 @@ export function LeadGenerationWizard() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Etapa {currentStep} de 3</CardTitle>
-          <div className="text-sm text-gray-600">Créditos: {creditos}</div>
+          <CreditosDisplay />
         </div>
         <Progress value={progress} className="w-full" />
       </CardHeader>
@@ -27,6 +28,27 @@ export function LeadGenerationWizard() {
       </CardContent>
     </Card>
   );
+}
+
+function CreditosDisplay() {
+  const [creditos, setCreditos] = useState(0);
+
+  useEffect(() => {
+    const fetchCreditos = async () => {
+      try {
+        const response = await fetch("/api/users/credits");
+        const data = await response.json();
+        if (data.success) {
+          setCreditos(data.credits);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar créditos:", error);
+      }
+    };
+    fetchCreditos();
+  }, []);
+
+  return <div className="text-sm text-gray-600">Créditos: {creditos}</div>;
 }
 
 function EtapaConfiguracao() {
@@ -77,7 +99,7 @@ function EtapaConfiguracao() {
             <Button
               key={qty}
               variant={quantidade === qty ? "default" : "outline"}
-              onClick={() => setQuantidade(qty as 10 | 25 | 50 | 100 | 250)}
+              onClick={() => setQuantidade(qty as 2 | 10 | 25 | 50 | 100 | 250)}
             >
               {qty}
             </Button>
@@ -173,27 +195,41 @@ function EtapaNivelServico() {
 }
 
 function EtapaConfirmacao() {
-  const {
-    tipoNegocio,
-    localizacao,
-    quantidade,
-    nivelServico,
-    creditos,
-    setCurrentStep,
-    debitarCreditos,
-  } = useLeadStore();
+  const { tipoNegocio, localizacao, quantidade, nivelServico, setCurrentStep } =
+    useLeadStore();
+
+  const [creditos, setCreditos] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const custo = nivelServico === "basico" ? quantidade * 1 : quantidade * 5;
   const creditosSuficientes = creditos >= custo;
 
+  useEffect(() => {
+    const fetchCreditos = async () => {
+      try {
+        const response = await fetch("/api/users/credits");
+        const data = await response.json();
+        if (data.success) {
+          setCreditos(data.credits);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar créditos:", error);
+      }
+    };
+    fetchCreditos();
+  }, []);
+
   const handleGerarCampanha = async () => {
     if (!creditosSuficientes) return;
 
+    setLoading(true);
     try {
-      const response = await fetch("/api/gerar-leads", {
+      // 1. Criar campanha no banco + chamar N8N
+      const response = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          titulo: `${tipoNegocio.join(", ")} em ${localizacao.join(", ")}`,
           tipoNegocio,
           localizacao,
           quantidade,
@@ -204,23 +240,26 @@ function EtapaConfirmacao() {
       const result = await response.json();
 
       if (result.success) {
-        // Usar dados da resposta do N8N
-        const campanhaData = {
-          id: result.campaignId || Date.now(),
-          titulo: `${tipoNegocio.join(", ")} em ${localizacao.join(", ")}`,
-          status: "processando", // Sempre processando inicialmente
-          quantidade: quantidade,
-          tipo: nivelServico,
-          criadoEm: new Date().toLocaleString("pt-BR"),
-          planilhaUrl: null, // Será preenchido depois via update
-        };
+        // 2. Debitar créditos do banco
+        const debitResponse = await fetch("/api/users/credits", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: custo }),
+        });
 
-        localStorage.setItem("ultimaCampanha", JSON.stringify(campanhaData));
-        debitarCreditos(custo);
-        window.location.href = "/campanhas";
+        if (debitResponse.ok) {
+          // 3. Redirecionar para campanhas
+          window.location.href = "/campanhas";
+        } else {
+          alert("Erro ao debitar créditos");
+        }
+      } else {
+        alert("Erro ao criar campanha");
       }
     } catch (error) {
       alert("Erro de conexão. Verifique sua internet.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -253,6 +292,14 @@ function EtapaConfirmacao() {
             {custo} créditos
           </span>
         </div>
+        <div>
+          <span className="font-medium">Saldo atual:</span>
+          <span className="ml-2">{creditos} créditos</span>
+        </div>
+        <div>
+          <span className="font-medium">Saldo após:</span>
+          <span className="ml-2">{creditos - custo} créditos</span>
+        </div>
       </div>
 
       {!creditosSuficientes && (
@@ -274,10 +321,10 @@ function EtapaConfirmacao() {
         </Button>
         <Button
           onClick={handleGerarCampanha}
-          disabled={!creditosSuficientes}
+          disabled={!creditosSuficientes || loading}
           className="flex-1"
         >
-          Gerar Campanha
+          {loading ? "Criando..." : "Gerar Campanha"}
         </Button>
       </div>
     </div>
