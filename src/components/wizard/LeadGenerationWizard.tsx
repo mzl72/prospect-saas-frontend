@@ -235,19 +235,29 @@ function EtapaConfirmacao() {
 
       return result;
     },
-    onSuccess: () => {
-      // Invalida cache para atualizar dados
-      queryClient.invalidateQueries({ queryKey: ["credits"] });
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    onSuccess: async () => {
+      // Invalida cache para atualizar dados (força refetch imediato)
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["credits"],
+          refetchType: "all" // Força refetch de todas as queries ativas
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["campaigns"],
+          refetchType: "all"
+        }),
+      ]);
 
       // Reset wizard
       resetWizard();
 
-      // Redirecionar
-      window.location.href = "/campanhas";
+      // Aguarda um pouco para garantir atualização do cache
+      setTimeout(() => {
+        window.location.href = "/campanhas";
+      }, 100);
     },
-    onError: () => {
-      // Erro será mostrado abaixo do botão
+    onError: (error) => {
+      console.error("Erro ao criar campanha:", error);
     },
   });
 

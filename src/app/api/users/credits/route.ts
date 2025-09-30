@@ -1,33 +1,14 @@
 // src/app/api/users/credits/route.ts
-import { prisma } from "@/lib/prisma-db";
 import { NextRequest, NextResponse } from "next/server";
+import { ensureDemoUser } from "@/lib/demo-user";
 
 export const dynamic = "force-dynamic";
-
-// TODO: Pegar da sessão autenticada
-const DEMO_USER_ID = "user-1";
 
 // GET - Consultar saldo de créditos
 export async function GET() {
   try {
-    // Buscar ou criar usuário
-    let user = await prisma.user.findUnique({
-      where: { id: DEMO_USER_ID },
-      select: { credits: true },
-    });
-
-    // Se não existir, criar
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: DEMO_USER_ID,
-          email: "user@example.com",
-          name: "Usuário Padrão",
-          credits: 150,
-        },
-        select: { credits: true },
-      });
-    }
+    // Garante que usuário existe e retorna dados
+    const user = await ensureDemoUser();
 
     return NextResponse.json({
       success: true,
@@ -36,19 +17,32 @@ export async function GET() {
   } catch (error) {
     console.error("Erro ao consultar créditos:", error);
     return NextResponse.json(
-      { error: "Erro ao consultar créditos" },
+      { success: false, error: "Erro ao consultar créditos" },
       { status: 500 }
     );
   }
 }
 
-// PUT - Debitar créditos
+// PUT - Debitar créditos (não usado atualmente, mantido para compatibilidade)
 export async function PUT(request: NextRequest) {
   try {
     const { amount } = await request.json();
 
+    if (!amount || amount <= 0) {
+      return NextResponse.json(
+        { success: false, error: "Quantidade inválida" },
+        { status: 400 }
+      );
+    }
+
+    // Garante que usuário existe
+    const demoUser = await ensureDemoUser();
+
+    // Importa prisma apenas quando necessário
+    const { prisma } = await import("@/lib/prisma-db");
+
     const user = await prisma.user.update({
-      where: { id: DEMO_USER_ID },
+      where: { id: demoUser.id },
       data: {
         credits: {
           decrement: amount,
@@ -64,7 +58,7 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error("Erro ao debitar créditos:", error);
     return NextResponse.json(
-      { error: "Erro ao debitar créditos" },
+      { success: false, error: "Erro ao debitar créditos" },
       { status: 500 }
     );
   }

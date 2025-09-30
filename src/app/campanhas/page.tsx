@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
+import { useRef, useEffect } from "react";
 
 interface CampaignResponse {
   id: string;
@@ -36,6 +37,10 @@ function calcularTempoEstimado(quantidade: number, tipo: string): string {
 }
 
 export default function CampanhasPage() {
+  // Rastreia tempo de polling para cada campanha
+  const pollingStartTimes = useRef<Record<string, number>>({});
+  const MAX_POLLING_TIME = 30 * 60 * 1000; // 30 minutos timeout
+
   const { data: campanhas = [], isLoading } = useQuery({
     queryKey: ["campaigns"],
     queryFn: async () => {
@@ -44,21 +49,47 @@ export default function CampanhasPage() {
 
       if (!data.success) return [];
 
-      return data.campaigns.map((c: CampaignResponse) => ({
-        id: c.id,
-        titulo: c.title,
-        status: c.status === "PROCESSING" ? "processando" : "concluido",
-        quantidade: c.quantidade,
-        tipo: c.tipo.toLowerCase(),
-        criadoEm: new Date(c.createdAt).toLocaleString("pt-BR"),
-        planilhaUrl: c.planilhaUrl,
-      }));
+      return data.campaigns.map((c: CampaignResponse) => {
+        const status = c.status === "PROCESSING" ? "processando" :
+                       c.status === "FAILED" ? "falhou" : "concluido";
+
+        // Registra tempo de início do polling
+        if (status === "processando" && !pollingStartTimes.current[c.id]) {
+          pollingStartTimes.current[c.id] = Date.now();
+        }
+
+        // Remove do rastreamento se completou
+        if (status !== "processando" && pollingStartTimes.current[c.id]) {
+          delete pollingStartTimes.current[c.id];
+        }
+
+        return {
+          id: c.id,
+          titulo: c.title,
+          status,
+          quantidade: c.quantidade,
+          tipo: c.tipo.toLowerCase(),
+          criadoEm: new Date(c.createdAt).toLocaleString("pt-BR"),
+          planilhaUrl: c.planilhaUrl,
+        };
+      });
     },
     refetchInterval: (query) => {
       const hasProcessing = query.state.data?.some(
-        (c: { status: string }) => c.status === "processando"
+        (c: { id: string; status: string }) => {
+          if (c.status !== "processando") return false;
+
+          // Verifica timeout
+          const startTime = pollingStartTimes.current[c.id];
+          if (startTime && Date.now() - startTime > MAX_POLLING_TIME) {
+            console.warn(`Campanha ${c.id} atingiu timeout de polling`);
+            return false; // Para de fazer polling
+          }
+
+          return true;
+        }
       );
-      return hasProcessing ? 10000 : false; // Atualiza a cada 10s se tiver campanha processando
+      return hasProcessing ? 10000 : false; // Atualiza a cada 10s
     },
   });
 
@@ -92,7 +123,7 @@ export default function CampanhasPage() {
             (campanha: {
               id: string;
               titulo: string;
-              status: "processando" | "concluido";
+              status: "processando" | "concluido" | "falhou";
               quantidade: number;
               tipo: "basico" | "completo";
               criadoEm: string;
@@ -128,6 +159,16 @@ export default function CampanhasPage() {
                       >
                         <CheckCircle className="w-3 h-3" />
                         Concluído
+                      </Badge>
+                    )}
+
+                    {campanha.status === "falhou" && (
+                      <Badge
+                        variant="destructive"
+                        className="flex items-center gap-1"
+                      >
+                        <Clock className="w-3 h-3" />
+                        Falhou
                       </Badge>
                     )}
                   </div>
@@ -172,6 +213,18 @@ export default function CampanhasPage() {
                         </div>
                       )}
                     </>
+                  )}
+
+                  {campanha.status === "falhou" && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
+                      <p className="text-red-700 dark:text-red-400 text-sm font-medium">
+                        Erro ao processar campanha
+                      </p>
+                      <p className="text-red-600 dark:text-red-300 text-xs mt-1">
+                        A campanha pode ter falhado ou atingido o tempo limite.
+                        Tente criar uma nova campanha.
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>

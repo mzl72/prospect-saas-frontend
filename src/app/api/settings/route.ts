@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
-
-// TODO: Implementar autenticação (ex: NextAuth.js, Clerk) para obter o userId da sessão.
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma-db";
+import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
 
 // Templates padrão
 const DEFAULT_SETTINGS = {
@@ -73,51 +71,80 @@ Abraços,
 Nossos clientes conseguem gerar 10x mais leads qualificados em 1/5 do tempo.`,
 };
 
+// Função para sanitizar HTML/scripts de inputs
+function sanitizeInput(text: string): string {
+  // Remove tags HTML e scripts básicos
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+}
+
 // Esquema de validação com Zod
 const settingsSchema = z.object({
-  templatePesquisa: z.string().min(1, "Template de pesquisa é obrigatório."),
+  templatePesquisa: z
+    .string()
+    .min(1, "Template de pesquisa é obrigatório.")
+    .max(5000, "Template muito longo")
+    .transform(sanitizeInput),
   templateAnaliseEmpresa: z
     .string()
-    .min(1, "Template de análise é obrigatório."),
-  emailTitulo1: z.string().min(1, "Título do Email 1 é obrigatório."),
-  emailCorpo1: z.string().min(1, "Corpo do Email 1 é obrigatório."),
-  emailTitulo2: z.string().min(1, "Título do Email 2 é obrigatório."),
-  emailCorpo2: z.string().min(1, "Corpo do Email 2 é obrigatório."),
-  emailTitulo3: z.string().min(1, "Título do Email 3 é obrigatório."),
-  emailCorpo3: z.string().min(1, "Corpo do Email 3 é obrigatório."),
+    .min(1, "Template de análise é obrigatório.")
+    .max(5000, "Template muito longo")
+    .transform(sanitizeInput),
+  emailTitulo1: z
+    .string()
+    .min(1, "Título do Email 1 é obrigatório.")
+    .max(200, "Título muito longo")
+    .transform(sanitizeInput),
+  emailCorpo1: z
+    .string()
+    .min(1, "Corpo do Email 1 é obrigatório.")
+    .max(5000, "Corpo muito longo")
+    .transform(sanitizeInput),
+  emailTitulo2: z
+    .string()
+    .min(1, "Título do Email 2 é obrigatório.")
+    .max(200, "Título muito longo")
+    .transform(sanitizeInput),
+  emailCorpo2: z
+    .string()
+    .min(1, "Corpo do Email 2 é obrigatório.")
+    .max(5000, "Corpo muito longo")
+    .transform(sanitizeInput),
+  emailTitulo3: z
+    .string()
+    .min(1, "Título do Email 3 é obrigatório.")
+    .max(200, "Título muito longo")
+    .transform(sanitizeInput),
+  emailCorpo3: z
+    .string()
+    .min(1, "Corpo do Email 3 é obrigatório.")
+    .max(5000, "Corpo muito longo")
+    .transform(sanitizeInput),
   informacoesPropria: z
     .string()
-    .min(1, "Informações da sua empresa são obrigatórias."),
+    .min(1, "Informações da sua empresa são obrigatórias.")
+    .max(5000, "Texto muito longo")
+    .transform(sanitizeInput),
 });
 
 // GET - Buscar configurações do usuário
 export async function GET(request: NextRequest) {
   try {
-    // FALHA DE SEGURANÇA: Substituir por uma função que obtém o usuário da sessão.
-    // Ex: const { userId } = await getAuth();
-    const userId = "user-1";
+    // Garante que usuário existe
+    await ensureDemoUser();
 
     // Buscar ou criar settings do usuário
     let settings = await prisma.userSettings.findUnique({
-      where: { userId },
+      where: { userId: DEMO_USER_ID },
     });
 
-    // Se não existir, cria para o usuário com valores padrão.
+    // Se não existir, cria com valores padrão
     if (!settings) {
-      // Garantir que o usuário existe
-      await prisma.user.upsert({
-        where: { id: userId },
-        create: {
-          id: userId,
-          email: "user@example.com",
-          name: "Usuário Padrão",
-        },
-        update: {},
-      });
-
       settings = await prisma.userSettings.create({
         data: {
-          userId,
+          userId: DEMO_USER_ID,
           ...DEFAULT_SETTINGS,
         },
       });
@@ -139,13 +166,12 @@ export async function GET(request: NextRequest) {
 // POST - Salvar configurações do usuário
 export async function POST(request: NextRequest) {
   try {
-    // FALHA DE SEGURANÇA: Substituir por uma função que obtém o usuário da sessão.
-    // Ex: const { userId } = await getAuth();
-    const userId = "user-1";
+    // Garante que usuário existe
+    await ensureDemoUser();
 
     const body = await request.json();
 
-    // Validação robusta com Zod
+    // Validação robusta com Zod (inclui sanitização)
     const validatedBody = settingsSchema.safeParse(body);
     if (!validatedBody.success) {
       return NextResponse.json(
@@ -162,8 +188,8 @@ export async function POST(request: NextRequest) {
 
     // Upsert (criar ou atualizar) settings
     const settings = await prisma.userSettings.upsert({
-      where: { userId },
-      create: { userId, ...dataToSave },
+      where: { userId: DEMO_USER_ID },
+      create: { userId: DEMO_USER_ID, ...dataToSave },
       update: dataToSave,
     });
 

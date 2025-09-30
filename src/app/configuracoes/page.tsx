@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Loader2 } from "lucide-react";
 
@@ -43,17 +43,22 @@ export default function ConfiguracoesPage() {
   });
 
   // Buscar configurações existentes
-  const { isLoading } = useQuery({
+  const { data: settingsData, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
       const response = await fetch("/api/settings");
       const data = await response.json();
-      if (data.success && data.settings) {
-        setConfig(data.settings);
-      }
       return data;
     },
+    staleTime: 0, // Sempre refetch ao montar componente
   });
+
+  // Atualizar estado local quando dados chegarem ou mudarem
+  useEffect(() => {
+    if (settingsData?.success && settingsData?.settings) {
+      setConfig(settingsData.settings);
+    }
+  }, [settingsData]);
 
   // Mutation para salvar
   const saveMutation = useMutation({
