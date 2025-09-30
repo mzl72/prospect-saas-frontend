@@ -1,40 +1,44 @@
 import { create } from "zustand";
 
-interface LeadGenerationState {
-  // Etapa atual do wizard
+interface WizardState {
+  // UI state apenas
   currentStep: number;
-
-  // Dados do formulário
-  tipoNegocio: string[];
-  localizacao: string[];
-  quantidade: 2 | 10 | 25 | 50 | 100 | 250;
+  tipoNegocio: string;
+  localizacao: string;
+  quantidade: 4 | 20 | 40 | 100 | 200;
   nivelServico: "basico" | "completo";
 
-  // Sistema de créditos
-  creditos: number;
-
-  // Actions
+  // Actions para UI
   setCurrentStep: (step: number) => void;
-  setTipoNegocio: (tipos: string[]) => void;
-  setLocalizacao: (locais: string[]) => void;
-  setQuantidade: (qty: 2 | 10 | 25 | 50 | 100 | 250) => void;
+  setTipoNegocio: (tipos: string) => void;
+  setLocalizacao: (locais: string) => void;
+  setQuantidade: (qty: 4 | 20 | 40 | 100 | 200) => void;
   setNivelServico: (nivel: "basico" | "completo") => void;
-  debitarCreditos: (valor: number) => void;
+  resetWizard: () => void;
 }
 
-export const useLeadStore = create<LeadGenerationState>((set) => ({
+export const useWizardStore = create<WizardState>((set) => ({
+  // Estado inicial
   currentStep: 1,
-  tipoNegocio: [],
-  localizacao: [],
-  quantidade: 25,
+  tipoNegocio: "",
+  localizacao: "",
+  quantidade: 20,
   nivelServico: "basico",
-  creditos: 150,
 
+  // Actions
   setCurrentStep: (step) => set({ currentStep: step }),
   setTipoNegocio: (tipos) => set({ tipoNegocio: tipos }),
   setLocalizacao: (locais) => set({ localizacao: locais }),
   setQuantidade: (qty) => set({ quantidade: qty }),
   setNivelServico: (nivel) => set({ nivelServico: nivel }),
-  debitarCreditos: (valor) =>
-    set((state) => ({ creditos: state.creditos - valor })),
+
+  // Reset wizard após criar campanha
+  resetWizard: () =>
+    set({
+      currentStep: 1,
+      tipoNegocio: "",
+      localizacao: "",
+      quantidade: 20,
+      nivelServico: "basico",
+    }),
 }));

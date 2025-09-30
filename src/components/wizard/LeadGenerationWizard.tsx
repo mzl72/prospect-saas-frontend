@@ -1,13 +1,13 @@
 "use client";
 
-import { useLeadStore } from "@/lib/store";
+import { useWizardStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function LeadGenerationWizard() {
-  const { currentStep } = useLeadStore();
+  const { currentStep } = useWizardStore();
 
   const progress = (currentStep / 3) * 100;
 
@@ -31,22 +31,18 @@ export function LeadGenerationWizard() {
 }
 
 function CreditosDisplay() {
-  const [creditos, setCreditos] = useState(0);
+  const { data: creditos = 0, isLoading } = useQuery({
+    queryKey: ["credits"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/credits");
+      const data = await response.json();
+      return data.success ? data.credits : 0;
+    },
+  });
 
-  useEffect(() => {
-    const fetchCreditos = async () => {
-      try {
-        const response = await fetch("/api/users/credits");
-        const data = await response.json();
-        if (data.success) {
-          setCreditos(data.credits);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar créditos:", error);
-      }
-    };
-    fetchCreditos();
-  }, []);
+  if (isLoading) {
+    return <div className="text-sm text-gray-600">Créditos: ...</div>;
+  }
 
   return <div className="text-sm text-gray-600">Créditos: {creditos}</div>;
 }
@@ -60,7 +56,7 @@ function EtapaConfiguracao() {
     setLocalizacao,
     setQuantidade,
     setCurrentStep,
-  } = useLeadStore();
+  } = useWizardStore();
 
   return (
     <div className="space-y-6">
@@ -72,9 +68,8 @@ function EtapaConfiguracao() {
           type="text"
           placeholder="ex: restaurante, academia, dentista"
           className="w-full p-3 border rounded-md"
-          onChange={(e) =>
-            setTipoNegocio(e.target.value.split(",").map((s) => s.trim()))
-          }
+          value={tipoNegocio}
+          onChange={(e) => setTipoNegocio(e.target.value)}
         />
       </div>
 
@@ -86,20 +81,19 @@ function EtapaConfiguracao() {
           type="text"
           placeholder="ex: São Paulo, Pinheiros, Jundiaí"
           className="w-full p-3 border rounded-md"
-          onChange={(e) =>
-            setLocalizacao(e.target.value.split(",").map((s) => s.trim()))
-          }
+          value={localizacao}
+          onChange={(e) => setLocalizacao(e.target.value)}
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">Quantos leads?</label>
         <div className="flex gap-2">
-          {[2, 10, 25, 50, 100, 250].map((qty) => (
+          {[4, 20, 40, 100, 200].map((qty) => (
             <Button
               key={qty}
               variant={quantidade === qty ? "default" : "outline"}
-              onClick={() => setQuantidade(qty as 2 | 10 | 25 | 50 | 100 | 250)}
+              onClick={() => setQuantidade(qty as 4 | 20 | 40 | 100 | 200)}
             >
               {qty}
             </Button>
@@ -110,7 +104,7 @@ function EtapaConfiguracao() {
       <Button
         onClick={() => setCurrentStep(2)}
         className="w-full"
-        disabled={tipoNegocio.length === 0 || localizacao.length === 0}
+        disabled={!tipoNegocio.trim() || !localizacao.trim()}
       >
         Continuar
       </Button>
@@ -120,10 +114,10 @@ function EtapaConfiguracao() {
 
 function EtapaNivelServico() {
   const { quantidade, nivelServico, setNivelServico, setCurrentStep } =
-    useLeadStore();
+    useWizardStore();
 
-  const custoBasico = quantidade * 1;
-  const custoCompleto = quantidade * 5;
+  const custoBasico = quantidade * 0.25;
+  const custoCompleto = quantidade * 1;
 
   return (
     <div className="space-y-6">
@@ -195,72 +189,71 @@ function EtapaNivelServico() {
 }
 
 function EtapaConfirmacao() {
-  const { tipoNegocio, localizacao, quantidade, nivelServico, setCurrentStep } =
-    useLeadStore();
+  const {
+    tipoNegocio,
+    localizacao,
+    quantidade,
+    nivelServico,
+    setCurrentStep,
+    resetWizard,
+  } = useWizardStore();
 
-  const [creditos, setCreditos] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const custo = nivelServico === "basico" ? quantidade * 1 : quantidade * 5;
+  const { data: creditos = 0 } = useQuery({
+    queryKey: ["credits"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/credits");
+      const data = await response.json();
+      return data.success ? data.credits : 0;
+    },
+  });
+
+  const custo = nivelServico === "basico" ? quantidade * 0.25 : quantidade * 1;
   const creditosSuficientes = creditos >= custo;
 
-  useEffect(() => {
-    const fetchCreditos = async () => {
-      try {
-        const response = await fetch("/api/users/credits");
-        const data = await response.json();
-        if (data.success) {
-          setCreditos(data.credits);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar créditos:", error);
-      }
-    };
-    fetchCreditos();
-  }, []);
+  const createCampaign = useMutation({
+    mutationFn: async () => {
+      const tiposArray = tipoNegocio.split(",").map((s) => s.trim()).filter(Boolean);
+      const locaisArray = localizacao.split(",").map((s) => s.trim()).filter(Boolean);
 
-  const handleGerarCampanha = async () => {
-    if (!creditosSuficientes) return;
-
-    setLoading(true);
-    try {
-      // 1. Criar campanha no banco + chamar N8N
       const response = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: `${tipoNegocio.join(", ")} em ${localizacao.join(", ")}`,
-          tipoNegocio,
-          localizacao,
+          titulo: `${tipoNegocio} em ${localizacao}`,
+          tipoNegocio: tiposArray,
+          localizacao: locaisArray,
           quantidade,
           nivelServico,
         }),
       });
 
       const result = await response.json();
+      if (!result.success)
+        throw new Error(result.error || "Erro ao criar campanha");
 
-      if (result.success) {
-        // 2. Debitar créditos do banco
-        const debitResponse = await fetch("/api/users/credits", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: custo }),
-        });
+      return result;
+    },
+    onSuccess: () => {
+      // Invalida cache para atualizar dados
+      queryClient.invalidateQueries({ queryKey: ["credits"] });
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
 
-        if (debitResponse.ok) {
-          // 3. Redirecionar para campanhas
-          window.location.href = "/campanhas";
-        } else {
-          alert("Erro ao debitar créditos");
-        }
-      } else {
-        alert("Erro ao criar campanha");
-      }
-    } catch (error) {
-      alert("Erro de conexão. Verifique sua internet.");
-    } finally {
-      setLoading(false);
-    }
+      // Reset wizard
+      resetWizard();
+
+      // Redirecionar
+      window.location.href = "/campanhas";
+    },
+    onError: () => {
+      // Erro será mostrado abaixo do botão
+    },
+  });
+
+  const handleGerarCampanha = () => {
+    if (!creditosSuficientes) return;
+    createCampaign.mutate();
   };
 
   return (
@@ -272,11 +265,11 @@ function EtapaConfirmacao() {
       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
         <div>
           <span className="font-medium">Tipo de negócio:</span>
-          <span className="ml-2">{tipoNegocio.join(", ")}</span>
+          <span className="ml-2">{tipoNegocio}</span>
         </div>
         <div>
           <span className="font-medium">Localização:</span>
-          <span className="ml-2">{localizacao.join(", ")}</span>
+          <span className="ml-2">{localizacao}</span>
         </div>
         <div>
           <span className="font-medium">Quantidade:</span>
@@ -311,6 +304,14 @@ function EtapaConfirmacao() {
         </div>
       )}
 
+      {createCampaign.isError && (
+        <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+          <p className="text-red-700 text-sm">
+            {createCampaign.error?.message || "Erro ao criar campanha"}
+          </p>
+        </div>
+      )}
+
       <div className="flex gap-3">
         <Button
           variant="outline"
@@ -321,10 +322,10 @@ function EtapaConfirmacao() {
         </Button>
         <Button
           onClick={handleGerarCampanha}
-          disabled={!creditosSuficientes || loading}
+          disabled={!creditosSuficientes || createCampaign.isPending}
           className="flex-1"
         >
-          {loading ? "Criando..." : "Gerar Campanha"}
+          {createCampaign.isPending ? "Criando..." : "Gerar Campanha"}
         </Button>
       </div>
     </div>
