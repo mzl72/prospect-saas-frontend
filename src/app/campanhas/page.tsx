@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Layout } from "@/components/layout/Layout";
 
 interface CampaignResponse {
   id: string;
@@ -63,27 +64,30 @@ export default function CampanhasPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center">
-            <div className="text-lg">Carregando campanhas...</div>
+      <Layout>
+        <div className="py-8">
+          <div className="max-w-4xl mx-auto px-4">
+            <div className="text-center">
+              <div className="text-lg">Carregando campanhas...</div>
+            </div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Minhas Campanhas</h1>
-          <p className="text-gray-600 mt-2">
-            Acompanhe o status das suas campanhas
-          </p>
-        </div>
+    <Layout>
+      <div className="py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Minhas Campanhas</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
+              Acompanhe o status das suas campanhas
+            </p>
+          </div>
 
-        <div className="space-y-4">
+          <div className="space-y-4">
           {campanhas.map(
             (campanha: {
               id: string;
@@ -94,14 +98,14 @@ export default function CampanhasPage() {
               criadoEm: string;
               planilhaUrl?: string;
             }) => (
-              <Card key={campanha.id}>
+              <Card key={campanha.id} className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">
+                      <CardTitle className="text-lg dark:text-white">
                         {campanha.titulo}
                       </CardTitle>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                         {campanha.quantidade} leads • {campanha.tipo} •{" "}
                         {campanha.criadoEm}
                       </p>
@@ -175,26 +179,27 @@ export default function CampanhasPage() {
           )}
 
           {campanhas.length === 0 && !isLoading && (
-            <Card>
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="text-center py-8">
-                <p className="text-gray-500">Nenhuma campanha encontrada</p>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-gray-500 dark:text-gray-400">Nenhuma campanha encontrada</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
                   Gere sua primeira campanha para ver o histórico aqui
                 </p>
               </CardContent>
             </Card>
           )}
-        </div>
+          </div>
 
-        <div className="mt-8">
-          <Button
-            onClick={() => (window.location.href = "/gerar")}
-            variant="outline"
-          >
-            Nova Campanha
-          </Button>
+          <div className="mt-8">
+            <Button
+              onClick={() => (window.location.href = "/gerar")}
+              variant="outline"
+            >
+              Nova Campanha
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

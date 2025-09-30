@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prospect-saas-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+    env_file:
+      - .env
+    networks:
+      - prospect-network
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    container_name: prospect-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app_prospect_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - prospect-network
+
+networks:
+  prospect-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

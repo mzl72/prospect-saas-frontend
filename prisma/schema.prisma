@@ -8,16 +8,36 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String     @id @default(cuid())
+  email     String     @unique
   name      String?
-  credits   Int      @default(150)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
+  credits   Int        @default(150)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
   campaigns Campaign[]
-  
+  settings  UserSettings?
+
   @@map("users")
+}
+
+model UserSettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique @map("user_id")
+  templatePesquisa        String   @default("") @map("template_pesquisa") @db.Text
+  templateAnaliseEmpresa  String   @default("") @map("template_analise_empresa") @db.Text
+  emailTitulo1            String   @default("") @map("email_titulo_1")
+  emailCorpo1             String   @default("") @map("email_corpo_1") @db.Text
+  emailTitulo2            String   @default("") @map("email_titulo_2")
+  emailCorpo2             String   @default("") @map("email_corpo_2") @db.Text
+  emailTitulo3            String   @default("") @map("email_titulo_3")
+  emailCorpo3             String   @default("") @map("email_corpo_3") @db.Text
+  informacoesPropria      String   @default("") @map("informacoes_propria") @db.Text
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model Campaign {
@@ -32,10 +52,9 @@ model Campaign {
   planilhaUrl String?        @map("planilha_url")
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
-  
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leads Lead[]
-  
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads       Lead[]
+
   @@map("campaigns")
 }
 
@@ -51,9 +70,8 @@ model Lead {
   notaMedia      String?  @map("nota_media")
   linkGoogleMaps String?  @map("link_google_maps")
   createdAt      DateTime @default(now()) @map("created_at")
-  
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  
+  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
   @@map("leads")
 }
 
