@@ -12,10 +12,10 @@ export function LeadGenerationWizard() {
   const progress = (currentStep / 3) * 100;
 
   return (
-    <Card className="w-full">
+    <Card className="w-full dark:bg-gray-800 dark:border-gray-700">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Etapa {currentStep} de 3</CardTitle>
+          <CardTitle className="dark:text-white">Etapa {currentStep} de 3</CardTitle>
           <CreditosDisplay />
         </div>
         <Progress value={progress} className="w-full" />
@@ -41,10 +41,10 @@ function CreditosDisplay() {
   });
 
   if (isLoading) {
-    return <div className="text-sm text-gray-600">Créditos: ...</div>;
+    return <div className="text-sm text-gray-600 dark:text-gray-300">Créditos: ...</div>;
   }
 
-  return <div className="text-sm text-gray-600">Créditos: {creditos}</div>;
+  return <div className="text-sm text-gray-600 dark:text-gray-300">Créditos: {creditos}</div>;
 }
 
 function EtapaConfiguracao() {
@@ -61,33 +61,33 @@ function EtapaConfiguracao() {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium mb-2">
+        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
           Que tipo de empresa você quer encontrar?
         </label>
         <input
           type="text"
           placeholder="ex: restaurante, academia, dentista"
-          className="w-full p-3 border rounded-md"
+          className="w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
           value={tipoNegocio}
           onChange={(e) => setTipoNegocio(e.target.value)}
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">
+        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
           Em qual região?
         </label>
         <input
           type="text"
           placeholder="ex: São Paulo, Pinheiros, Jundiaí"
-          className="w-full p-3 border rounded-md"
+          className="w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
           value={localizacao}
           onChange={(e) => setLocalizacao(e.target.value)}
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Quantos leads?</label>
+        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Quantos leads?</label>
         <div className="flex gap-2">
           {[4, 20, 40, 100, 200].map((qty) => (
             <Button
@@ -122,7 +122,7 @@ function EtapaNivelServico() {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Encontraremos de 0 à {quantidade} leads. Escolha o nível de serviço:
         </h3>
       </div>
@@ -131,18 +131,18 @@ function EtapaNivelServico() {
         <div
           className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
             nivelServico === "basico"
-              ? "border-blue-500 bg-blue-50"
-              : "border-gray-200 hover:border-gray-300"
+              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+              : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
           }`}
           onClick={() => setNivelServico("basico")}
         >
           <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg">BÁSICO</h4>
-            <span className="text-lg font-bold text-green-600">
+            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">BÁSICO</h4>
+            <span className="text-lg font-bold text-green-600 dark:text-green-400">
               {custoBasico} créditos
             </span>
           </div>
-          <ul className="space-y-1 text-sm text-gray-600">
+          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
             <li>✓ Lista com dados do Google Maps</li>
             <li>✓ Nome, telefone, endereço, avaliações</li>
             <li>✓ Planilha para download</li>
@@ -152,18 +152,18 @@ function EtapaNivelServico() {
         <div
           className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
             nivelServico === "completo"
-              ? "border-blue-500 bg-blue-50"
-              : "border-gray-200 hover:border-gray-300"
+              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+              : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
           }`}
           onClick={() => setNivelServico("completo")}
         >
           <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg">COMPLETO</h4>
-            <span className="text-lg font-bold text-green-600">
+            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">COMPLETO</h4>
+            <span className="text-lg font-bold text-green-600 dark:text-green-400">
               {custoCompleto} créditos
             </span>
           </div>
-          <ul className="space-y-1 text-sm text-gray-600">
+          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
             <li>✓ Tudo do Básico</li>
             <li>✓ Pesquisa detalhada da empresa</li>
             <li>✓ E-mails personalizados prontos</li>
@@ -269,45 +269,45 @@ function EtapaConfirmacao() {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold">Confirme sua configuração</h3>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Confirme sua configuração</h3>
       </div>
 
-      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3 border border-gray-200 dark:border-gray-700">
         <div>
-          <span className="font-medium">Tipo de negócio:</span>
-          <span className="ml-2">{tipoNegocio}</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Tipo de negócio:</span>
+          <span className="ml-2 text-gray-700 dark:text-gray-300">{tipoNegocio}</span>
         </div>
         <div>
-          <span className="font-medium">Localização:</span>
-          <span className="ml-2">{localizacao}</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Localização:</span>
+          <span className="ml-2 text-gray-700 dark:text-gray-300">{localizacao}</span>
         </div>
         <div>
-          <span className="font-medium">Quantidade:</span>
-          <span className="ml-2">{quantidade} leads</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Quantidade:</span>
+          <span className="ml-2 text-gray-700 dark:text-gray-300">{quantidade} leads</span>
         </div>
         <div>
-          <span className="font-medium">Nível:</span>
-          <span className="ml-2 capitalize">{nivelServico}</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Nível:</span>
+          <span className="ml-2 capitalize text-gray-700 dark:text-gray-300">{nivelServico}</span>
         </div>
-        <div className="border-t pt-3">
-          <span className="font-medium">Custo total:</span>
-          <span className="ml-2 text-lg font-bold text-green-600">
+        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+          <span className="font-medium text-gray-900 dark:text-gray-100">Custo total:</span>
+          <span className="ml-2 text-lg font-bold text-green-600 dark:text-green-400">
             {custo} créditos
           </span>
         </div>
         <div>
-          <span className="font-medium">Saldo atual:</span>
-          <span className="ml-2">{creditos} créditos</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Saldo atual:</span>
+          <span className="ml-2 text-gray-700 dark:text-gray-300">{creditos} créditos</span>
         </div>
         <div>
-          <span className="font-medium">Saldo após:</span>
-          <span className="ml-2">{creditos - custo} créditos</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">Saldo após:</span>
+          <span className="ml-2 text-gray-700 dark:text-gray-300">{creditos - custo} créditos</span>
         </div>
       </div>
 
       {!creditosSuficientes && (
-        <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-          <p className="text-red-700 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
+          <p className="text-red-700 dark:text-red-400 text-sm">
             Créditos insuficientes. Você tem {creditos} créditos, mas precisa de{" "}
             {custo}.
           </p>
@@ -315,10 +315,19 @@ function EtapaConfirmacao() {
       )}
 
       {createCampaign.isError && (
-        <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-          <p className="text-red-700 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
+          <p className="text-red-700 dark:text-red-400 text-sm font-medium mb-2">
             {createCampaign.error?.message || "Erro ao criar campanha"}
           </p>
+          {(createCampaign.error?.message?.includes("configurações") ||
+            createCampaign.error?.message?.includes("templates")) && (
+            <a
+              href="/configuracoes"
+              className="text-red-600 dark:text-red-300 text-sm underline hover:text-red-800 dark:hover:text-red-200 transition-colors"
+            >
+              Ir para Configurações →
+            </a>
+          )}
         </div>
       )}
 

@@ -69,6 +69,56 @@ export async function POST(request: NextRequest) {
     // Garante que usuário existe antes da transação
     await ensureDemoUser();
 
+    // Buscar configurações do usuário para enviar ao N8N
+    const userSettings = await prisma.userSettings.findUnique({
+      where: { userId: DEMO_USER_ID },
+    });
+
+    // Validação: modo completo requer configurações
+    if (body.nivelServico === "completo" && !userSettings) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Configurações necessárias para o modo completo. Acesse /configuracoes e configure os templates de IA antes de criar uma campanha completa.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validação adicional: verificar se templates estão preenchidos (modo completo)
+    if (body.nivelServico === "completo" && userSettings) {
+      const templatesVazios = [];
+
+      if (!userSettings.templatePesquisa?.trim()) {
+        templatesVazios.push("Template de Pesquisa");
+      }
+      if (!userSettings.templateAnaliseEmpresa?.trim()) {
+        templatesVazios.push("Template de Análise de Empresa");
+      }
+      if (!userSettings.emailTitulo1?.trim() || !userSettings.emailCorpo1?.trim()) {
+        templatesVazios.push("Email 1");
+      }
+      if (!userSettings.emailTitulo2?.trim() || !userSettings.emailCorpo2?.trim()) {
+        templatesVazios.push("Email 2");
+      }
+      if (!userSettings.emailTitulo3?.trim() || !userSettings.emailCorpo3?.trim()) {
+        templatesVazios.push("Email 3");
+      }
+      if (!userSettings.informacoesPropria?.trim()) {
+        templatesVazios.push("Informações da Sua Empresa");
+      }
+
+      if (templatesVazios.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Os seguintes campos estão vazios em /configuracoes: ${templatesVazios.join(", ")}. Preencha-os antes de criar uma campanha completa.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Transação atômica: criar campanha + debitar créditos
     const result = await prisma.$transaction(async (tx) => {
       // 1. Verificar saldo
@@ -106,6 +156,7 @@ export async function POST(request: NextRequest) {
     // 5. Chamar N8N para processar (paralelo, não bloqueia resposta)
     const n8nUrl = process.env.N8N_WEBHOOK_URL || "https://n8n.fflow.site/webhook/interface";
     const n8nPayload = {
+      // Dados da campanha
       campaignId: result.id,
       termos: body.tipoNegocio.join(","),
       locais: body.localizacao.join(","),
@@ -114,6 +165,27 @@ export async function POST(request: NextRequest) {
       consolidado: body.nivelServico === "completo" ? "true" : "false",
       timestamp: new Date().toLocaleString("pt-BR"),
       titulo: body.titulo,
+
+      // Configurações do usuário (templates de IA)
+      settings: userSettings ? {
+        templatePesquisa: userSettings.templatePesquisa,
+        templateAnaliseEmpresa: userSettings.templateAnaliseEmpresa,
+        emailTemplates: [
+          {
+            titulo: userSettings.emailTitulo1,
+            corpo: userSettings.emailCorpo1,
+          },
+          {
+            titulo: userSettings.emailTitulo2,
+            corpo: userSettings.emailCorpo2,
+          },
+          {
+            titulo: userSettings.emailTitulo3,
+            corpo: userSettings.emailCorpo3,
+          },
+        ],
+        informacoesPropria: userSettings.informacoesPropria,
+      } : null, // Se não houver settings, envia null (N8N pode usar defaults)
     };
 
     fetch(n8nUrl, {
