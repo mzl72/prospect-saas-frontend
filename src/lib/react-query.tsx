@@ -3,14 +3,21 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
+// Exportar para uso em webhooks/invalidações globais
+let globalQueryClient: QueryClient | null = null;
+
+export function getQueryClient() {
+  return globalQueryClient;
+}
+
 export function ReactQueryProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const [queryClient] = useState(
-    () =>
-      new QueryClient({
+    () => {
+      const client = new QueryClient({
         defaultOptions: {
           queries: {
             staleTime: 5 * 60 * 1000, // 5 minutos
@@ -39,7 +46,11 @@ export function ReactQueryProvider({
             retry: false, // Mutations não devem ser retentadas automaticamente
           },
         },
-      })
+      });
+
+      globalQueryClient = client; // Armazena referência global
+      return client;
+    }
   );
 
   return (

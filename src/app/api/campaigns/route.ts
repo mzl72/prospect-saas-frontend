@@ -173,23 +173,37 @@ export async function POST(request: NextRequest) {
 
       // Configurações do usuário (templates de IA)
       settings: userSettings ? {
+        // Informações Críticas da Empresa
+        nomeEmpresa: userSettings.nomeEmpresa,
+        assinatura: userSettings.assinatura,
+        telefoneContato: userSettings.telefoneContato,
+        websiteEmpresa: userSettings.websiteEmpresa,
+        senderEmails: JSON.parse(userSettings.senderEmails || "[]"),
+
+        // Prompts customizáveis
+        promptOverview: userSettings.promptOverview,
+        promptTatica: userSettings.promptTatica,
+        promptDiretrizes: userSettings.promptDiretrizes,
+
+        // Templates de pesquisa e análise
         templatePesquisa: userSettings.templatePesquisa,
         templateAnaliseEmpresa: userSettings.templateAnaliseEmpresa,
+        informacoesPropria: userSettings.informacoesPropria,
+
+        // Email templates
         emailTemplates: [
           {
             titulo: userSettings.emailTitulo1,
             corpo: userSettings.emailCorpo1,
           },
           {
-            titulo: userSettings.emailTitulo2,
-            corpo: userSettings.emailCorpo2,
+            corpo: userSettings.emailCorpo2, // Email 2 não tem título (resposta na thread)
           },
           {
             titulo: userSettings.emailTitulo3,
             corpo: userSettings.emailCorpo3,
           },
         ],
-        informacoesPropria: userSettings.informacoesPropria,
       } : null, // Se não houver settings, envia null (N8N pode usar defaults)
     };
 

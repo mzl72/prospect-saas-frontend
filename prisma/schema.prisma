@@ -23,15 +23,33 @@ model User {
 model UserSettings {
   id                      String   @id @default(cuid())
   userId                  String   @unique @map("user_id")
+
+  // Templates de Pesquisa e Análise
   templatePesquisa        String   @default("") @map("template_pesquisa") @db.Text
   templateAnaliseEmpresa  String   @default("") @map("template_analise_empresa") @db.Text
+  informacoesPropria      String   @default("") @map("informacoes_propria") @db.Text
+
+  // Prompt Customization (Novos campos)
+  promptOverview          String   @default("") @map("prompt_overview") @db.Text
+  promptTatica            String   @default("") @map("prompt_tatica") @db.Text
+  promptDiretrizes        String   @default("") @map("prompt_diretrizes") @db.Text
+
+  // Email Templates
   emailTitulo1            String   @default("") @map("email_titulo_1")
   emailCorpo1             String   @default("") @map("email_corpo_1") @db.Text
-  emailTitulo2            String   @default("") @map("email_titulo_2")
   emailCorpo2             String   @default("") @map("email_corpo_2") @db.Text
   emailTitulo3            String   @default("") @map("email_titulo_3")
   emailCorpo3             String   @default("") @map("email_corpo_3") @db.Text
-  informacoesPropria      String   @default("") @map("informacoes_propria") @db.Text
+
+  // Informações da Empresa (CRÍTICO)
+  nomeEmpresa             String   @default("") @map("nome_empresa")
+  assinatura              String   @default("") @map("assinatura")
+  telefoneContato         String   @default("") @map("telefone_contato")
+  websiteEmpresa          String   @default("") @map("website_empresa")
+
+  // Emails Remetentes (CRÍTICO - armazenado como JSON array)
+  senderEmails            String   @default("[]") @map("sender_emails") @db.Text
+
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
@@ -59,19 +77,40 @@ model Campaign {
 }
 
 model Lead {
-  id             String   @id @default(cuid())
-  campaignId     String   @map("campaign_id")
-  nomeEmpresa    String   @map("nome_empresa")
+  id             String     @id @default(cuid())
+  campaignId     String     @map("campaign_id")
+  nomeEmpresa    String     @map("nome_empresa")
   endereco       String?
   website        String?
   telefone       String?
   categoria      String?
-  totalReviews   String?  @map("total_reviews")
-  notaMedia      String?  @map("nota_media")
-  linkGoogleMaps String?  @map("link_google_maps")
-  createdAt      DateTime @default(now()) @map("created_at")
-  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  totalReviews   String?    @map("total_reviews")
+  notaMedia      String?    @map("nota_media")
+  linkGoogleMaps String?    @map("link_google_maps")
+  createdAt      DateTime   @default(now()) @map("created_at")
 
+  // Campos de tracking e status
+  apifyLeadId    String?    @unique @map("apify_lead_id")
+  extractedAt    DateTime?  @map("extracted_at")
+  enrichedAt     DateTime?  @map("enriched_at")
+  status         LeadStatus @default(EXTRACTED)
+
+  // Dados enriquecidos (Fluxo 2)
+  companyResearch    String? @map("company_research") @db.Text
+  strategicAnalysis  String? @map("strategic_analysis") @db.Text
+  personalization    String? @db.Text
+  analysisLink       String? @map("analysis_link")
+
+  // Email tracking
+  assignedSender String?   @map("assigned_sender")
+  optOutToken    String?   @unique @map("opt_out_token")
+  optedOutAt     DateTime? @map("opted_out_at")
+  repliedAt      DateTime? @map("replied_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  emails   Email[]
+
+  @@index([campaignId, status])
   @@map("leads")
 }
 
@@ -84,4 +123,46 @@ enum CampaignStatus {
 enum CampaignType {
   BASICO
   COMPLETO
+}
+
+enum LeadStatus {
+  EXTRACTED
+  ENRICHED
+  EMAIL_1_SENT
+  EMAIL_2_SENT
+  EMAIL_3_SENT
+  REPLIED
+  OPTED_OUT
+  BOUNCED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  OPENED
+  REPLIED
+  BOUNCED
+  FAILED
+}
+
+model Email {
+  id             String      @id @default(cuid())
+  leadId         String      @map("lead_id")
+  sequenceNumber Int         @map("sequence_number")
+  subject        String
+  body           String      @db.Text
+  senderAccount  String      @map("sender_account")
+  sentAt         DateTime?   @map("sent_at")
+  messageId      String?     @unique @map("message_id")
+  threadId       String?     @map("thread_id")
+  status         EmailStatus @default(PENDING)
+  openedAt       DateTime?   @map("opened_at")
+  repliedAt      DateTime?   @map("replied_at")
+  bouncedAt      DateTime?   @map("bounced_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, sequenceNumber])
+  @@map("emails")
 }

@@ -87,10 +87,10 @@ export default function CampanhasPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="py-8">
+        <div className="py-8 bg-white dark:bg-gray-900 min-h-screen">
           <div className="max-w-4xl mx-auto px-4">
             <div className="text-center">
-              <div className="text-lg">Carregando campanhas...</div>
+              <div className="text-lg text-gray-900 dark:text-white">Carregando campanhas...</div>
             </div>
           </div>
         </div>
@@ -176,19 +176,34 @@ export default function CampanhasPage() {
                         <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
                         <span>Aguardando processamento</span>
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 mb-4">
                         Tempo estimado:{" "}
                         {calcularTempoEstimado(
                           campanha.quantidade,
                           campanha.tipo
                         )}
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        onClick={() => window.location.href = `/campanhas/${campanha.id}`}
+                      >
+                        Acompanhar Progresso
+                      </Button>
                     </div>
                   )}
 
                   {campanha.status === "concluido" && (
-                    <>
-                      {campanha.planilhaUrl ? (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2"
+                        onClick={() => window.location.href = `/campanhas/${campanha.id}`}
+                      >
+                        Ver Detalhes
+                      </Button>
+                      {campanha.planilhaUrl && (
                         <Button
                           className="flex items-center gap-2"
                           onClick={() => window.open(campanha.planilhaUrl, "_blank")}
@@ -196,14 +211,8 @@ export default function CampanhasPage() {
                           <Download className="w-4 h-4" />
                           Abrir Planilha
                         </Button>
-                      ) : (
-                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                          <p className="text-yellow-700 text-sm">
-                            Planilha ainda não disponível
-                          </p>
-                        </div>
                       )}
-                    </>
+                    </div>
                   )}
 
                   {campanha.status === "falhou" && (

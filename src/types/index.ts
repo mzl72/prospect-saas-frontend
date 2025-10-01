@@ -14,15 +14,31 @@ export interface User {
 export interface UserSettings {
   id: string;
   userId: string;
+
+  // Templates de Pesquisa e Análise
   templatePesquisa: string;
   templateAnaliseEmpresa: string;
+  informacoesPropria: string;
+
+  // Prompt Customization
+  promptOverview: string;
+  promptTatica: string;
+  promptDiretrizes: string;
+
+  // Email Templates
   emailTitulo1: string;
   emailCorpo1: string;
-  emailTitulo2: string;
   emailCorpo2: string;
   emailTitulo3: string;
   emailCorpo3: string;
-  informacoesPropria: string;
+
+  // Informações Críticas da Empresa
+  nomeEmpresa: string;
+  assinatura: string;
+  telefoneContato: string;
+  websiteEmpresa: string;
+  senderEmails: string; // JSON array stored as string
+
   createdAt: Date;
   updatedAt: Date;
 }
