@@ -1,21 +1,5 @@
 import { create } from "zustand";
-
-interface WizardState {
-  // UI state apenas
-  currentStep: number;
-  tipoNegocio: string;
-  localizacao: string;
-  quantidade: 4 | 20 | 40 | 100 | 200;
-  nivelServico: "basico" | "completo";
-
-  // Actions para UI
-  setCurrentStep: (step: number) => void;
-  setTipoNegocio: (tipos: string) => void;
-  setLocalizacao: (locais: string) => void;
-  setQuantidade: (qty: 4 | 20 | 40 | 100 | 200) => void;
-  setNivelServico: (nivel: "basico" | "completo") => void;
-  resetWizard: () => void;
-}
+import type { WizardState } from "@/types";
 
 export const useWizardStore = create<WizardState>((set) => ({
   // Estado inicial

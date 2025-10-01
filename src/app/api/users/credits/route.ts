@@ -15,7 +15,11 @@ export async function GET() {
       credits: user.credits,
     });
   } catch (error) {
-    console.error("Erro ao consultar créditos:", error);
+    console.error("[API /users/credits GET] Erro ao consultar créditos:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { success: false, error: "Erro ao consultar créditos" },
       { status: 500 }
@@ -56,7 +60,11 @@ export async function PUT(request: NextRequest) {
       newBalance: user.credits,
     });
   } catch (error) {
-    console.error("Erro ao debitar créditos:", error);
+    console.error("[API /users/credits PUT] Erro ao debitar créditos:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { success: false, error: "Erro ao debitar créditos" },
       { status: 500 }

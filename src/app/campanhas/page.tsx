@@ -7,16 +7,7 @@ import { Clock, CheckCircle, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { useRef, useEffect } from "react";
-
-interface CampaignResponse {
-  id: string;
-  title: string;
-  status: string;
-  quantidade: number;
-  tipo: string;
-  createdAt: string;
-  planilhaUrl: string | null;
-}
+import type { CampaignResponse } from "@/types";
 
 function calcularTempoEstimado(quantidade: number, tipo: string): string {
   let segundosPorLead: number;

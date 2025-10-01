@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma-db";
 import { NextRequest, NextResponse } from "next/server";
 import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
+import { CUSTO_BASICO, CUSTO_COMPLETO } from "@/hooks/useCampaignCost";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,11 @@ export async function GET() {
       campaigns,
     });
   } catch (error) {
-    console.error("Erro ao buscar campanhas:", error);
+    console.error("[API /campaigns GET] Erro ao buscar campanhas:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { success: false, error: "Erro ao buscar campanhas" },
       { status: 500 }
@@ -63,8 +68,8 @@ export async function POST(request: NextRequest) {
 
     // Calcular custo
     const custo = body.nivelServico === "basico"
-      ? body.quantidade * 0.25
-      : body.quantidade * 1;
+      ? body.quantidade * CUSTO_BASICO
+      : body.quantidade * CUSTO_COMPLETO;
 
     // Garante que usuário existe antes da transação
     await ensureDemoUser();
@@ -193,7 +198,12 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: n8nPayload }),
     }).catch((error) => {
-      console.log("Erro N8N (não crítico):", error);
+      console.error("[API /campaigns POST] Erro ao chamar N8N (não crítico):", {
+        error: error instanceof Error ? error.message : error,
+        campaignId: result.id,
+        n8nUrl,
+        timestamp: new Date().toISOString(),
+      });
     });
 
     // 6. Resposta imediata para frontend
@@ -203,7 +213,12 @@ export async function POST(request: NextRequest) {
       message: "Campanha criada e enviada para processamento!",
     });
   } catch (error) {
-    console.error("Erro ao criar campanha:", error);
+    console.error("[API /campaigns POST] Erro ao criar campanha:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      body: request.body,
+      timestamp: new Date().toISOString(),
+    });
     const message = error instanceof Error ? error.message : "Erro ao criar campanha";
     return NextResponse.json(
       { success: false, error: message },

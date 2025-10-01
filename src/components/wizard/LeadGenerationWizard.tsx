@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCampaignCost } from "@/hooks/useCampaignCost";
+import { useState } from "react";
 
 export function LeadGenerationWizard() {
   const { currentStep } = useWizardStore();
@@ -58,6 +60,33 @@ function EtapaConfiguracao() {
     setCurrentStep,
   } = useWizardStore();
 
+  const [errors, setErrors] = useState({ tipoNegocio: "", localizacao: "" });
+
+  const validate = () => {
+    const newErrors = { tipoNegocio: "", localizacao: "" };
+
+    if (!tipoNegocio.trim()) {
+      newErrors.tipoNegocio = "Campo obrigatório";
+    } else if (tipoNegocio.trim().length < 3) {
+      newErrors.tipoNegocio = "Mínimo 3 caracteres";
+    }
+
+    if (!localizacao.trim()) {
+      newErrors.localizacao = "Campo obrigatório";
+    } else if (localizacao.trim().length < 3) {
+      newErrors.localizacao = "Mínimo 3 caracteres";
+    }
+
+    setErrors(newErrors);
+    return !newErrors.tipoNegocio && !newErrors.localizacao;
+  };
+
+  const handleNext = () => {
+    if (validate()) {
+      setCurrentStep(2);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -67,10 +96,18 @@ function EtapaConfiguracao() {
         <input
           type="text"
           placeholder="ex: restaurante, academia, dentista"
-          className="w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+          className={`w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${
+            errors.tipoNegocio ? "border-red-500 dark:border-red-500" : ""
+          }`}
           value={tipoNegocio}
-          onChange={(e) => setTipoNegocio(e.target.value)}
+          onChange={(e) => {
+            setTipoNegocio(e.target.value);
+            if (errors.tipoNegocio) setErrors({ ...errors, tipoNegocio: "" });
+          }}
         />
+        {errors.tipoNegocio && (
+          <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.tipoNegocio}</p>
+        )}
       </div>
 
       <div>
@@ -80,10 +117,18 @@ function EtapaConfiguracao() {
         <input
           type="text"
           placeholder="ex: São Paulo, Pinheiros, Jundiaí"
-          className="w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+          className={`w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${
+            errors.localizacao ? "border-red-500 dark:border-red-500" : ""
+          }`}
           value={localizacao}
-          onChange={(e) => setLocalizacao(e.target.value)}
+          onChange={(e) => {
+            setLocalizacao(e.target.value);
+            if (errors.localizacao) setErrors({ ...errors, localizacao: "" });
+          }}
         />
+        {errors.localizacao && (
+          <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.localizacao}</p>
+        )}
       </div>
 
       <div>
@@ -102,9 +147,8 @@ function EtapaConfiguracao() {
       </div>
 
       <Button
-        onClick={() => setCurrentStep(2)}
+        onClick={handleNext}
         className="w-full"
-        disabled={!tipoNegocio.trim() || !localizacao.trim()}
       >
         Continuar
       </Button>
@@ -116,8 +160,8 @@ function EtapaNivelServico() {
   const { quantidade, nivelServico, setNivelServico, setCurrentStep } =
     useWizardStore();
 
-  const custoBasico = quantidade * 0.25;
-  const custoCompleto = quantidade * 1;
+  const custoBasico = useCampaignCost(quantidade, "basico");
+  const custoCompleto = useCampaignCost(quantidade, "completo");
 
   return (
     <div className="space-y-6">
@@ -209,7 +253,7 @@ function EtapaConfirmacao() {
     },
   });
 
-  const custo = nivelServico === "basico" ? quantidade * 0.25 : quantidade * 1;
+  const custo = useCampaignCost(quantidade, nivelServico);
   const creditosSuficientes = creditos >= custo;
 
   const createCampaign = useMutation({

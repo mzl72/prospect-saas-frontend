@@ -155,7 +155,11 @@ export async function GET(request: NextRequest) {
       settings,
     });
   } catch (error) {
-    console.error("Erro ao buscar configurações:", error);
+    console.error("[API /settings GET] Erro ao buscar configurações:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { success: false, error: "Erro ao buscar configurações" },
       { status: 500 }
@@ -199,7 +203,11 @@ export async function POST(request: NextRequest) {
       settings,
     });
   } catch (error) {
-    console.error("Erro ao salvar configurações:", error);
+    console.error("[API /settings POST] Erro ao salvar configurações:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { success: false, error: "Erro ao salvar configurações" },
       { status: 500 }

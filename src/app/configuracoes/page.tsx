@@ -14,23 +14,13 @@ import { Label } from "@/components/ui/label";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Loader2 } from "lucide-react";
-
-interface ConfigData {
-  templatePesquisa: string;
-  templateAnaliseEmpresa: string;
-  emailTitulo1: string;
-  emailCorpo1: string;
-  emailTitulo2: string;
-  emailCorpo2: string;
-  emailTitulo3: string;
-  emailCorpo3: string;
-  informacoesPropria: string;
-}
+import { toast } from "sonner";
+import type { UserSettings } from "@/types";
 
 export default function ConfiguracoesPage() {
   const queryClient = useQueryClient();
 
-  const [config, setConfig] = useState<ConfigData>({
+  const [config, setConfig] = useState<Omit<UserSettings, "id" | "userId" | "createdAt" | "updatedAt">>({
     templatePesquisa: "",
     templateAnaliseEmpresa: "",
     emailTitulo1: "",
@@ -62,7 +52,7 @@ export default function ConfiguracoesPage() {
 
   // Mutation para salvar
   const saveMutation = useMutation({
-    mutationFn: async (data: ConfigData) => {
+    mutationFn: async (data: Omit<UserSettings, "id" | "userId" | "createdAt" | "updatedAt">) => {
       const response = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,10 +62,10 @@ export default function ConfiguracoesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
-      alert("Configurações salvas com sucesso!");
+      toast.success("Configurações salvas com sucesso!");
     },
     onError: () => {
-      alert("Erro ao salvar configurações");
+      toast.error("Erro ao salvar configurações");
     },
   });
 
@@ -84,7 +74,7 @@ export default function ConfiguracoesPage() {
     saveMutation.mutate(config);
   };
 
-  const handleChange = (field: keyof ConfigData, value: string) => {
+  const handleChange = (field: keyof Omit<UserSettings, "id" | "userId" | "createdAt" | "updatedAt">, value: string) => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
