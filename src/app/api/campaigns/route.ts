@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       if (!userSettings.emailTitulo1?.trim() || !userSettings.emailCorpo1?.trim()) {
         templatesVazios.push("Email 1");
       }
-      if (!userSettings.emailTitulo2?.trim() || !userSettings.emailCorpo2?.trim()) {
+      if (!userSettings.emailCorpo2?.trim()) {
         templatesVazios.push("Email 2");
       }
       if (!userSettings.emailTitulo3?.trim() || !userSettings.emailCorpo3?.trim()) {
@@ -178,7 +178,15 @@ export async function POST(request: NextRequest) {
         assinatura: userSettings.assinatura,
         telefoneContato: userSettings.telefoneContato,
         websiteEmpresa: userSettings.websiteEmpresa,
-        senderEmails: JSON.parse(userSettings.senderEmails || "[]"),
+        senderEmails: (() => {
+          try {
+            const parsed = JSON.parse(userSettings.senderEmails || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            console.error('[Campaigns] Invalid senderEmails JSON:', error);
+            return [];
+          }
+        })(),
 
         // Prompts customizáveis
         promptOverview: userSettings.promptOverview,

@@ -4,9 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
 // Exportar para uso em webhooks/invalidações globais
-let globalQueryClient: QueryClient | null = null;
+let globalQueryClient: QueryClient | undefined;
 
 export function getQueryClient() {
+  if (!globalQueryClient && typeof window !== 'undefined') {
+    console.warn('[QueryClient] Accessed before initialization. This may cause cache invalidation to fail.');
+  }
   return globalQueryClient;
 }
 

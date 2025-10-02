@@ -4,6 +4,7 @@
  */
 
 import { getQueryClient } from "./react-query";
+import { CampaignStatus } from "@prisma/client";
 
 /**
  * Invalida cache de campanhas (lista e detalhes)
@@ -53,7 +54,7 @@ export function invalidateAllCampaignData(campaignId: string) {
  */
 export function updateCampaignStatusOptimistic(
   campaignId: string,
-  newStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED"
+  newStatus: CampaignStatus
 ) {
   const queryClient = getQueryClient();
   if (!queryClient) return;

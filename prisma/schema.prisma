@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
@@ -50,6 +51,16 @@ model UserSettings {
   // Emails Remetentes (CRÍTICO - armazenado como JSON array)
   senderEmails            String   @default("[]") @map("sender_emails") @db.Text
 
+  // Configurações de Timing de Emails (personalizável pelo usuário)
+  email2DelayDays         Int      @default(3) @map("email_2_delay_days")         // Dias após Email 1
+  email3DelayDays         Int      @default(7) @map("email_3_delay_days")         // Dias após Email 2
+  sendDelayMinMs          Int      @default(100) @map("send_delay_min_ms")        // Delay mínimo entre envios (ms)
+  sendDelayMaxMs          Int      @default(500) @map("send_delay_max_ms")        // Delay máximo entre envios (ms)
+  dailyEmailLimit         Int      @default(100) @map("daily_email_limit")        // Limite diário de envios
+  sendOnlyBusinessHours   Boolean  @default(true) @map("send_only_business_hours") // Enviar apenas em horário comercial
+  businessHourStart       Int      @default(9) @map("business_hour_start")        // Hora de início (0-23)
+  businessHourEnd         Int      @default(18) @map("business_hour_end")         // Hora de fim (0-23)
+
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
@@ -80,6 +91,7 @@ model Lead {
   id             String     @id @default(cuid())
   campaignId     String     @map("campaign_id")
   nomeEmpresa    String     @map("nome_empresa")
+  email          String?    // Email do lead para envio (obrigatório para campanhas completas)
   endereco       String?
   website        String?
   telefone       String?

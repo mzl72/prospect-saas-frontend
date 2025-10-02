@@ -32,6 +32,13 @@ export default function CampanhasPage() {
   const pollingStartTimes = useRef<Record<string, number>>({});
   const MAX_POLLING_TIME = 30 * 60 * 1000; // 30 minutos timeout
 
+  // Cleanup ao desmontar componente - previne memory leak
+  useEffect(() => {
+    return () => {
+      pollingStartTimes.current = {};
+    };
+  }, []);
+
   const { data: campanhas = [], isLoading } = useQuery({
     queryKey: ["campaigns"],
     queryFn: async () => {

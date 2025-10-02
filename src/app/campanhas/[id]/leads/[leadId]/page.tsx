@@ -133,7 +133,7 @@ export default function LeadEmailsPage() {
       </div>
 
       {/* Análise Estratégica (se existir) */}
-      {(lead.companyResearch || lead.strategicAnalysis || lead.personalization) && (
+      {lead.companyResearch && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -141,42 +141,13 @@ export default function LeadEmailsPage() {
               Análise de IA
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {lead.companyResearch && (
-              <div>
-                <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  Pesquisa da Empresa:
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                  {lead.companyResearch}
-                </p>
-              </div>
-            )}
-
-            {lead.strategicAnalysis && (
-              <div>
-                <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  Análise Estratégica:
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                  {lead.strategicAnalysis}
-                </p>
-              </div>
-            )}
-
-            {lead.personalization && (
-              <div>
-                <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  Personalização:
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                  {lead.personalization}
-                </p>
-              </div>
-            )}
+          <CardContent>
+            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+              {lead.companyResearch}
+            </p>
 
             {lead.analysisLink && (
-              <div>
+              <div className="mt-4">
                 <Button
                   variant="outline"
                   size="sm"

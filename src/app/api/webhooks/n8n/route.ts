@@ -8,8 +8,7 @@ function validateWebhookSecret(request: NextRequest): boolean {
   const expectedSecret = process.env.N8N_WEBHOOK_SECRET
 
   if (!expectedSecret) {
-    console.warn('N8N_WEBHOOK_SECRET não configurado')
-    return true // Em dev, permite sem secret
+    throw new Error('N8N_WEBHOOK_SECRET must be configured in environment variables')
   }
 
   return secret === expectedSecret
@@ -155,13 +154,14 @@ async function handleLeadsExtracted(data: {
 async function handleLeadEnriched(data: {
   leadId?: string
   apifyId?: string
-  companyResearch: string
-  strategicAnalysis: string
-  personalization: string
-  analysisLink: string
+  companyName?: string
+  email?: string // OPCIONAL - Email do lead (quando disponível)
+  companyResearch?: string
+  strategicAnalysis?: string
+  personalization?: string
+  analysisLink?: string
   email1Subject: string
   email1Body: string
-  email2Subject: string
   email2Body: string
   email3Subject: string
   email3Body: string
@@ -171,13 +171,14 @@ async function handleLeadEnriched(data: {
   const {
     leadId,
     apifyId,
+    companyName,
+    email,
     companyResearch,
     strategicAnalysis,
     personalization,
     analysisLink,
     email1Subject,
     email1Body,
-    email2Subject,
     email2Body,
     email3Subject,
     email3Body,
@@ -185,12 +186,29 @@ async function handleLeadEnriched(data: {
     optOutToken,
   } = data
 
-  console.log(`[Lead Enriched] Lead: ${leadId || apifyId}`)
+  console.log(`[Lead Enriched] Lead: ${leadId || apifyId || companyName}`)
+  console.log(`[Lead Enriched] Email: ${email || 'not provided (ok for now)'}`)
+  console.log(`[Lead Enriched] Payload recebido:`, JSON.stringify(data, null, 2))
 
-  // Buscar lead por ID ou apifyId
+  // Validação: campos obrigatórios
+  if (!email1Subject || !email1Body || !email2Body || !email3Subject || !email3Body || !assignedSender) {
+    console.error(`[Lead Enriched] Campos obrigatórios ausentes no payload:`, {
+      email1Subject: !!email1Subject,
+      email1Body: !!email1Body,
+      email2Body: !!email2Body,
+      email3Subject: !!email3Subject,
+      email3Body: !!email3Body,
+      assignedSender: !!assignedSender,
+    })
+    throw new Error('Campos obrigatórios de email ausentes no payload')
+  }
+
+  // Buscar lead por ID, apifyId ou nome da empresa
   const whereClause = leadId
     ? { id: leadId }
-    : { apifyLeadId: apifyId }
+    : apifyId
+    ? { apifyLeadId: apifyId }
+    : { nomeEmpresa: companyName }
 
   const lead = await prisma.lead.findFirst({ where: whereClause })
 
@@ -199,14 +217,15 @@ async function handleLeadEnriched(data: {
     return
   }
 
-  // Atualizar lead com dados enriquecidos
+  // Atualizar lead com dados enriquecidos + EMAIL (se disponível)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      companyResearch,
-      strategicAnalysis,
-      personalization,
-      analysisLink,
+      email: email || null, // Salvar email se N8N conseguiu obter
+      companyResearch: companyResearch || null,
+      strategicAnalysis: strategicAnalysis || null,
+      personalization: personalization || null,
+      analysisLink: analysisLink || null,
       assignedSender,
       optOutToken,
       status: LeadStatus.ENRICHED,
@@ -228,7 +247,7 @@ async function handleLeadEnriched(data: {
       {
         leadId: lead.id,
         sequenceNumber: 2,
-        subject: email2Subject,
+        subject: `Re: ${email1Subject}`, // Email 2 é resposta na thread (bump)
         body: email2Body,
         senderAccount: assignedSender,
         status: EmailStatus.PENDING,
