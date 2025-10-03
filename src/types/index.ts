@@ -32,12 +32,27 @@ export interface UserSettings {
   emailTitulo3: string;
   emailCorpo3: string;
 
+  // WhatsApp Templates
+  whatsappMessage1: string;
+  whatsappMessage2: string;
+
   // Informações Críticas da Empresa
   nomeEmpresa: string;
   assinatura: string;
   telefoneContato: string;
   websiteEmpresa: string;
   senderEmails: string; // JSON array stored as string
+
+  // Timing Configuration
+  email2DelayDays: number;
+  email3DelayDays: number;
+  sendDelayMinMs: number;
+  sendDelayMaxMs: number;
+  dailyEmailLimit: number;
+  sendOnlyBusinessHours: boolean;
+  businessHourStart: number;
+  businessHourEnd: number;
+  useHybridCadence: boolean;
 
   createdAt: Date;
   updatedAt: Date;

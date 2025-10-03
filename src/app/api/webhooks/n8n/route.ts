@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { LeadStatus, EmailStatus } from '@prisma/client'
+import { LeadStatus, EmailStatus, WhatsAppStatus } from '@prisma/client'
 
 // Validação de segurança do webhook
 function validateWebhookSecret(request: NextRequest): boolean {
@@ -42,6 +42,10 @@ export async function POST(request: NextRequest) {
 
       case 'lead-enriched':
         await handleLeadEnriched(data)
+        break
+
+      case 'lead-enriched-whatsapp':
+        await handleLeadEnrichedWhatsApp(data)
         break
 
       case 'email-sent':
@@ -160,6 +164,16 @@ async function handleLeadEnriched(data: {
   strategicAnalysis?: string
   personalization?: string
   analysisLink?: string
+
+  // Redes sociais (opcionais - do actor lukaskrivka/google-maps-with-contact-details)
+  linkedinUrl?: string
+  twitterUrl?: string
+  instagramUrl?: string
+  facebookUrl?: string
+  youtubeUrl?: string
+  tiktokUrl?: string
+  pinterestUrl?: string
+
   email1Subject: string
   email1Body: string
   email2Body: string
@@ -177,6 +191,13 @@ async function handleLeadEnriched(data: {
     strategicAnalysis,
     personalization,
     analysisLink,
+    linkedinUrl,
+    twitterUrl,
+    instagramUrl,
+    facebookUrl,
+    youtubeUrl,
+    tiktokUrl,
+    pinterestUrl,
     email1Subject,
     email1Body,
     email2Body,
@@ -217,7 +238,7 @@ async function handleLeadEnriched(data: {
     return
   }
 
-  // Atualizar lead com dados enriquecidos + EMAIL (se disponível)
+  // Atualizar lead com dados enriquecidos + EMAIL + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
@@ -226,6 +247,16 @@ async function handleLeadEnriched(data: {
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
+
+      // Redes sociais (opcionais)
+      linkedinUrl: linkedinUrl || null,
+      twitterUrl: twitterUrl || null,
+      instagramUrl: instagramUrl || null,
+      facebookUrl: facebookUrl || null,
+      youtubeUrl: youtubeUrl || null,
+      tiktokUrl: tiktokUrl || null,
+      pinterestUrl: pinterestUrl || null,
+
       assignedSender,
       optOutToken,
       status: LeadStatus.ENRICHED,
@@ -264,6 +295,92 @@ async function handleLeadEnriched(data: {
   })
 
   console.log(`[Lead Enriched] Lead ${lead.id} enriquecido e 3 emails criados`)
+}
+
+// Handler: Lead enriquecido para WhatsApp (nova automação N8N)
+async function handleLeadEnrichedWhatsApp(data: {
+  leadId?: string
+  apifyId?: string
+  companyName?: string
+  whatsapp1Message: string
+  whatsapp2Message: string
+  whatsapp3Message: string
+  optOutToken: string
+}) {
+  const {
+    leadId,
+    apifyId,
+    companyName,
+    whatsapp1Message,
+    whatsapp2Message,
+    whatsapp3Message,
+    optOutToken,
+  } = data
+
+  console.log(`[Lead Enriched WhatsApp] Lead: ${leadId || apifyId || companyName}`)
+
+  // Validação: campos obrigatórios
+  if (!whatsapp1Message || !whatsapp2Message || !whatsapp3Message) {
+    throw new Error('Campos obrigatórios de WhatsApp ausentes no payload')
+  }
+
+  // Buscar lead por ID, apifyId ou nome da empresa
+  const whereClause = leadId
+    ? { id: leadId }
+    : apifyId
+    ? { apifyLeadId: apifyId }
+    : { nomeEmpresa: companyName }
+
+  const lead = await prisma.lead.findFirst({ where: whereClause })
+
+  if (!lead) {
+    console.error(`[Lead Enriched WhatsApp] Lead não encontrado`)
+    return
+  }
+
+  if (!lead.telefone) {
+    console.error(`[Lead Enriched WhatsApp] Lead sem telefone, impossível enviar WhatsApp`)
+    return
+  }
+
+  // Atualizar lead com optOutToken e status
+  await prisma.lead.update({
+    where: { id: lead.id },
+    data: {
+      optOutToken,
+      status: LeadStatus.ENRICHED,
+      enrichedAt: new Date(),
+    },
+  })
+
+  // Criar os 3 registros de WhatsApp
+  await prisma.whatsAppMessage.createMany({
+    data: [
+      {
+        leadId: lead.id,
+        sequenceNumber: 1,
+        phoneNumber: lead.telefone,
+        message: whatsapp1Message,
+        status: WhatsAppStatus.PENDING,
+      },
+      {
+        leadId: lead.id,
+        sequenceNumber: 2,
+        phoneNumber: lead.telefone,
+        message: whatsapp2Message,
+        status: WhatsAppStatus.PENDING,
+      },
+      {
+        leadId: lead.id,
+        sequenceNumber: 3,
+        phoneNumber: lead.telefone,
+        message: whatsapp3Message,
+        status: WhatsAppStatus.PENDING,
+      },
+    ],
+  })
+
+  console.log(`[Lead Enriched WhatsApp] Lead ${lead.id} enriquecido e 3 mensagens WhatsApp criadas`)
 }
 
 // Handler: Email enviado (Fluxos 3, 4, 5)

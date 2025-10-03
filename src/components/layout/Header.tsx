@@ -61,17 +61,37 @@ export function Header() {
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              Campanhas
+              Extrações
             </Link>
             <Link
-              href="/configuracoes"
+              href="/emails"
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive("/configuracoes")
+                pathname.startsWith("/emails")
                   ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400"
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              Configurações
+              Emails
+            </Link>
+            <Link
+              href="/whatsapp"
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                pathname.startsWith("/whatsapp")
+                  ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              WhatsApp
+            </Link>
+            <Link
+              href="/cadencia-hibrida"
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isActive("/cadencia-hibrida")
+                  ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              Cadência Híbrida
             </Link>
           </nav>
 

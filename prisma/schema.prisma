@@ -51,15 +51,30 @@ model UserSettings {
   // Emails Remetentes (CRÍTICO - armazenado como JSON array)
   senderEmails            String   @default("[]") @map("sender_emails") @db.Text
 
-  // Configurações de Timing de Emails (personalizável pelo usuário)
-  email2DelayDays         Int      @default(3) @map("email_2_delay_days")         // Dias após Email 1
-  email3DelayDays         Int      @default(7) @map("email_3_delay_days")         // Dias após Email 2
-  sendDelayMinMs          Int      @default(100) @map("send_delay_min_ms")        // Delay mínimo entre envios (ms)
-  sendDelayMaxMs          Int      @default(500) @map("send_delay_max_ms")        // Delay máximo entre envios (ms)
-  dailyEmailLimit         Int      @default(100) @map("daily_email_limit")        // Limite diário de envios
-  sendOnlyBusinessHours   Boolean  @default(true) @map("send_only_business_hours") // Enviar apenas em horário comercial
-  businessHourStart       Int      @default(9) @map("business_hour_start")        // Hora de início (0-23)
-  businessHourEnd         Int      @default(18) @map("business_hour_end")         // Hora de fim (0-23)
+  // WhatsApp Templates
+  whatsappMessage1        String   @default("") @map("whatsapp_message_1") @db.Text
+  whatsappMessage2        String   @default("") @map("whatsapp_message_2") @db.Text
+  whatsappMessage3        String   @default("") @map("whatsapp_message_3") @db.Text
+
+  // === CADÊNCIAS - Armazenado como JSON ===
+  // Formato: Array de { type: 'email'|'whatsapp', messageNumber: 1|2|3, dayOfWeek: 0-6, timeWindow: '09:00-11:00' }
+  // dayOfWeek: 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb
+
+  emailOnlyCadence        String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"email\",\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"email\",\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"09:00-11:00\"}]") @map("email_only_cadence") @db.Text
+
+  whatsappOnlyCadence     String   @default("[{\"type\":\"whatsapp\",\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"whatsapp\",\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"whatsapp\",\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"10:00-12:00\"}]") @map("whatsapp_only_cadence") @db.Text
+
+  hybridCadence           String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"whatsapp\",\"messageNumber\":1,\"dayOfWeek\":2,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"email\",\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"whatsapp\",\"messageNumber\":2,\"dayOfWeek\":4,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"email\",\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"09:00-11:00\"}]") @map("hybrid_cadence") @db.Text
+
+  // Configurações Globais
+  sendDelayMinMs          Int      @default(100) @map("send_delay_min_ms")
+  sendDelayMaxMs          Int      @default(500) @map("send_delay_max_ms")
+  dailyEmailLimit         Int      @default(100) @map("daily_email_limit")
+  sendOnlyBusinessHours   Boolean  @default(true) @map("send_only_business_hours")
+  businessHourStart       Int      @default(9) @map("business_hour_start")
+  businessHourEnd         Int      @default(18) @map("business_hour_end")
+
+  useHybridCadence        Boolean  @default(false) @map("use_hybrid_cadence")
 
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
@@ -91,7 +106,7 @@ model Lead {
   id             String     @id @default(cuid())
   campaignId     String     @map("campaign_id")
   nomeEmpresa    String     @map("nome_empresa")
-  email          String?    // Email do lead para envio (obrigatório para campanhas completas)
+  email          String?    // Email do lead para envio
   endereco       String?
   website        String?
   telefone       String?
@@ -99,6 +114,16 @@ model Lead {
   totalReviews   String?    @map("total_reviews")
   notaMedia      String?    @map("nota_media")
   linkGoogleMaps String?    @map("link_google_maps")
+
+  // Redes sociais (extraídas pelo actor lukaskrivka/google-maps-with-contact-details)
+  linkedinUrl    String?    @map("linkedin_url")
+  twitterUrl     String?    @map("twitter_url")
+  instagramUrl   String?    @map("instagram_url")
+  facebookUrl    String?    @map("facebook_url")
+  youtubeUrl     String?    @map("youtube_url")
+  tiktokUrl      String?    @map("tiktok_url")
+  pinterestUrl   String?    @map("pinterest_url")
+
   createdAt      DateTime   @default(now()) @map("created_at")
 
   // Campos de tracking e status
@@ -106,6 +131,7 @@ model Lead {
   extractedAt    DateTime?  @map("extracted_at")
   enrichedAt     DateTime?  @map("enriched_at")
   status         LeadStatus @default(EXTRACTED)
+  cadenceType    CadenceType? @map("cadence_type") // Qual tipo de cadência foi aplicada
 
   // Dados enriquecidos (Fluxo 2)
   companyResearch    String? @map("company_research") @db.Text
@@ -119,8 +145,9 @@ model Lead {
   optedOutAt     DateTime? @map("opted_out_at")
   repliedAt      DateTime? @map("replied_at")
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  emails   Email[]
+  campaign        Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  emails          Email[]
+  whatsappMessages WhatsAppMessage[]
 
   @@index([campaignId, status])
   @@map("leads")
@@ -177,4 +204,44 @@ model Email {
 
   @@index([leadId, sequenceNumber])
   @@map("emails")
+}
+
+model WhatsAppMessage {
+  id             String         @id @default(cuid())
+  leadId         String         @map("lead_id")
+  sequenceNumber Int            @map("sequence_number") // 1, 2 ou 3
+  phoneNumber    String         @map("phone_number")
+  message        String         @db.Text
+  status         WhatsAppStatus @default(PENDING)
+
+  // Tracking
+  sentAt      DateTime? @map("sent_at")
+  deliveredAt DateTime? @map("delivered_at")
+  readAt      DateTime? @map("read_at")
+  repliedAt   DateTime? @map("replied_at")
+
+  // Evolution API
+  messageId    String?   @unique @map("message_id")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, sequenceNumber])
+  @@map("whatsapp_messages")
+}
+
+enum WhatsAppStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  REPLIED
+  FAILED
+}
+
+enum CadenceType {
+  EMAIL_ONLY
+  WHATSAPP_ONLY
+  HYBRID
 }
