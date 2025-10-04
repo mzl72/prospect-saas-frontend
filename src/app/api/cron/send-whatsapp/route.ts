@@ -10,11 +10,11 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp-service'
 import {
   canSendWhatsApp,
   addOptOutFooter,
-  getRandomDelay,
-  canSendMoreToday,
 } from '@/lib/whatsapp-scheduler'
+import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils'
 import { EMAIL_TIMING } from '@/lib/constants'
 import { DEMO_USER_ID } from '@/lib/demo-user'
+import type { UserSettingsExtended } from '@/types/settings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos timeout
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // 1. Buscar configurações do usuário
     const userSettings = await prisma.userSettings.findUnique({
       where: { userId: DEMO_USER_ID },
-    })
+    }) as UserSettingsExtended | null
 
     if (!userSettings) {
       console.error('[WhatsApp Cron] User settings not found')
@@ -47,65 +47,126 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 2. Verificar quantas mensagens já foram enviadas hoje
+    // 2. Verificar quantas mensagens já foram enviadas hoje (por sequência)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const sentToday = await prisma.whatsAppMessage.count({
+    const sentTodayBySeq = await prisma.whatsAppMessage.groupBy({
+      by: ['sequenceNumber'],
       where: {
         status: WhatsAppStatus.SENT,
         sentAt: {
           gte: today,
         },
       },
+      _count: {
+        id: true,
+      },
     })
 
+    const sentSeq1 = sentTodayBySeq.find(s => s.sequenceNumber === 1)?._count.id || 0
+    const sentSeq2 = sentTodayBySeq.find(s => s.sequenceNumber === 2)?._count.id || 0
+    const sentSeq3 = sentTodayBySeq.find(s => s.sequenceNumber === 3)?._count.id || 0
+    const sentToday = sentSeq1 + sentSeq2 + sentSeq3
+
+    // Usar limite específico de WhatsApp se disponível
+    const whatsappLimit = userSettings.whatsappDailyLimit || userSettings.dailyEmailLimit
+
     console.log(
-      `[WhatsApp Cron] 📊 Sent today: ${sentToday}/${userSettings.dailyEmailLimit}`
+      `[WhatsApp Cron] 📊 Sent today: ${sentToday}/${whatsappLimit} (Seq1: ${sentSeq1}, Seq2: ${sentSeq2}, Seq3: ${sentSeq3})`
     )
 
-    if (!canSendMoreToday(sentToday, userSettings)) {
+    if (!canSendMoreToday(sentToday, whatsappLimit)) {
       console.log('[WhatsApp Cron] ⚠️ Daily limit reached, skipping')
       return NextResponse.json({
         success: true,
         message: 'Daily limit reached',
-        stats: { sentToday, limit: userSettings.dailyEmailLimit },
+        stats: { sentToday, limit: whatsappLimit },
       })
     }
 
-    // 3. Buscar mensagens pendentes (com todas as relações necessárias)
-    const remainingQuota = userSettings.dailyEmailLimit - sentToday
-    const batchSize = Math.min(EMAIL_TIMING.BATCH_SIZE, remainingQuota)
+    // 3. Verificar se já pode enviar (baseado no delay automático)
+    const sendLog = await prisma.channelSendLog.findUnique({
+      where: {
+        userId_channel: {
+          userId: DEMO_USER_ID,
+          channel: 'whatsapp',
+        },
+      },
+    })
 
+    if (sendLog && !canSendNow(sendLog.nextAllowedAt)) {
+      const waitTimeMs = sendLog.nextAllowedAt.getTime() - Date.now()
+      const waitMinutes = Math.ceil(waitTimeMs / 60000)
+      console.log(`[WhatsApp Cron] ⏳ Too soon to send, waiting ${waitMinutes} minutes`)
+      return NextResponse.json({
+        success: true,
+        message: 'Waiting for next send window',
+        stats: {
+          sentToday,
+          limit: whatsappLimit,
+          nextAllowedAt: sendLog.nextAllowedAt,
+          waitMinutes,
+        },
+      })
+    }
+
+    // 4. Determinar qual sequenceNumber deve ser enviado a seguir (distribuição equilibrada)
+    const nextSeq = getNextSequenceToSend(
+      { seq1: sentSeq1, seq2: sentSeq2, seq3: sentSeq3 },
+      whatsappLimit
+    )
+
+    console.log(`[WhatsApp Cron] 🎯 Next sequence to send: ${nextSeq} (balancing daily sends)`)
+
+    // 5. Buscar apenas 1 mensagem pendente da sequência escolhida
     const pendingMessages = await prisma.whatsAppMessage.findMany({
       where: {
         status: WhatsAppStatus.PENDING,
+        sequenceNumber: nextSeq, // Buscar apenas da sequência equilibrada
       },
       include: {
         lead: {
           include: {
             whatsappMessages: true,
+            emails: true, // Necessário para verificar sequência no modo híbrido
           },
         },
       },
-      take: batchSize,
+      take: 1, // APENAS 1 MENSAGEM POR EXECUÇÃO
       orderBy: {
         createdAt: 'asc',
       },
     })
 
-    console.log(`[WhatsApp Cron] 📨 Found ${pendingMessages.length} pending messages`)
+    if (pendingMessages.length === 0) {
+      console.log('[WhatsApp Cron] ✅ No pending messages found')
+      return NextResponse.json({
+        success: true,
+        message: 'No pending messages',
+        stats: { sentToday, limit: whatsappLimit },
+      })
+    }
 
+    console.log(`[WhatsApp Cron] 📨 Found 1 pending message to process`)
+
+    // 5. Processar a mensagem única
+    const message = pendingMessages[0]
     let sentCount = 0
     let skippedCount = 0
     let failedCount = 0
 
-    // 4. Processar cada mensagem
-    for (const message of pendingMessages) {
+    try {
       // Validar se pode enviar (timing, opt-out, replies, etc)
       if (!canSendWhatsApp(message, userSettings)) {
-        skippedCount++
-        continue
+        console.log(
+          `[WhatsApp Cron] ⏭️ Skipped message ${message.id} (seq ${message.sequenceNumber}) - not ready`
+        )
+        return NextResponse.json({
+          success: true,
+          message: 'Message not ready to send yet',
+          stats: { sentToday, limit: whatsappLimit, skipped: 1 },
+        })
       }
 
       // Adicionar rodapé de opt-out
@@ -115,6 +176,10 @@ export async function GET(request: NextRequest) {
       )
 
       // Enviar via Evolution API
+      console.log(
+        `[WhatsApp Cron] 📤 Sending message ${message.id} (seq ${message.sequenceNumber}) to ${message.phoneNumber}`
+      )
+
       const result = await sendWhatsAppMessage({
         phone: message.phoneNumber,
         message: messageWithFooter,
@@ -132,27 +197,51 @@ export async function GET(request: NextRequest) {
         })
 
         // Atualizar status do lead baseado na sequência
-        if (message.sequenceNumber === 1) {
-          await prisma.lead.update({
-            where: { id: message.leadId },
-            data: { status: LeadStatus.EMAIL_1_SENT },
-          })
-        } else if (message.sequenceNumber === 2) {
-          await prisma.lead.update({
-            where: { id: message.leadId },
-            data: { status: LeadStatus.EMAIL_2_SENT },
-          })
-        } else if (message.sequenceNumber === 3) {
-          await prisma.lead.update({
-            where: { id: message.leadId },
-            data: { status: LeadStatus.EMAIL_3_SENT },
-          })
-        }
+        const newLeadStatus =
+          message.sequenceNumber === 1
+            ? LeadStatus.WHATSAPP_1_SENT
+            : message.sequenceNumber === 2
+            ? LeadStatus.WHATSAPP_2_SENT
+            : LeadStatus.WHATSAPP_3_SENT
+
+        await prisma.lead.update({
+          where: { id: message.leadId },
+          data: { status: newLeadStatus },
+        })
+
+        // Atualizar log de envio (calcular próximo horário permitido)
+        const whatsappHourStart = userSettings.whatsappBusinessHourStart || 9
+        const whatsappHourEnd = userSettings.whatsappBusinessHourEnd || 18
+        const nextAllowed = calculateNextAllowedSendTime(
+          whatsappHourStart,
+          whatsappHourEnd,
+          whatsappLimit
+        )
+
+        await prisma.channelSendLog.upsert({
+          where: {
+            userId_channel: {
+              userId: DEMO_USER_ID,
+              channel: 'whatsapp',
+            },
+          },
+          create: {
+            userId: DEMO_USER_ID,
+            channel: 'whatsapp',
+            lastSentAt: new Date(),
+            nextAllowedAt: nextAllowed,
+          },
+          update: {
+            lastSentAt: new Date(),
+            nextAllowedAt: nextAllowed,
+          },
+        })
+
+        console.log(
+          `[WhatsApp Cron] ✅ Sent message ${message.id} (messageId: ${result.messageId}). Next send allowed at: ${nextAllowed.toLocaleString()}`
+        )
 
         sentCount++
-        console.log(
-          `[WhatsApp Cron] ✅ Sent message ${message.sequenceNumber} to ${message.phoneNumber}`
-        )
       } else {
         // Marcar como falha
         await prisma.whatsAppMessage.update({
@@ -168,10 +257,9 @@ export async function GET(request: NextRequest) {
           `[WhatsApp Cron] ❌ Failed to send to ${message.phoneNumber}: ${result.error}`
         )
       }
-
-      // Rate limiting: delay aleatório entre envios
-      const delay = getRandomDelay(userSettings)
-      await new Promise((resolve) => setTimeout(resolve, delay))
+    } catch (error) {
+      failedCount++
+      console.error('[WhatsApp Cron] ❌ Error processing message:', error)
     }
 
     const duration = Date.now() - startTime
@@ -181,7 +269,6 @@ export async function GET(request: NextRequest) {
       sent: sentCount,
       skipped: skippedCount,
       failed: failedCount,
-      total: pendingMessages.length,
     })
 
     return NextResponse.json({
@@ -191,9 +278,8 @@ export async function GET(request: NextRequest) {
         sent: sentCount,
         skipped: skippedCount,
         failed: failedCount,
-        total: pendingMessages.length,
         sentToday: sentToday + sentCount,
-        dailyLimit: userSettings.dailyEmailLimit,
+        dailyLimit: whatsappLimit,
       },
     })
   } catch (error) {

@@ -5,6 +5,7 @@ import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
 
 // Templates padrão
 const DEFAULT_SETTINGS = {
+  // Prompts de IA
   templatePesquisa: `Pesquise informações detalhadas sobre a empresa {nome_empresa}, incluindo:
 - Setor de atuação
 - Principais produtos/serviços
@@ -13,16 +14,25 @@ const DEFAULT_SETTINGS = {
 - Localização
 - Site e redes sociais
 - Notícias recentes`,
-
   templateAnaliseEmpresa: `Analise a empresa {nome_empresa} e identifique:
 1. Principais dores e desafios do setor
 2. Oportunidades de melhoria
 3. Possíveis decisores (cargos)
 4. Como nosso produto pode ajudá-los
 5. Pontos de conexão para abordagem`,
+  informacoesPropria: `Somos uma plataforma SaaS de prospecção automatizada que utiliza IA para:
+- Gerar listas de leads qualificados do Google Maps
+- Pesquisar informações detalhadas sobre cada empresa
+- Criar emails personalizados automaticamente
+- Economizar 80% do tempo em prospecção manual
 
+Nossos clientes conseguem gerar 10x mais leads qualificados em 1/5 do tempo.`,
+  promptOverview: "",
+  promptTatica: "",
+  promptDiretrizes: "",
+
+  // Templates de Email
   emailTitulo1: "{nome_empresa} - Oportunidade de otimizar {area_interesse}",
-
   emailCorpo1: `Olá, equipe {nome_empresa}!
 
 Percebi que vocês atuam no setor de {setor} e identifiquei uma oportunidade interessante.
@@ -35,7 +45,6 @@ Podemos agendar uma conversa rápida de 15 minutos?
 
 Atenciosamente,
 [Seu Nome]`,
-
   emailCorpo2: `Olá novamente!
 
 Gostaria de retomar o assunto sobre como podemos ajudar a {nome_empresa} com {solucao}.
@@ -46,9 +55,7 @@ Teria disponibilidade para uma call esta semana?
 
 Abraços,
 [Seu Nome]`,
-
   emailTitulo3: "Última chance: Oportunidade para {nome_empresa}",
-
   emailCorpo3: `Oi!
 
 Este é meu último contato sobre a oportunidade que identifiquei para {nome_empresa}.
@@ -60,22 +67,65 @@ Se não houver interesse agora, tudo bem! Fico à disposição caso precisem no 
 Abraços,
 [Seu Nome]`,
 
-  informacoesPropria: `Somos uma plataforma SaaS de prospecção automatizada que utiliza IA para:
-- Gerar listas de leads qualificados do Google Maps
-- Pesquisar informações detalhadas sobre cada empresa
-- Criar emails personalizados automaticamente
-- Economizar 80% do tempo em prospecção manual
+  // Informações da Empresa
+  nomeEmpresa: "",
+  assinatura: "",
+  telefoneContato: "",
+  websiteEmpresa: "",
+  senderEmails: "[]",
 
-Nossos clientes conseguem gerar 10x mais leads qualificados em 1/5 do tempo.`,
+  // Templates WhatsApp
+  whatsappMessage1: "",
+  whatsappMessage2: "",
+  whatsappMessage3: "",
+  evolutionInstances: "[]",
+
+  // Intervalos de Cadência (JSON)
+  emailIntervals: '[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]',
+  whatsappIntervals: '[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]',
+  hybridIntervals: '[{"type":"email","messageNumber":1,"emailNumber":1,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":4,"whatsappNumber":2,"daysAfterPrevious":1},{"type":"email","messageNumber":5,"emailNumber":3,"daysAfterPrevious":1}]',
+  useHybridCadence: false,
+
+  // Configurações de Email
+  email2DelayDays: 3,
+  email3DelayDays: 7,
+  dailyEmailLimit: 100,
+  emailBusinessHourStart: 9,
+  emailBusinessHourEnd: 18,
+
+  // Configurações de WhatsApp
+  whatsappDailyLimit: 50,
+  whatsappBusinessHourStart: 9,
+  whatsappBusinessHourEnd: 18,
+
+  // Configurações Híbridas
+  hybridDailyLimit: 70,
+  hybridBusinessHourStart: 9,
+  hybridBusinessHourEnd: 18,
+
+  // Configurações Gerais
+  sendOnlyBusinessHours: true,
 };
 
-// Função avançada para sanitizar HTML/scripts e prevenir XSS
+// Função para sanitizar HTML/scripts e prevenir XSS
+// NOTA: Permite variáveis de template no formato {variavel}
 function sanitizeInput(text: string): string {
-  return text
+  // Temporariamente substitui variáveis de template para preservá-las
+  const templateVars: string[] = [];
+  let sanitized = text.replace(/\{[^}]+\}/g, (match) => {
+    templateVars.push(match);
+    return `__TEMPLATE_VAR_${templateVars.length - 1}__`;
+  });
+
+  // Aplica sanitização
+  sanitized = sanitized
     // Remove tags script completas
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    // Remove todas as tags HTML
-    .replace(/<[^>]*>/g, "")
+    // Remove apenas tags HTML perigosas (preserva formatação básica se necessário)
+    .replace(/<script[^>]*>.*?<\/script>/gi, "")
+    .replace(/<iframe[^>]*>.*?<\/iframe>/gi, "")
+    .replace(/<embed[^>]*>/gi, "")
+    .replace(/<object[^>]*>.*?<\/object>/gi, "")
     // Remove event handlers inline (onclick, onerror, etc.)
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
     // Remove javascript: protocol
@@ -85,10 +135,20 @@ function sanitizeInput(text: string): string {
     // Remove null bytes
     .replace(/\0/g, "")
     .trim();
+
+  // Restaura variáveis de template
+  templateVars.forEach((varName, index) => {
+    sanitized = sanitized.replace(`__TEMPLATE_VAR_${index}__`, varName);
+  });
+
+  return sanitized;
 }
 
 // Validação adicional contra padrões XSS comuns
 function containsXSS(text: string): boolean {
+  // Remove variáveis de template temporariamente para validação
+  const withoutTemplateVars = text.replace(/\{[^}]+\}/g, '');
+
   const xssPatterns = [
     /<script/i,
     /javascript:/i,
@@ -99,13 +159,13 @@ function containsXSS(text: string): boolean {
     /<iframe/i,
     /<embed/i,
     /<object/i,
-    /eval\(/i,
-    /expression\(/i,
+    /eval\s*\(/i,
+    /expression\s*\(/i,
     /vbscript:/i,
     /data:text\/html/i,
   ];
 
-  return xssPatterns.some(pattern => pattern.test(text));
+  return xssPatterns.some(pattern => pattern.test(withoutTemplateVars));
 }
 
 // Esquema de validação com Zod + proteção XSS
@@ -260,7 +320,89 @@ const settingsSchema = z.object({
     .optional()
     .default("[]"),
 
-  // Configurações de Timing de Emails
+  // WhatsApp Templates
+  whatsappMessage1: z
+    .string()
+    .max(5000, "Mensagem muito longa")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  whatsappMessage2: z
+    .string()
+    .max(5000, "Mensagem muito longa")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  whatsappMessage3: z
+    .string()
+    .max(5000, "Mensagem muito longa")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+
+  // Evolution API Instances
+  evolutionInstances: z
+    .string()
+    .refine((val) => {
+      try {
+        JSON.parse(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, { message: "JSON inválido" })
+    .optional()
+    .default("[]"),
+
+  // Message Intervals (JSON fields)
+  emailIntervals: z
+    .string()
+    .refine((val) => {
+      try {
+        JSON.parse(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, { message: "JSON inválido" })
+    .optional()
+    .default('[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]'),
+  whatsappIntervals: z
+    .string()
+    .refine((val) => {
+      try {
+        JSON.parse(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, { message: "JSON inválido" })
+    .optional()
+    .default('[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]'),
+  hybridIntervals: z
+    .string()
+    .refine((val) => {
+      try {
+        JSON.parse(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, { message: "JSON inválido" })
+    .optional()
+    .default('[{"type":"email","messageNumber":1,"emailNumber":1,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":4,"whatsappNumber":2,"daysAfterPrevious":1},{"type":"email","messageNumber":5,"emailNumber":3,"daysAfterPrevious":1}]'),
+  useHybridCadence: z.boolean().optional().default(false),
+
+  // Configurações de Timing de Emails (deprecated but kept for backward compatibility)
   email2DelayDays: z
     .number()
     .int()
@@ -275,20 +417,6 @@ const settingsSchema = z.object({
     .max(30, "Máximo 30 dias")
     .optional()
     .default(7),
-  sendDelayMinMs: z
-    .number()
-    .int()
-    .min(0, "Mínimo 0ms")
-    .max(5000, "Máximo 5000ms")
-    .optional()
-    .default(100),
-  sendDelayMaxMs: z
-    .number()
-    .int()
-    .min(0, "Mínimo 0ms")
-    .max(10000, "Máximo 10000ms")
-    .optional()
-    .default(500),
   dailyEmailLimit: z
     .number()
     .int()
@@ -296,21 +424,67 @@ const settingsSchema = z.object({
     .max(1000, "Máximo 1000 emails")
     .optional()
     .default(100),
+
+  // WhatsApp-specific timing settings
+  whatsappDailyLimit: z
+    .number()
+    .int()
+    .min(1, "Mínimo 1 mensagem")
+    .max(1000, "Máximo 1000 mensagens")
+    .optional()
+    .default(50),
   sendOnlyBusinessHours: z.boolean().optional().default(true),
-  businessHourStart: z
+
+  // Per-channel business hours (new fields)
+  emailBusinessHourStart: z
     .number()
     .int()
     .min(0, "Mínimo 0h")
     .max(23, "Máximo 23h")
     .optional()
     .default(9),
-  businessHourEnd: z
+  emailBusinessHourEnd: z
     .number()
     .int()
     .min(0, "Mínimo 0h")
     .max(23, "Máximo 23h")
     .optional()
     .default(18),
+  whatsappBusinessHourStart: z
+    .number()
+    .int()
+    .min(0, "Mínimo 0h")
+    .max(23, "Máximo 23h")
+    .optional()
+    .default(9),
+  whatsappBusinessHourEnd: z
+    .number()
+    .int()
+    .min(0, "Mínimo 0h")
+    .max(23, "Máximo 23h")
+    .optional()
+    .default(18),
+  hybridBusinessHourStart: z
+    .number()
+    .int()
+    .min(0, "Mínimo 0h")
+    .max(23, "Máximo 23h")
+    .optional()
+    .default(9),
+  hybridBusinessHourEnd: z
+    .number()
+    .int()
+    .min(0, "Mínimo 0h")
+    .max(23, "Máximo 23h")
+    .optional()
+    .default(18),
+  hybridDailyLimit: z
+    .number()
+    .int()
+    .min(1, "Mínimo 1 mensagem")
+    .max(1000, "Máximo 1000 mensagens")
+    .optional()
+    .default(70),
 });
 
 // GET - Buscar configurações do usuário
@@ -358,10 +532,12 @@ export async function POST(request: NextRequest) {
     await ensureDemoUser();
 
     const body = await request.json();
+    console.log("📥 [API] Received body:", JSON.stringify(body, null, 2));
 
     // Validação robusta com Zod (inclui sanitização)
     const validatedBody = settingsSchema.safeParse(body);
     if (!validatedBody.success) {
+      console.error("❌ [API] Validation failed:", validatedBody.error.flatten());
       return NextResponse.json(
         {
           success: false,
@@ -373,6 +549,7 @@ export async function POST(request: NextRequest) {
     }
 
     const dataToSave = validatedBody.data;
+    console.log("✅ [API] Validation passed, saving:", JSON.stringify(dataToSave, null, 2));
 
     // Upsert (criar ou atualizar) settings
     const settings = await prisma.userSettings.upsert({
@@ -381,19 +558,25 @@ export async function POST(request: NextRequest) {
       update: dataToSave,
     });
 
+    console.log("✅ [API] Settings saved successfully");
+
     return NextResponse.json({
       success: true,
       message: "Configurações salvas com sucesso",
       settings,
     });
   } catch (error) {
-    console.error("[API /settings POST] Erro ao salvar configurações:", {
+    console.error("[API /settings POST] ❌ Erro ao salvar configurações:", {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(
-      { success: false, error: "Erro ao salvar configurações" },
+      {
+        success: false,
+        error: "Erro ao salvar configurações",
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

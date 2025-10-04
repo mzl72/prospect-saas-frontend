@@ -9,6 +9,19 @@ import { LeadStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Sanitiza string para prevenir XSS quando inserida em HTML
+ * Escapa caracteres especiais que podem executar scripts
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
 
@@ -148,7 +161,7 @@ export async function GET(request: NextRequest) {
           <body>
             <div class="container">
               <h1>✓ Já Descadastrado</h1>
-              <p>O email de <span class="company">${lead.nomeEmpresa}</span> já foi removido da nossa lista anteriormente.</p>
+              <p>O email de <span class="company">${escapeHtml(lead.nomeEmpresa || 'sua empresa')}</span> já foi removido da nossa lista anteriormente.</p>
               <p>Você não receberá mais mensagens nossas.</p>
             </div>
           </body>
@@ -230,7 +243,7 @@ export async function GET(request: NextRequest) {
         <body>
           <div class="container">
             <h1>✓ Descadastrado com Sucesso</h1>
-            <p>O email de <span class="company">${lead.nomeEmpresa}</span> foi removido da nossa lista.</p>
+            <p>O email de <span class="company">${escapeHtml(lead.nomeEmpresa || 'sua empresa')}</span> foi removido da nossa lista.</p>
             <p>Você não receberá mais mensagens nossas.</p>
 
             <div class="info">

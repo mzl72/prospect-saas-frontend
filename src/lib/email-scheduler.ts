@@ -3,7 +3,8 @@
  * Determina quando cada email deve ser enviado baseado em configurações do usuário
  */
 
-import { Email, EmailStatus, Lead, LeadStatus, UserSettings } from '@prisma/client';
+import { Email, EmailStatus, Lead, LeadStatus, UserSettings, CadenceType } from '@prisma/client';
+import { isWithinBusinessHours, isCorrectDayAndTime, hasCorrectDaysPassed, calculateAutoDelay } from './scheduling-utils';
 
 type EmailWithLead = Email & {
   lead: Lead & {
@@ -11,9 +12,16 @@ type EmailWithLead = Email & {
   };
 };
 
+interface CadenceItem {
+  type: "email" | "whatsapp";
+  messageNumber: 1 | 2 | 3;
+  dayOfWeek: number; // 0-6 (0=Dom)
+  timeWindow: string; // "09:00-11:00"
+}
+
 /**
  * Verifica se um email pode ser enviado agora
- * Considera: timing, opt-out, replies, horário comercial, etc
+ * Usa o novo sistema de cadências JSON
  */
 export function canSendEmail(
   email: EmailWithLead,
@@ -26,75 +34,74 @@ export function canSendEmail(
   if (lead.status === LeadStatus.REPLIED) return false;
   if (lead.status === LeadStatus.OPTED_OUT) return false;
   if (lead.status === LeadStatus.BOUNCED) return false;
-  if (!lead.email) return false; // Sem email do lead
+  if (!lead.email) return false;
 
   // Verificar horário comercial (se configurado)
   if (userSettings.sendOnlyBusinessHours) {
-    if (!isWithinBusinessHours(userSettings)) {
+    const emailHourStart = (userSettings as any).emailBusinessHourStart || 9;
+    const emailHourEnd = (userSettings as any).emailBusinessHourEnd || 18;
+    if (!isWithinBusinessHours(emailHourStart, emailHourEnd)) {
       console.log('[Scheduler] Outside business hours, skipping');
       return false;
     }
   }
 
-  // Email 1: Envia imediatamente após enrichment
-  if (sequenceNumber === 1) {
-    return lead.status === LeadStatus.ENRICHED;
-  }
+  // Determinar qual cadência usar
+  const cadenceType = lead.cadenceType || CadenceType.EMAIL_ONLY;
+  let cadenceItems: CadenceItem[] = [];
 
-  // Email 2: Aguardar delay configurado após Email 1
-  if (sequenceNumber === 2) {
-    const email1 = lead.emails.find((e) => e.sequenceNumber === 1);
-    if (!email1 || email1.status !== EmailStatus.SENT) return false;
-    if (!email1.sentAt) return false;
-
-    const delayMs = userSettings.email2DelayDays * 24 * 60 * 60 * 1000;
-    const timeSinceEmail1 = Date.now() - email1.sentAt.getTime();
-    return timeSinceEmail1 >= delayMs;
-  }
-
-  // Email 3: Aguardar delay configurado após Email 2
-  if (sequenceNumber === 3) {
-    const email2 = lead.emails.find((e) => e.sequenceNumber === 2);
-    if (!email2 || email2.status !== EmailStatus.SENT) return false;
-    if (!email2.sentAt) return false;
-
-    const delayMs = userSettings.email3DelayDays * 24 * 60 * 60 * 1000;
-    const timeSinceEmail2 = Date.now() - email2.sentAt.getTime();
-    return timeSinceEmail2 >= delayMs;
-  }
-
-  return false;
-}
-
-/**
- * Verifica se está dentro do horário comercial configurado
- */
-function isWithinBusinessHours(userSettings: UserSettings): boolean {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentDay = now.getDay(); // 0 = Domingo, 6 = Sábado
-
-  // Não enviar nos fins de semana
-  if (currentDay === 0 || currentDay === 6) {
+  try {
+    if (cadenceType === CadenceType.EMAIL_ONLY) {
+      cadenceItems = JSON.parse(userSettings.emailOnlyCadence);
+    } else if (cadenceType === CadenceType.HYBRID) {
+      cadenceItems = JSON.parse(userSettings.hybridCadence);
+    } else {
+      return false; // WhatsApp only não envia emails
+    }
+  } catch (error) {
+    console.error('[Scheduler] Failed to parse cadence JSON:', error);
     return false;
   }
 
-  // Verificar hora
-  return (
-    currentHour >= userSettings.businessHourStart &&
-    currentHour < userSettings.businessHourEnd
+  // Filtrar apenas emails desta sequência
+  const emailCadenceItem = cadenceItems.find(
+    (item) => item.type === "email" && item.messageNumber === sequenceNumber
   );
+
+  if (!emailCadenceItem) {
+    console.log(`[Scheduler] No cadence item for email ${sequenceNumber}`);
+    return false;
+  }
+
+  // Email 1: Envia imediatamente após enrichment (se for o dia correto)
+  if (sequenceNumber === 1) {
+    if (lead.status !== LeadStatus.ENRICHED) return false;
+    return isCorrectDayAndTime(emailCadenceItem);
+  }
+
+  // Email 2 ou 3: Verificar se mensagem anterior foi enviada
+  const previousEmailNumber = sequenceNumber - 1;
+  const previousEmail = lead.emails.find((e) => e.sequenceNumber === previousEmailNumber);
+
+  if (!previousEmail || previousEmail.status !== EmailStatus.SENT || !previousEmail.sentAt) {
+    return false;
+  }
+
+  // Verificar se já passou o dia correto desde a última mensagem
+  return hasCorrectDaysPassed(previousEmail.sentAt, emailCadenceItem);
 }
 
 /**
- * Gera um delay aleatório entre envios (humaniza o envio)
+ * Calcula o delay automático para emails baseado na janela de horário e limite
  * @param userSettings Configurações do usuário
  * @returns Delay em milissegundos
  */
 export function getRandomDelay(userSettings: UserSettings): number {
-  const min = userSettings.sendDelayMinMs;
-  const max = userSettings.sendDelayMaxMs;
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return calculateAutoDelay(
+    (userSettings as any).emailBusinessHourStart || 9,
+    (userSettings as any).emailBusinessHourEnd || 18,
+    userSettings.dailyEmailLimit
+  );
 }
 
 /**
@@ -117,18 +124,6 @@ export function addUnsubscribeFooter(
   `;
 }
 
-/**
- * Verifica se o limite diário de emails foi atingido
- * @param sentToday Quantidade de emails enviados hoje
- * @param userSettings Configurações do usuário
- * @returns true se ainda pode enviar
- */
-export function canSendMoreToday(
-  sentToday: number,
-  userSettings: UserSettings
-): boolean {
-  return sentToday < userSettings.dailyEmailLimit;
-}
 
 /**
  * Calcula quanto tempo falta para o próximo email poder ser enviado

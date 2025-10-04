@@ -27,47 +27,5 @@ export async function GET() {
   }
 }
 
-// PUT - Debitar créditos (não usado atualmente, mantido para compatibilidade)
-export async function PUT(request: NextRequest) {
-  try {
-    const { amount } = await request.json();
-
-    if (!amount || amount <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Quantidade inválida" },
-        { status: 400 }
-      );
-    }
-
-    // Garante que usuário existe
-    const demoUser = await ensureDemoUser();
-
-    // Importa prisma apenas quando necessário
-    const { prisma } = await import("@/lib/prisma-db");
-
-    const user = await prisma.user.update({
-      where: { id: demoUser.id },
-      data: {
-        credits: {
-          decrement: amount,
-        },
-      },
-      select: { credits: true },
-    });
-
-    return NextResponse.json({
-      success: true,
-      newBalance: user.credits,
-    });
-  } catch (error) {
-    console.error("[API /users/credits PUT] Erro ao debitar créditos:", {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-    });
-    return NextResponse.json(
-      { success: false, error: "Erro ao debitar créditos" },
-      { status: 500 }
-    );
-  }
-}
+// PUT removido - era código morto que nunca foi usado
+// Créditos são debitados diretamente em POST /api/campaigns

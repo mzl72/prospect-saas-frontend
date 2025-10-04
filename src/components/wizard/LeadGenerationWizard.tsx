@@ -7,6 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCampaignCost } from "@/hooks/useCampaignCost";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function LeadGenerationWizard() {
   const { currentStep } = useWizardStore();
@@ -243,6 +251,7 @@ function EtapaConfirmacao() {
   } = useWizardStore();
 
   const queryClient = useQueryClient();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const { data: creditos = 0 } = useQuery({
     queryKey: ["credits"],
@@ -274,8 +283,15 @@ function EtapaConfirmacao() {
       });
 
       const result = await response.json();
-      if (!result.success)
+      if (!result.success) {
+        // Se houver campos faltando, passar o objeto completo
+        if (result.missingFieldsByPage) {
+          const error: any = new Error(result.error || "Erro ao criar campanha");
+          error.missingFieldsByPage = result.missingFieldsByPage;
+          throw error;
+        }
         throw new Error(result.error || "Erro ao criar campanha");
+      }
 
       return result;
     },
@@ -307,6 +323,11 @@ function EtapaConfirmacao() {
 
   const handleGerarCampanha = () => {
     if (!creditosSuficientes) return;
+    setShowConfirmDialog(true);
+  };
+
+  const confirmarGeracao = () => {
+    setShowConfirmDialog(false);
     createCampaign.mutate();
   };
 
@@ -358,22 +379,56 @@ function EtapaConfirmacao() {
         </div>
       )}
 
-      {createCampaign.isError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
-          <p className="text-red-700 dark:text-red-400 text-sm font-medium mb-2">
-            {createCampaign.error?.message || "Erro ao criar campanha"}
-          </p>
-          {(createCampaign.error?.message?.includes("configurações") ||
-            createCampaign.error?.message?.includes("templates")) && (
-            <a
-              href="/configuracoes"
-              className="text-red-600 dark:text-red-300 text-sm underline hover:text-red-800 dark:hover:text-red-200 transition-colors"
-            >
-              Ir para Configurações →
-            </a>
-          )}
-        </div>
-      )}
+      {createCampaign.isError && (() => {
+        // Acessar missingFieldsByPage diretamente do objeto de erro
+        const missingFieldsByPage = (createCampaign.error as any)?.missingFieldsByPage;
+
+        if (missingFieldsByPage && Object.keys(missingFieldsByPage).length > 0) {
+          const pageNames: Record<string, string> = {
+            "/configuracoes#critical": "Configurações (Empresa)",
+            "/configuracoes#email": "Configurações (Email)",
+            "/configuracoes#whatsapp": "Configurações (WhatsApp)",
+            "/configuracoes#cadence": "Configurações (Cadência)",
+            "/configuracoes#prompts": "Configurações (Prompts IA)"
+          };
+
+          return (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg space-y-4">
+              <p className="text-red-700 dark:text-red-400 font-semibold text-sm">
+                Campos obrigatórios não preenchidos:
+              </p>
+
+              {Object.entries(missingFieldsByPage).map(([page, fields]: [string, any]) => (
+                <div key={page} className="bg-white dark:bg-gray-800 p-3 rounded border border-red-200 dark:border-red-700 space-y-2">
+                  <p className="text-red-600 dark:text-red-300 text-sm font-medium">
+                    {pageNames[page] || page}:
+                  </p>
+                  <ul className="list-disc list-inside text-red-600 dark:text-red-300 text-sm space-y-1">
+                    {(fields as string[]).map((field, idx) => (
+                      <li key={idx}>{field}</li>
+                    ))}
+                  </ul>
+                  <a
+                    href={page}
+                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                  >
+                    Ir para {pageNames[page] || "Configurações"} →
+                  </a>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        // Fallback para erros não estruturados
+        return (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
+            <p className="text-red-700 dark:text-red-400 text-sm">
+              {createCampaign.error?.message || "Erro ao criar campanha"}
+            </p>
+          </div>
+        );
+      })()}
 
       <div className="flex gap-3">
         <Button
@@ -391,6 +446,59 @@ function EtapaConfirmacao() {
           {createCampaign.isPending ? "Criando..." : "Gerar Campanha"}
         </Button>
       </div>
+
+      {/* Dialog de Confirmação */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar criação de campanha</DialogTitle>
+            <DialogDescription>
+              Você está prestes a criar uma campanha com as seguintes configurações:
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Tipo de negócio:</span>
+              <span className="font-medium dark:text-white">{tipoNegocio}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Localização:</span>
+              <span className="font-medium dark:text-white">{localizacao}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Quantidade:</span>
+              <span className="font-medium dark:text-white">{quantidade} leads</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Nível:</span>
+              <span className="font-medium dark:text-white capitalize">{nivelServico}</span>
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-gray-900 dark:text-white">Custo total:</span>
+                <span className="text-blue-600 dark:text-blue-400">{custo} créditos</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-gray-600 dark:text-gray-400">Saldo após:</span>
+                <span className="text-gray-900 dark:text-white">{creditos - custo} créditos</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmarGeracao}>
+              Confirmar e Gerar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

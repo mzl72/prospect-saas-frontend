@@ -38,57 +38,5 @@ export function invalidateLeads(campaignId: string, leadId?: string) {
   }
 }
 
-/**
- * Invalida todos os dados relacionados a uma campanha
- */
-export function invalidateAllCampaignData(campaignId: string) {
-  const queryClient = getQueryClient();
-  if (!queryClient) return;
-
-  queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-  queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
-}
-
-/**
- * Atualiza otimisticamente o status de uma campanha no cache
- */
-export function updateCampaignStatusOptimistic(
-  campaignId: string,
-  newStatus: CampaignStatus
-) {
-  const queryClient = getQueryClient();
-  if (!queryClient) return;
-
-  // Atualiza na lista de campanhas
-  queryClient.setQueryData(["campaigns"], (oldData: any) => {
-    if (!Array.isArray(oldData)) return oldData;
-    return oldData.map((campaign: any) =>
-      campaign.id === campaignId ? { ...campaign, status: newStatus } : campaign
-    );
-  });
-
-  // Atualiza nos detalhes da campanha
-  queryClient.setQueryData(["campaign", campaignId], (oldData: any) => {
-    if (!oldData) return oldData;
-    return { ...oldData, status: newStatus };
-  });
-}
-
-/**
- * Atualiza otimisticamente contador de leads no cache
- */
-export function updateLeadCountOptimistic(campaignId: string, increment: number) {
-  const queryClient = getQueryClient();
-  if (!queryClient) return;
-
-  queryClient.setQueryData(["campaign", campaignId], (oldData: any) => {
-    if (!oldData || !oldData.stats) return oldData;
-    return {
-      ...oldData,
-      stats: {
-        ...oldData.stats,
-        extracted: (oldData.stats.extracted || 0) + increment,
-      },
-    };
-  });
-}
+// Funções de atualização otimista removidas - não eram utilizadas no código
+// O sistema usa invalidação simples via webhooks para atualizar dados

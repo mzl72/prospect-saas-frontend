@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
 import { EmailStatus, LeadStatus } from '@prisma/client';
+import { validateResendWebhookSignature } from '@/lib/webhook-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,25 @@ interface ResendWebhookEvent {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ResendWebhookEvent = await request.json();
+    // Validar webhook signature (HMAC)
+    const signature = request.headers.get('svix-signature') || request.headers.get('webhook-signature')
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+
+    if (!webhookSecret) {
+      throw new Error('RESEND_WEBHOOK_SECRET must be configured in environment variables')
+    }
+
+    const rawBody = await request.text()
+
+    if (!validateResendWebhookSignature(rawBody, signature, webhookSecret)) {
+      console.error('[Resend Webhook] Invalid signature - unauthorized access attempt')
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid webhook signature' },
+        { status: 401 }
+      )
+    }
+
+    const body: ResendWebhookEvent = JSON.parse(rawBody);
 
     console.log('[Resend Webhook] 📨 Event received:', {
       type: body.type,

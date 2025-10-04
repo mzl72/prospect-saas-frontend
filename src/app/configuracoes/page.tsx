@@ -40,6 +40,14 @@ export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState<TabType>("critical");
   const [senderEmailInput, setSenderEmailInput] = useState("");
 
+  // Suporte para navegação via hash (ex: /configuracoes#email)
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['critical', 'email', 'whatsapp', 'cadence', 'prompts', 'company'].includes(hash)) {
+      setActiveTab(hash as TabType);
+    }
+  }, []);
+
   const [config, setConfig] = useState<
     Omit<UserSettings, "id" | "userId" | "createdAt" | "updatedAt">
   >({

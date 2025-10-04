@@ -61,7 +61,7 @@ export function Header() {
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              Extrações
+              Campanhas
             </Link>
             <Link
               href="/emails"
@@ -91,7 +91,7 @@ export function Header() {
                   : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              Cadência Híbrida
+              Híbrido
             </Link>
           </nav>
 

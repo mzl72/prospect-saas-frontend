@@ -41,6 +41,43 @@ export const POLLING = {
   MAX_TIME: 30 * 60 * 1000, // 30 minutos timeout
 } as const;
 
+// Configurações de timeout de campanha
+export const CAMPAIGN_TIMEOUT = {
+  BASICO_SECONDS_PER_LEAD: 20,  // apenas extração
+  COMPLETO_SECONDS_PER_LEAD: 80, // extração (20s) + enriquecimento IA (60s)
+  TIMEOUT_MULTIPLIER: 2, // dobro do tempo estimado
+} as const;
+
+/**
+ * Calcula o tempo estimado e o timeout para uma campanha
+ * @param quantidade Número de leads
+ * @param tipo "BASICO" ou "COMPLETO"
+ * @returns { estimatedSeconds, timeoutSeconds, timeoutDate }
+ */
+export function calculateCampaignTimeout(
+  quantidade: number,
+  tipo: "BASICO" | "COMPLETO"
+): {
+  estimatedSeconds: number;
+  timeoutSeconds: number;
+  timeoutDate: Date;
+} {
+  const secondsPerLead =
+    tipo === "BASICO"
+      ? CAMPAIGN_TIMEOUT.BASICO_SECONDS_PER_LEAD
+      : CAMPAIGN_TIMEOUT.COMPLETO_SECONDS_PER_LEAD;
+
+  const estimatedSeconds = quantidade * secondsPerLead;
+  const timeoutSeconds = estimatedSeconds * CAMPAIGN_TIMEOUT.TIMEOUT_MULTIPLIER;
+  const timeoutDate = new Date(Date.now() + timeoutSeconds * 1000);
+
+  return {
+    estimatedSeconds,
+    timeoutSeconds,
+    timeoutDate,
+  };
+}
+
 // Configurações de envio de emails
 export const EMAIL_TIMING = {
   // Delays entre emails (em milissegundos)
@@ -60,6 +97,7 @@ export const EMAIL_TIMING = {
 // Mapeamento de status de campanhas
 export const CAMPAIGN_STATUS_LABELS = {
   PROCESSING: 'processando',
+  EXTRACTION_COMPLETED: 'extração concluída',
   COMPLETED: 'concluído',
   FAILED: 'falhou',
 } as const;
@@ -71,6 +109,9 @@ export const LEAD_STATUS_LABELS = {
   EMAIL_1_SENT: 'Email 1 Enviado',
   EMAIL_2_SENT: 'Email 2 Enviado',
   EMAIL_3_SENT: 'Email 3 Enviado',
+  WHATSAPP_1_SENT: 'WhatsApp 1 Enviado',
+  WHATSAPP_2_SENT: 'WhatsApp 2 Enviado',
+  WHATSAPP_3_SENT: 'WhatsApp 3 Enviado',
   REPLIED: 'Respondeu',
   OPTED_OUT: 'Opt-out',
   BOUNCED: 'Bounced',
@@ -83,7 +124,10 @@ export const LEAD_STATUS_COLORS = {
   EMAIL_1_SENT: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
   EMAIL_2_SENT: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
   EMAIL_3_SENT: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300',
-  REPLIED: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  WHATSAPP_1_SENT: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  WHATSAPP_2_SENT: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
+  WHATSAPP_3_SENT: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
+  REPLIED: 'bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-300',
   OPTED_OUT: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
   BOUNCED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 } as const;

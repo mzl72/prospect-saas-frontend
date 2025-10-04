@@ -2,7 +2,11 @@
 import { prisma } from "@/lib/prisma-db";
 import { NextRequest, NextResponse } from "next/server";
 import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
-import { CUSTO_BASICO, CUSTO_COMPLETO } from "@/hooks/useCampaignCost";
+import { calculateCampaignTimeout } from "@/lib/constants";
+import { calculateCampaignCost } from "@/lib/pricing-service";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit';
+import { CreateCampaignSchema } from '@/lib/validation-schemas';
+import { ZodError } from 'zod';
 
 export const dynamic = "force-dynamic";
 
@@ -45,31 +49,45 @@ export async function GET() {
 // POST - Criar nova campanha + Chamar N8N
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 10 campanhas por hora por IP
+    const clientIp = getClientIp(request)
+    const rateLimitResult = checkRateLimit({
+      identifier: `create-campaign:${clientIp}`,
+      maxRequests: 10,
+      windowMs: 60 * 60 * 1000, // 1 hora
+    })
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Você atingiu o limite de criação de campanhas. Tente novamente mais tarde.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      )
+    }
+
     const body = await request.json();
 
-    // Validação: quantidade deve estar na lista permitida
-    if (!ALLOWED_QUANTITIES.includes(body.quantidade)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Quantidade inválida. Permitido: ${ALLOWED_QUANTITIES.join(", ")}`,
-        },
-        { status: 400 }
-      );
+    // Validação com Zod - mais robusta e com mensagens de erro claras
+    try {
+      CreateCampaignSchema.parse(body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errorMessages = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return NextResponse.json(
+          { success: false, error: errorMessages, validationErrors: error.errors },
+          { status: 400 }
+        );
+      }
+      throw error;
     }
 
-    // Validação: campos obrigatórios
-    if (!body.tipoNegocio || !body.localizacao || !body.nivelServico) {
-      return NextResponse.json(
-        { success: false, error: "Campos obrigatórios ausentes" },
-        { status: 400 }
-      );
-    }
-
-    // Calcular custo
-    const custo = body.nivelServico === "basico"
-      ? body.quantidade * CUSTO_BASICO
-      : body.quantidade * CUSTO_COMPLETO;
+    // Calcular custo usando serviço centralizado
+    const custo = calculateCampaignCost(
+      body.quantidade,
+      body.nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO'
+    );
 
     // Garante que usuário existe antes da transação
     await ensureDemoUser();
@@ -80,44 +98,87 @@ export async function POST(request: NextRequest) {
     });
 
     // Validação: modo completo requer configurações
-    if (body.nivelServico === "completo" && !userSettings) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Configurações necessárias para o modo completo. Acesse /configuracoes e configure os templates de IA antes de criar uma campanha completa.",
-        },
-        { status: 400 }
-      );
-    }
+    if (body.nivelServico === "completo") {
+      const missingFieldsByPage: Record<string, string[]> = {};
 
-    // Validação adicional: verificar se templates estão preenchidos (modo completo)
-    if (body.nivelServico === "completo" && userSettings) {
-      const templatesVazios = [];
+      // Se não tem userSettings, todos os campos estão faltando
+      if (!userSettings) {
+        missingFieldsByPage["/configuracoes#critical"] = [
+          "Informações da Sua Empresa (aba Empresa)"
+        ];
+        missingFieldsByPage["/configuracoes#email"] = [
+          "Email 1 (Título e Corpo)",
+          "Email 2 (Corpo)",
+          "Email 3 (Título e Corpo)"
+        ];
+        missingFieldsByPage["/configuracoes#whatsapp"] = [
+          "WhatsApp Mensagem 1",
+          "WhatsApp Mensagem 2"
+        ];
+        missingFieldsByPage["/configuracoes#prompts"] = [
+          "Template de Pesquisa",
+          "Template de Análise de Empresa"
+        ];
 
-      if (!userSettings.templatePesquisa?.trim()) {
-        templatesVazios.push("Template de Pesquisa");
-      }
-      if (!userSettings.templateAnaliseEmpresa?.trim()) {
-        templatesVazios.push("Template de Análise de Empresa");
-      }
-      if (!userSettings.emailTitulo1?.trim() || !userSettings.emailCorpo1?.trim()) {
-        templatesVazios.push("Email 1");
-      }
-      if (!userSettings.emailCorpo2?.trim()) {
-        templatesVazios.push("Email 2");
-      }
-      if (!userSettings.emailTitulo3?.trim() || !userSettings.emailCorpo3?.trim()) {
-        templatesVazios.push("Email 3");
-      }
-      if (!userSettings.informacoesPropria?.trim()) {
-        templatesVazios.push("Informações da Sua Empresa");
-      }
-
-      if (templatesVazios.length > 0) {
         return NextResponse.json(
           {
             success: false,
-            error: `Os seguintes campos estão vazios em /configuracoes: ${templatesVazios.join(", ")}. Preencha-os antes de criar uma campanha completa.`,
+            error: "Configurações necessárias para o modo completo",
+            missingFieldsByPage,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Se tem userSettings, verificar quais campos estão faltando
+
+      // Helper para adicionar campo vazio
+      function addMissingField(page: string, fieldName: string) {
+        if (!missingFieldsByPage[page]) {
+          missingFieldsByPage[page] = [];
+        }
+        missingFieldsByPage[page].push(fieldName);
+      }
+
+      // Validar Templates de IA (aba Prompts)
+      if (!userSettings.templatePesquisa?.trim()) {
+        addMissingField("/configuracoes#prompts", "Template de Pesquisa");
+      }
+      if (!userSettings.templateAnaliseEmpresa?.trim()) {
+        addMissingField("/configuracoes#prompts", "Template de Análise de Empresa");
+      }
+
+      // Validar Informações da Empresa (aba Empresa)
+      if (!userSettings.informacoesPropria?.trim()) {
+        addMissingField("/configuracoes#critical", "Informações da Sua Empresa");
+      }
+
+      // Validar Emails (aba Email)
+      if (!userSettings.emailTitulo1?.trim() || !userSettings.emailCorpo1?.trim()) {
+        addMissingField("/configuracoes#email", "Email 1 (Título e Corpo)");
+      }
+      if (!userSettings.emailCorpo2?.trim()) {
+        addMissingField("/configuracoes#email", "Email 2 (Corpo)");
+      }
+      if (!userSettings.emailTitulo3?.trim() || !userSettings.emailCorpo3?.trim()) {
+        addMissingField("/configuracoes#email", "Email 3 (Título e Corpo)");
+      }
+
+      // Validar WhatsApp (aba WhatsApp)
+      if (!userSettings.whatsappMessage1?.trim()) {
+        addMissingField("/configuracoes#whatsapp", "WhatsApp Mensagem 1");
+      }
+      if (!userSettings.whatsappMessage2?.trim()) {
+        addMissingField("/configuracoes#whatsapp", "WhatsApp Mensagem 2");
+      }
+
+      // Retornar erro estruturado se houver campos vazios
+      if (Object.keys(missingFieldsByPage).length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Campos obrigatórios não preenchidos",
+            missingFieldsByPage,
           },
           { status: 400 }
         );
@@ -142,16 +203,28 @@ export async function POST(request: NextRequest) {
         data: { credits: { decrement: custo } },
       });
 
-      // 3. Criar campanha
+      // 3. Calcular timeout da campanha
+      const campaignType = body.nivelServico.toUpperCase() as "BASICO" | "COMPLETO";
+      const { estimatedSeconds, timeoutDate } = calculateCampaignTimeout(
+        body.quantidade,
+        campaignType
+      );
+
+      // 4. Criar campanha
       const campaign = await tx.campaign.create({
         data: {
           userId: DEMO_USER_ID,
           title: body.titulo,
           quantidade: body.quantidade,
-          tipo: body.nivelServico.toUpperCase() as "BASICO" | "COMPLETO",
+          tipo: campaignType,
           termos: body.tipoNegocio.join(","),
           locais: body.localizacao.join(","),
           status: "PROCESSING",
+          processStartedAt: new Date(),
+          estimatedCompletionTime: estimatedSeconds,
+          timeoutAt: timeoutDate,
+          creditsCost: custo,
+          leadsRequested: body.quantidade, // quantidade solicitada pelo usuário
         },
       });
 
@@ -219,14 +292,45 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: n8nPayload }),
-    }).catch((error) => {
-      console.error("[API /campaigns POST] Erro ao chamar N8N (não crítico):", {
-        error: error instanceof Error ? error.message : error,
-        campaignId: result.id,
-        n8nUrl,
-        timestamp: new Date().toISOString(),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`N8N returned status ${response.status}`);
+        }
+        console.log(`[API /campaigns POST] ✅ N8N webhook called successfully for campaign ${result.id}`);
+      })
+      .catch(async (error) => {
+        console.error("[API /campaigns POST] ❌ Erro ao chamar N8N:", {
+          error: error instanceof Error ? error.message : error,
+          campaignId: result.id,
+          n8nUrl,
+          timestamp: new Date().toISOString(),
+        });
+
+        try {
+          // Reembolsar créditos e marcar campanha como falha
+          await prisma.$transaction([
+            // Devolver créditos ao usuário
+            prisma.user.update({
+              where: { id: DEMO_USER_ID },
+              data: {
+                credits: {
+                  increment: custo,
+                },
+              },
+            }),
+            // Marcar campanha como falha
+            prisma.campaign.update({
+              where: { id: result.id },
+              data: { status: "FAILED" },
+            }),
+          ]);
+
+          console.log(`[API /campaigns POST] 💰 Refunded ${custo} credits to user due to N8N failure`);
+        } catch (updateError) {
+          console.error("[API /campaigns POST] ❌ Failed to refund credits:", updateError);
+        }
       });
-    });
 
     // 6. Resposta imediata para frontend
     return NextResponse.json({

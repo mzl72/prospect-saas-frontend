@@ -23,7 +23,9 @@ export function ReactQueryProvider({
       const client = new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutos
+            // Reduzido para 3min - dados atualizados a cada 5min pelo cron
+            // Evita mostrar dados muito desatualizados ao usuário
+            staleTime: 3 * 60 * 1000, // 3 minutos
             gcTime: 10 * 60 * 1000, // 10 minutos (cache)
             retry: (failureCount, error) => {
               // Não retenta erros 4xx (erro do cliente)

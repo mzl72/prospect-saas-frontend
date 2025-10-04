@@ -10,21 +10,14 @@ import { useRef, useEffect } from "react";
 import type { CampaignResponse } from "@/types";
 
 function calcularTempoEstimado(quantidade: number, tipo: string): string {
-  let segundosPorLead: number;
-
-  if (tipo === "basico") {
-    segundosPorLead = 15;
-  } else {
-    segundosPorLead = 45;
-  }
-
+  // Usar valores corretos do constants.ts
+  const segundosPorLead = tipo === "basico" ? 20 : 80;
   const totalSegundos = quantidade * segundosPorLead;
   const minutos = Math.ceil(totalSegundos / 60);
 
   if (minutos < 1) return "menos de 1 min";
   if (minutos === 1) return "1 min";
-  if (minutos <= 3) return `${minutos - 1}-${minutos} min`;
-  return `${Math.floor(minutos * 0.9)}-${minutos} min`;
+  return `~${minutos} min`;
 }
 
 export default function CampanhasPage() {
@@ -49,15 +42,16 @@ export default function CampanhasPage() {
 
       return data.campaigns.map((c: CampaignResponse) => {
         const status = c.status === "PROCESSING" ? "processando" :
+                       c.status === "EXTRACTION_COMPLETED" ? "extração concluída" :
                        c.status === "FAILED" ? "falhou" : "concluido";
 
         // Registra tempo de início do polling
-        if (status === "processando" && !pollingStartTimes.current[c.id]) {
+        if ((status === "processando" || status === "extração concluída") && !pollingStartTimes.current[c.id]) {
           pollingStartTimes.current[c.id] = Date.now();
         }
 
         // Remove do rastreamento se completou
-        if (status !== "processando" && pollingStartTimes.current[c.id]) {
+        if (status !== "processando" && status !== "extração concluída" && pollingStartTimes.current[c.id]) {
           delete pollingStartTimes.current[c.id];
         }
 
@@ -69,6 +63,10 @@ export default function CampanhasPage() {
           tipo: c.tipo.toLowerCase(),
           criadoEm: new Date(c.createdAt).toLocaleString("pt-BR"),
           planilhaUrl: c.planilhaUrl,
+          leadsRequested: c.leadsRequested,
+          leadsCreated: c.leadsCreated,
+          leadsDuplicated: c.leadsDuplicated,
+          creditsRefunded: c.creditsRefunded,
         };
       });
     },
@@ -121,11 +119,15 @@ export default function CampanhasPage() {
             (campanha: {
               id: string;
               titulo: string;
-              status: "processando" | "concluido" | "falhou";
+              status: "processando" | "extração concluída" | "concluido" | "falhou";
               quantidade: number;
               tipo: "basico" | "completo";
               criadoEm: string;
               planilhaUrl?: string;
+              leadsRequested?: number;
+              leadsCreated?: number;
+              leadsDuplicated?: number;
+              creditsRefunded?: number;
             }) => (
               <Card key={campanha.id} className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
@@ -135,8 +137,24 @@ export default function CampanhasPage() {
                         {campanha.titulo}
                       </CardTitle>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                        {campanha.quantidade} leads • {campanha.tipo} •{" "}
-                        {campanha.criadoEm}
+                        {campanha.leadsCreated !== undefined && campanha.leadsRequested !== undefined ? (
+                          <>
+                            {campanha.leadsCreated} de {campanha.leadsRequested} leads criados
+                            {campanha.leadsDuplicated > 0 && (
+                              <span className="text-orange-600 dark:text-orange-400">
+                                {" "}• {campanha.leadsDuplicated} duplicados
+                              </span>
+                            )}
+                            {campanha.creditsRefunded > 0 && (
+                              <span className="text-green-600 dark:text-green-400">
+                                {" "}• {campanha.creditsRefunded.toFixed(2)} créditos reembolsados
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>{campanha.quantidade} leads solicitados</>
+                        )}
+                        {" • "}{campanha.tipo} • {campanha.criadoEm}
                       </p>
                     </div>
 
@@ -147,6 +165,16 @@ export default function CampanhasPage() {
                       >
                         <Clock className="w-3 h-3" />
                         Processando
+                      </Badge>
+                    )}
+
+                    {campanha.status === "extração concluída" && (
+                      <Badge
+                        variant="default"
+                        className="flex items-center gap-1 bg-green-600"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        Extração Concluída
                       </Badge>
                     )}
 
@@ -201,7 +229,7 @@ export default function CampanhasPage() {
                     </div>
                   )}
 
-                  {campanha.status === "concluido" && (
+                  {(campanha.status === "concluido" || campanha.status === "extração concluída") && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -225,11 +253,14 @@ export default function CampanhasPage() {
                   {campanha.status === "falhou" && (
                     <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
                       <p className="text-red-700 dark:text-red-400 text-sm font-medium">
-                        Erro ao processar campanha
+                        ⏱️ Campanha cancelada por timeout
                       </p>
                       <p className="text-red-600 dark:text-red-300 text-xs mt-1">
-                        A campanha pode ter falhado ou atingido o tempo limite.
-                        Tente criar uma nova campanha.
+                        A campanha ultrapassou o tempo limite de processamento e foi cancelada automaticamente.
+                        Os créditos foram devolvidos à sua conta.
+                      </p>
+                      <p className="text-red-500 dark:text-red-400 text-xs mt-2">
+                        💡 Dica: Tente criar uma nova campanha ou entre em contato com o suporte.
                       </p>
                     </div>
                   )}

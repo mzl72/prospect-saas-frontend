@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { LeadStatus, EmailStatus, WhatsAppStatus } from '@prisma/client'
+import { LeadStatus, EmailStatus, WhatsAppStatus, CadenceType } from '@prisma/client'
+import { handleLeadsExtracted } from './handleLeadsExtracted'
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
 
 // Validação de segurança do webhook
 function validateWebhookSecret(request: NextRequest): boolean {
@@ -22,6 +24,24 @@ type WebhookPayload = {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 100 requisições por minuto por IP
+    const clientIp = getClientIp(request)
+    const rateLimitResult = checkRateLimit({
+      identifier: `n8n-webhook:${clientIp}`,
+      maxRequests: 100,
+      windowMs: 60000, // 1 minuto
+    })
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      )
+    }
+
     // Validar secret
     if (!validateWebhookSecret(request)) {
       return NextResponse.json(
@@ -76,82 +96,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// Handler: Leads extraídos do Apify (Fluxo 1)
-async function handleLeadsExtracted(data: {
-  campaignId: string
-  leads: any
-}) {
-  const { campaignId, leads } = data
-
-  console.log(`[Leads Extracted] Recebido:`, { campaignId, leadsType: typeof leads })
-
-  // Normalizar formato dos leads
-  let leadsArray: any[] = []
-
-  if (Array.isArray(leads)) {
-    leadsArray = leads
-  } else if (typeof leads === 'string') {
-    try {
-      leadsArray = JSON.parse(leads)
-    } catch (e) {
-      console.error('[Leads Extracted] Erro ao fazer parse de leads string:', e)
-      throw new Error('Formato inválido de leads')
-    }
-  } else if (typeof leads === 'object') {
-    // Se for um objeto, pode ser que tenha vindo errado do N8N
-    console.error('[Leads Extracted] Leads veio como objeto:', leads)
-    throw new Error('Formato inválido de leads - esperado array')
-  }
-
-  console.log(`[Leads Extracted] Campaign ${campaignId}: ${leadsArray.length} leads`)
-
-  // Criar todos os leads no banco
-  const createdLeads = await Promise.all(
-    leadsArray.map(async (lead) => {
-      // Suportar tanto formato Apify quanto formato customizado
-      const leadData = {
-        apifyId: lead.apifyId || lead.nome_empresa + '-' + Date.now(),
-        title: lead.title || lead.nome_empresa,
-        address: lead.address || lead.endereco,
-        website: lead.website,
-        phone: lead.phone || lead.telefone_desformatado,
-        category: lead.category || lead.categoria,
-        totalScore: lead.totalScore || lead.nota_media,
-        reviewsCount: lead.reviewsCount || lead.total_reviews,
-        url: lead.url || lead.link_google_maps,
-      }
-
-      return prisma.lead.create({
-        data: {
-          campaignId,
-          apifyLeadId: leadData.apifyId,
-          nomeEmpresa: leadData.title,
-          endereco: leadData.address,
-          website: leadData.website,
-          telefone: leadData.phone,
-          categoria: leadData.category,
-          totalReviews: leadData.reviewsCount,
-          notaMedia: leadData.totalScore,
-          linkGoogleMaps: leadData.url,
-          status: LeadStatus.EXTRACTED,
-          extractedAt: new Date(),
-        },
-      })
-    })
-  )
-
-  // Atualizar status da campanha se ainda estiver PROCESSING
-  await prisma.campaign.update({
-    where: { id: campaignId },
-    data: {
-      status: 'PROCESSING',
-      updatedAt: new Date(),
-    },
-  })
-
-  console.log(`[Leads Extracted] ${createdLeads.length} leads criados`)
 }
 
 // Handler: Lead enriquecido com IA (Fluxo 2)
@@ -238,6 +182,26 @@ async function handleLeadEnriched(data: {
     return
   }
 
+  // Determinar tipo de cadência baseado em email e telefone disponíveis
+  let cadenceType: CadenceType = CadenceType.EMAIL_ONLY
+
+  const hasEmail = !!email || !!lead.email
+  const hasPhone = !!lead.telefone
+
+  if (hasEmail && hasPhone) {
+    // Buscar configurações do usuário para verificar se híbrido está ativo
+    const userSettings = await prisma.userSettings.findFirst()
+    if (userSettings?.useHybridCadence) {
+      cadenceType = CadenceType.HYBRID
+    } else {
+      cadenceType = CadenceType.EMAIL_ONLY // Default para email se híbrido desativado
+    }
+  } else if (hasEmail) {
+    cadenceType = CadenceType.EMAIL_ONLY
+  } else if (hasPhone) {
+    cadenceType = CadenceType.WHATSAPP_ONLY
+  }
+
   // Atualizar lead com dados enriquecidos + EMAIL + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
@@ -259,6 +223,7 @@ async function handleLeadEnriched(data: {
 
       assignedSender,
       optOutToken,
+      cadenceType, // Atribuir tipo de cadência
       status: LeadStatus.ENRICHED,
       enrichedAt: new Date(),
     },
@@ -295,6 +260,40 @@ async function handleLeadEnriched(data: {
   })
 
   console.log(`[Lead Enriched] Lead ${lead.id} enriquecido e 3 emails criados`)
+
+  // Verificar se todos os leads da campanha foram enriquecidos
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: lead.campaignId },
+    select: {
+      id: true,
+      tipo: true,
+      leadsCreated: true,
+      _count: {
+        select: {
+          leads: {
+            where: { status: LeadStatus.ENRICHED }
+          }
+        }
+      }
+    }
+  })
+
+  if (campaign && campaign.tipo === 'COMPLETO') {
+    const enrichedCount = campaign._count.leads
+    const totalLeads = campaign.leadsCreated
+
+    console.log(`[Lead Enriched] Progresso da campanha ${campaign.id}: ${enrichedCount}/${totalLeads} enriquecidos`)
+
+    // Se todos os leads foram enriquecidos, marcar campanha como COMPLETED
+    if (enrichedCount >= totalLeads && totalLeads > 0) {
+      await prisma.campaign.update({
+        where: { id: campaign.id },
+        data: { status: 'COMPLETED' }
+      })
+
+      console.log(`[Lead Enriched] ✅ Campanha ${campaign.id} marcada como COMPLETED (todos os ${totalLeads} leads enriquecidos)`)
+    }
+  }
 }
 
 // Handler: Lead enriquecido para WhatsApp (nova automação N8N)
@@ -343,11 +342,32 @@ async function handleLeadEnrichedWhatsApp(data: {
     return
   }
 
+  // Determinar tipo de cadência baseado em email e telefone disponíveis
+  let cadenceType: CadenceType = CadenceType.WHATSAPP_ONLY
+
+  const hasEmail = !!lead.email
+  const hasPhone = !!lead.telefone
+
+  if (hasEmail && hasPhone) {
+    // Buscar configurações do usuário para verificar se híbrido está ativo
+    const userSettings = await prisma.userSettings.findFirst()
+    if (userSettings?.useHybridCadence) {
+      cadenceType = CadenceType.HYBRID
+    } else {
+      cadenceType = CadenceType.WHATSAPP_ONLY // Default para whatsapp se híbrido desativado
+    }
+  } else if (hasEmail) {
+    cadenceType = CadenceType.EMAIL_ONLY
+  } else if (hasPhone) {
+    cadenceType = CadenceType.WHATSAPP_ONLY
+  }
+
   // Atualizar lead com optOutToken e status
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
       optOutToken,
+      cadenceType, // Atribuir tipo de cadência
       status: LeadStatus.ENRICHED,
       enrichedAt: new Date(),
     },

@@ -31,15 +31,15 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight">
-              Prospecção Inteligente
+              Prospecção B2B com
               <br />
               <span className="bg-gradient-to-r from-blue-200 via-cyan-200 to-blue-300 bg-clip-text text-transparent">
-                100% Automatizada
+                IA + Envio Automatizado
               </span>
             </h1>
             <p className="text-xl md:text-2xl mb-10 text-blue-50 max-w-3xl mx-auto leading-relaxed">
-              Gere listas de leads qualificados em minutos com e-mails
-              personalizados por IA prontos para envio
+              Extraia leads do Google Maps, enriqueça com IA e envie campanhas
+              personalizadas por Email e WhatsApp automaticamente
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button
@@ -95,7 +95,7 @@ export default function HomePage() {
               Como Funciona
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Processo simples em 3 etapas para gerar seus leads qualificados
+              Da extração ao envio automatizado em 3 etapas simples
             </p>
           </div>
 
@@ -117,8 +117,8 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Defina o tipo de empresa e localização que você quer alcançar.
-                  Nosso sistema usa Google Maps para encontrar prospects reais.
+                  Escolha nicho, localização e quantidade. Extraímos dados completos do
+                  Google Maps: nome, telefone, website, endereço e redes sociais.
                 </p>
               </CardContent>
             </Card>
@@ -134,14 +134,14 @@ export default function HomePage() {
                     02
                   </span>
                   <CardTitle className="text-xl dark:text-white">
-                    IA Enriquece os Dados
+                    IA Personaliza Mensagens
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Nossa inteligência artificial pesquisa cada empresa e cria
-                  e-mails personalizados baseados no negócio específico.
+                  Nossa IA pesquisa cada empresa, analisa o negócio e gera emails
+                  e mensagens de WhatsApp 100% personalizadas para cada lead.
                 </p>
               </CardContent>
             </Card>
@@ -157,14 +157,14 @@ export default function HomePage() {
                     03
                   </span>
                   <CardTitle className="text-xl dark:text-white">
-                    Receba Resultados
+                    Envio Automatizado
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Baixe sua planilha com leads qualificados e e-mails prontos.
-                  Envio automático opcional disponível.
+                  Configure cadências inteligentes e envie campanhas por Email,
+                  WhatsApp ou híbrido. Acompanhe respostas, aberturas e conversões em tempo real.
                 </p>
               </CardContent>
             </Card>
@@ -215,7 +215,7 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300">
-                      Nome, website e telefone da empresa
+                      Extração completa do Google Maps
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -223,7 +223,7 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300">
-                      Endereço e avaliações
+                      Dados: nome, telefone, website, endereço
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -231,7 +231,15 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300">
-                      Planilha para download
+                      Redes sociais e avaliações
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Exportação em planilha
                     </span>
                   </li>
                 </ul>
@@ -267,7 +275,7 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      Tudo do plano básico
+                      Tudo do plano Básico
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -275,7 +283,7 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      Pesquisa detalhada da empresa
+                      Pesquisa e análise com IA
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -283,7 +291,7 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      E-mails personalizados prontos
+                      Emails e WhatsApp personalizados
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
@@ -291,7 +299,15 @@ export default function HomePage() {
                       <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      Análise estratégica
+                      Envio automatizado com cadências
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                      Dashboard CRM e métricas em tempo real
                     </span>
                   </li>
                 </ul>

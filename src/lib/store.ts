@@ -1,7 +1,36 @@
+/**
+ * Estado Global com Zustand
+ *
+ * Decisões de arquitetura:
+ *
+ * 1. **useWizardStore (NÃO persistido)**
+ *    - Armazena estado temporário do wizard de criação de campanha
+ *    - Não usa persist() porque o wizard é um fluxo único de sessão
+ *    - Estado é resetado após criar campanha (melhor UX)
+ *    - Dados críticos são salvos na API, não no localStorage
+ *
+ * 2. **useUIStore (PERSISTIDO com partialize)**
+ *    - Armazena preferências de UI que devem persistir entre sessões
+ *    - Usa persist() para manter filtros e configurações do usuário
+ *    - partialize() persiste apenas: autoRefreshEnabled, leadFilters
+ *    - NÃO persiste: newDataAvailable (notificações são voláteis)
+ *    - Razão: Melhorar UX ao retornar à página
+ *
+ * Por que não usar Context API?
+ * - Zustand tem melhor performance (sem re-renders desnecessários)
+ * - API mais simples e menos boilerplate
+ * - Suporte nativo a persist middleware
+ * - Melhor DevTools e debugging
+ */
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { WizardState } from "@/types";
 
+/**
+ * Store do Wizard (Não Persistido)
+ * Estado temporário do fluxo de criação de campanha
+ */
 export const useWizardStore = create<WizardState>((set) => ({
   // Estado inicial
   currentStep: 1,
@@ -28,7 +57,10 @@ export const useWizardStore = create<WizardState>((set) => ({
     }),
 }));
 
-// Store para estados de UI globais (performance e UX)
+/**
+ * Store de UI (Persistido com partialize)
+ * Preferências e estado de UI que devem persistir entre sessões
+ */
 interface UIState {
   // Auto-refresh settings
   autoRefreshEnabled: Record<string, boolean>; // campaignId -> enabled

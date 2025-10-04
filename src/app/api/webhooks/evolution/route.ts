@@ -9,6 +9,12 @@ import { WhatsAppStatus, LeadStatus } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
+// WhatsApp Message Status Constants (Evolution API)
+const WHATSAPP_MESSAGE_STATUS = {
+  DELIVERED: 3,
+  READ: 4,
+} as const
+
 interface EvolutionWebhookEvent {
   event: string
   instance: string
@@ -23,8 +29,31 @@ interface EvolutionWebhookEvent {
   }
 }
 
+/**
+ * Valida webhook secret da Evolution API
+ */
+function validateEvolutionWebhook(request: NextRequest): boolean {
+  const apiKey = request.headers.get('apikey')
+  const expectedApiKey = process.env.EVOLUTION_API_KEY
+
+  if (!expectedApiKey) {
+    throw new Error('EVOLUTION_API_KEY must be configured in environment variables')
+  }
+
+  return apiKey === expectedApiKey
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Validar webhook secret
+    if (!validateEvolutionWebhook(request)) {
+      console.error('[Evolution Webhook] Unauthorized access attempt')
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid API key' },
+        { status: 401 }
+      )
+    }
+
     const body: EvolutionWebhookEvent = await request.json()
 
     console.log('[Evolution Webhook] Received event:', {
@@ -71,7 +100,7 @@ export async function POST(request: NextRequest) {
         const updateData = body.data as any
 
         // Entregue (delivered)
-        if (updateData.update?.status === 3) {
+        if (updateData.update?.status === WHATSAPP_MESSAGE_STATUS.DELIVERED) {
           await prisma.whatsAppMessage.update({
             where: { id: whatsappMessage.id },
             data: {
@@ -83,7 +112,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Lido (read)
-        if (updateData.update?.status === 4) {
+        if (updateData.update?.status === WHATSAPP_MESSAGE_STATUS.READ) {
           await prisma.whatsAppMessage.update({
             where: { id: whatsappMessage.id },
             data: {

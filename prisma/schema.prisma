@@ -56,23 +56,37 @@ model UserSettings {
   whatsappMessage2        String   @default("") @map("whatsapp_message_2") @db.Text
   whatsappMessage3        String   @default("") @map("whatsapp_message_3") @db.Text
 
-  // === CADÊNCIAS - Armazenado como JSON ===
-  // Formato: Array de { type: 'email'|'whatsapp', messageNumber: 1|2|3, dayOfWeek: 0-6, timeWindow: '09:00-11:00' }
-  // dayOfWeek: 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb
+  // Evolution API Instances (armazenado como JSON array)
+  evolutionInstances      String   @default("[]") @map("evolution_instances") @db.Text
 
-  emailOnlyCadence        String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"email\",\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"email\",\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"09:00-11:00\"}]") @map("email_only_cadence") @db.Text
+  // === INTERVALOS ENTRE MENSAGENS ===
+  // Formato: Array de { messageNumber: 1|2|3, daysAfterPrevious: number }
+  // Mensagem 1 sempre no dia 0, mensagem 2 após X dias da msg 1, mensagem 3 após Y dias da msg 2
 
-  whatsappOnlyCadence     String   @default("[{\"type\":\"whatsapp\",\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"whatsapp\",\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"whatsapp\",\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"10:00-12:00\"}]") @map("whatsapp_only_cadence") @db.Text
+  emailIntervals          String   @default("[{\"messageNumber\":1,\"daysAfterPrevious\":1},{\"messageNumber\":2,\"daysAfterPrevious\":2},{\"messageNumber\":3,\"daysAfterPrevious\":2}]") @map("email_intervals") @db.Text
 
-  hybridCadence           String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"whatsapp\",\"messageNumber\":1,\"dayOfWeek\":2,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"email\",\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"09:00-11:00\"},{\"type\":\"whatsapp\",\"messageNumber\":2,\"dayOfWeek\":4,\"timeWindow\":\"10:00-12:00\"},{\"type\":\"email\",\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"09:00-11:00\"}]") @map("hybrid_cadence") @db.Text
+  whatsappIntervals       String   @default("[{\"messageNumber\":1,\"daysAfterPrevious\":1},{\"messageNumber\":2,\"daysAfterPrevious\":2},{\"messageNumber\":3,\"daysAfterPrevious\":2}]") @map("whatsapp_intervals") @db.Text
 
-  // Configurações Globais
-  sendDelayMinMs          Int      @default(100) @map("send_delay_min_ms")
-  sendDelayMaxMs          Int      @default(500) @map("send_delay_max_ms")
+  hybridIntervals         String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"emailNumber\":1,\"daysAfterPrevious\":1},{\"type\":\"whatsapp\",\"messageNumber\":2,\"whatsappNumber\":1,\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":3,\"emailNumber\":2,\"daysAfterPrevious\":1},{\"type\":\"whatsapp\",\"messageNumber\":4,\"whatsappNumber\":2,\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":5,\"emailNumber\":3,\"daysAfterPrevious\":1}]") @map("hybrid_intervals") @db.Text
+
+  // Configurações de Email
+  email2DelayDays         Int      @default(3) @map("email_2_delay_days")
+  email3DelayDays         Int      @default(7) @map("email_3_delay_days")
   dailyEmailLimit         Int      @default(100) @map("daily_email_limit")
+  emailBusinessHourStart  Int      @default(9) @map("email_business_hour_start")
+  emailBusinessHourEnd    Int      @default(18) @map("email_business_hour_end")
+
+  // Configurações de WhatsApp
+  whatsappDailyLimit      Int      @default(50) @map("whatsapp_daily_limit")
+  whatsappBusinessHourStart Int    @default(9) @map("whatsapp_business_hour_start")
+  whatsappBusinessHourEnd Int      @default(18) @map("whatsapp_business_hour_end")
+
+  // Configurações de Cadência Híbrida
+  hybridDailyLimit        Int      @default(70) @map("hybrid_daily_limit")
+  hybridBusinessHourStart Int      @default(9) @map("hybrid_business_hour_start")
+  hybridBusinessHourEnd   Int      @default(18) @map("hybrid_business_hour_end")
+
   sendOnlyBusinessHours   Boolean  @default(true) @map("send_only_business_hours")
-  businessHourStart       Int      @default(9) @map("business_hour_start")
-  businessHourEnd         Int      @default(18) @map("business_hour_end")
 
   useHybridCadence        Boolean  @default(false) @map("use_hybrid_cadence")
 
@@ -82,6 +96,21 @@ model UserSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
+}
+
+// Rastreamento de último envio por canal (para controlar delay automático)
+model ChannelSendLog {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  channel         String   // "email", "whatsapp", "hybrid"
+  lastSentAt      DateTime @map("last_sent_at")
+  nextAllowedAt   DateTime @map("next_allowed_at") // Calculado baseado no delay aleatório
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, channel])
+  @@map("channel_send_logs")
 }
 
 model Campaign {
@@ -94,6 +123,19 @@ model Campaign {
   termos      String
   locais      String
   planilhaUrl String?        @map("planilha_url")
+
+  // Campos de timeout e rastreamento
+  processStartedAt         DateTime? @map("process_started_at")
+  estimatedCompletionTime  Int?      @map("estimated_completion_time") // em segundos
+  timeoutAt                DateTime? @map("timeout_at") // dobro do tempo estimado
+  creditsCost              Int?      @map("credits_cost") // custo em créditos para reembolso
+
+  // Rastreamento de leads solicitados vs criados
+  leadsRequested           Int?      @map("leads_requested") // quantidade solicitada pelo usuário
+  leadsCreated             Int       @default(0) @map("leads_created") // quantidade realmente criada
+  leadsDuplicated          Int       @default(0) @map("leads_duplicated") // quantidade de duplicatas encontradas
+  creditsRefunded          Float     @default(0) @map("credits_refunded") // créditos já devolvidos (Float para aceitar 0.25, 0.5, etc)
+
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -155,7 +197,8 @@ model Lead {
 
 enum CampaignStatus {
   PROCESSING
-  COMPLETED
+  EXTRACTION_COMPLETED  // Leads extraídos (BASICO finalizado, COMPLETO aguardando enrichment)
+  COMPLETED             // Totalmente finalizado
   FAILED
 }
 
@@ -170,6 +213,9 @@ enum LeadStatus {
   EMAIL_1_SENT
   EMAIL_2_SENT
   EMAIL_3_SENT
+  WHATSAPP_1_SENT
+  WHATSAPP_2_SENT
+  WHATSAPP_3_SENT
   REPLIED
   OPTED_OUT
   BOUNCED

@@ -35,6 +35,7 @@ export interface UserSettings {
   // WhatsApp Templates
   whatsappMessage1: string;
   whatsappMessage2: string;
+  whatsappMessage3: string;
 
   // Informações Críticas da Empresa
   nomeEmpresa: string;
@@ -43,15 +44,32 @@ export interface UserSettings {
   websiteEmpresa: string;
   senderEmails: string; // JSON array stored as string
 
-  // Timing Configuration
+  // Evolution API Instances
+  evolutionInstances: string; // JSON array stored as string
+
+  // Cadências (JSON arrays stored as strings)
+  emailOnlyCadence: string;
+  whatsappOnlyCadence: string;
+  hybridCadence: string;
+
+  // Email Configuration
   email2DelayDays: number;
   email3DelayDays: number;
-  sendDelayMinMs: number;
-  sendDelayMaxMs: number;
   dailyEmailLimit: number;
+  emailBusinessHourStart: number;
+  emailBusinessHourEnd: number;
+
+  // WhatsApp Configuration
+  whatsappDailyLimit: number;
+  whatsappBusinessHourStart: number;
+  whatsappBusinessHourEnd: number;
+
+  // Hybrid Cadence Configuration
+  hybridDailyLimit: number;
+  hybridBusinessHourStart: number;
+  hybridBusinessHourEnd: number;
+
   sendOnlyBusinessHours: boolean;
-  businessHourStart: number;
-  businessHourEnd: number;
   useHybridCadence: boolean;
 
   createdAt: Date;
@@ -90,7 +108,7 @@ export interface Lead {
 // ENUMS
 // ========================================
 
-export type CampaignStatus = "PROCESSING" | "COMPLETED" | "FAILED";
+export type CampaignStatus = "PROCESSING" | "EXTRACTION_COMPLETED" | "COMPLETED" | "FAILED";
 export type CampaignType = "BASICO" | "COMPLETO";
 
 // ========================================
@@ -113,6 +131,10 @@ export interface CampaignResponse {
   tipo: string;
   createdAt: string;
   planilhaUrl: string | null;
+  leadsRequested?: number;
+  leadsCreated?: number;
+  leadsDuplicated?: number;
+  creditsRefunded?: number;
   _count?: {
     leads: number;
   };

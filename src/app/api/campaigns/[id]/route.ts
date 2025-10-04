@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
 import { LeadStatus } from '@prisma/client'
+import { calculateCampaignStats, determineCampaignStatus } from '@/lib/campaign-status-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,12 @@ export async function GET(
 ) {
   try {
     const { id: campaignId } = await params
+    const url = new URL(request.url)
+
+    // Paginação para evitar N+1 queries em campanhas grandes
+    const page = parseInt(url.searchParams.get('page') || '1', 10)
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '50', 10)
+    const skip = (page - 1) * pageSize
 
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
@@ -20,8 +27,13 @@ export async function GET(
             emails: {
               orderBy: { sequenceNumber: 'asc' },
             },
+            whatsappMessages: {
+              orderBy: { sequenceNumber: 'asc' },
+            },
           },
           orderBy: { createdAt: 'desc' },
+          skip,
+          take: pageSize,
         },
         _count: {
           select: { leads: true },
@@ -36,45 +48,18 @@ export async function GET(
       )
     }
 
-    // Calcular estatísticas da campanha
-    const stats = {
-      total: campaign.quantidade,
-      extracted: campaign.leads.length,
-      enriched: campaign.leads.filter(l => l.status !== LeadStatus.EXTRACTED).length,
-      email1Sent: campaign.leads.filter(l =>
-        l.status === LeadStatus.EMAIL_1_SENT ||
-        l.status === LeadStatus.EMAIL_2_SENT ||
-        l.status === LeadStatus.EMAIL_3_SENT ||
-        l.status === LeadStatus.REPLIED
-      ).length,
-      email2Sent: campaign.leads.filter(l =>
-        l.status === LeadStatus.EMAIL_2_SENT ||
-        l.status === LeadStatus.EMAIL_3_SENT ||
-        l.status === LeadStatus.REPLIED
-      ).length,
-      email3Sent: campaign.leads.filter(l =>
-        l.status === LeadStatus.EMAIL_3_SENT ||
-        l.status === LeadStatus.REPLIED
-      ).length,
-      replied: campaign.leads.filter(l => l.status === LeadStatus.REPLIED).length,
-      optedOut: campaign.leads.filter(l => l.status === LeadStatus.OPTED_OUT).length,
-      bounced: campaign.leads.filter(l => l.status === LeadStatus.BOUNCED).length,
-    }
+    // Buscar TODOS os leads apenas para cálculo de stats (sem paginação)
+    // Necessário para estatísticas precisas
+    const allLeads = await prisma.lead.findMany({
+      where: { campaignId },
+      select: { status: true },
+    })
 
-    // Atualizar status da campanha se necessário
-    let newStatus = campaign.status
+    // Calcular estatísticas usando serviço centralizado com TODOS os leads
+    const stats = calculateCampaignStats(allLeads, campaign.quantidade)
 
-    // Se todos os leads foram extraídos e processados
-    if (stats.extracted >= campaign.quantidade) {
-      // Se modo COMPLETO e todos foram enriquecidos
-      if (campaign.tipo === 'COMPLETO' && stats.enriched >= campaign.quantidade) {
-        newStatus = 'COMPLETED'
-      }
-      // Se modo BASICO e todos foram extraídos
-      else if (campaign.tipo === 'BASICO' && stats.extracted >= campaign.quantidade) {
-        newStatus = 'COMPLETED'
-      }
-    }
+    // Determinar status correto usando serviço centralizado
+    const newStatus = determineCampaignStatus(campaign.status, campaign.tipo, stats)
 
     // Atualizar no banco se mudou
     if (newStatus !== campaign.status) {
@@ -90,6 +75,13 @@ export async function GET(
       campaign: {
         ...campaign,
         stats,
+      },
+      pagination: {
+        page,
+        pageSize,
+        total: campaign._count.leads,
+        totalPages: Math.ceil(campaign._count.leads / pageSize),
+        hasMore: skip + campaign.leads.length < campaign._count.leads,
       },
     })
   } catch (error) {

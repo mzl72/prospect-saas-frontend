@@ -81,13 +81,40 @@ export async function sendEmailViaResend(
 }
 
 /**
- * Valida se um email é válido (formato básico)
+ * Valida se um email é válido (formato RFC 5322 mais rigoroso)
  * @param email Email para validar
  * @returns true se válido
  */
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  // Regex mais rigoroso baseado em RFC 5322
+  // Valida: local-part@domain.tld
+  // Permite: letras, números, pontos, hífens, underscores
+  // Rejeita: espaços, caracteres especiais inválidos, múltiplos pontos consecutivos
+  const emailRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
+
+  if (!emailRegex.test(email)) {
+    return false;
+  }
+
+  // Validações adicionais
+  const [localPart, domain] = email.split('@');
+
+  // Local part não pode ter mais de 64 caracteres
+  if (localPart.length > 64) {
+    return false;
+  }
+
+  // Domain não pode ter mais de 255 caracteres
+  if (domain.length > 255) {
+    return false;
+  }
+
+  // Não pode ter pontos consecutivos
+  if (email.includes('..')) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
