@@ -6,20 +6,114 @@ import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
 // Templates padrão
 const DEFAULT_SETTINGS = {
   // Prompts de IA
-  templatePesquisa: `Pesquise informações detalhadas sobre a empresa {nome_empresa}, incluindo:
-- Setor de atuação
-- Principais produtos/serviços
-- Público-alvo
-- Tamanho da empresa
-- Localização
-- Site e redes sociais
-- Notícias recentes`,
-  templateAnaliseEmpresa: `Analise a empresa {nome_empresa} e identifique:
-1. Principais dores e desafios do setor
-2. Oportunidades de melhoria
-3. Possíveis decisores (cargos)
-4. Como nosso produto pode ajudá-los
-5. Pontos de conexão para abordagem`,
+  templatePesquisa: `# PROMPT DE PESQUISA PROFUNDA DE EMPRESA
+
+**EMPRESA ALVO:** {nome_empresa}
+**OBJETIVO:** Coletar informações estratégicas para personalizar outreach B2B
+
+## 1. INFORMAÇÕES BÁSICAS
+- Nome completo e razão social
+- Setor/indústria específica (não apenas "serviços")
+- Tamanho aproximado (nº funcionários, faturamento se público)
+- Localizações principais (matriz, filiais)
+- Website oficial e redes sociais ativas
+
+## 2. CONTEXTO DE NEGÓCIO
+- Principais produtos/serviços oferecidos
+- Proposta de valor (como se posicionam no mercado?)
+- Público-alvo/ICP deles
+- Principais concorrentes
+- Modelo de negócio (B2B, B2C, Marketplace, SaaS, etc)
+
+## 3. SINAIS DE COMPRA (MUITO IMPORTANTE)
+- Notícias recentes (últimos 6 meses):
+  * Expansão, nova sede, novos mercados
+  * Rodadas de investimento
+  * Lançamento de produtos
+  * Contratações em massa
+  * Premiações, certificações
+- Tecnologias que usam (visíveis no site/LinkedIn)
+- Vagas abertas relacionadas à nossa solução
+- Eventos que participaram/patrocinam
+
+## 4. IDENTIFICAÇÃO DE DORES
+Com base no setor, tamanho e contexto, INFERIR:
+- 2-3 desafios típicos que empresas assim enfrentam
+- Processos que provavelmente são manuais/ineficientes
+- Áreas onde nossa solução {informacoes_propria} se encaixa
+
+## 5. TOMADORES DE DECISÃO (se possível)
+- Cargos típicos que decidem sobre nossa solução
+- Nomes no LinkedIn se disponíveis (CEO, CTO, CMO, etc)
+- Perfil do decision-maker (background, tempo na empresa)
+
+## FORMATO DA RESPOSTA:
+- Markdown estruturado
+- Bullet points claros
+- Destacar em **negrito** os insights mais relevantes
+- Sempre citar fontes quando possível
+- Se não encontrar informação: escrever "Não encontrado" (não inventar)`,
+  templateAnaliseEmpresa: `# PROMPT DE ANÁLISE ESTRATÉGICA E PERSONALIZAÇÃO
+
+Você receberá dados coletados sobre **{nome_empresa}**.
+
+**SUA MISSÃO:** Transformar dados em INSIGHTS ACIONÁVEIS para personalizar outreach.
+
+## ENTRADA (dados da pesquisa anterior):
+{company_research}
+
+## SUA ANÁLISE DEVE CONTER:
+
+### 1. RESUMO EXECUTIVO (2-3 frases)
+- Quem são, o que fazem, tamanho/relevância
+- Principal característica que se destaca
+
+### 2. DORES IDENTIFICADAS (2-3 mais relevantes)
+Com base no setor, tamanho, notícias e contexto, identificar:
+- Dor #1: [descrição] → Como sabemos: [evidência]
+- Dor #2: [descrição] → Como sabemos: [evidência]
+- Dor #3: [descrição] → Como sabemos: [evidência]
+
+**REGRA:** Cada dor deve ter uma EVIDÊNCIA concreta (notícia, tecnologia usada, vaga aberta, padrão do setor)
+
+### 3. OPORTUNIDADES DE ABORDAGEM (2 principais)
+Para cada dor identificada:
+- **Ângulo de entrada:** Como iniciar a conversa?
+- **Proposta de valor específica:** O que oferecemos que resolve ISSO?
+- **Prova/credibilidade:** Case, dado ou resultado que valida
+
+### 4. PERSONALIZAÇÃO RECOMENDADA
+
+**Para usar em EMAIL:**
+- Insight #1: [dado/notícia específica para mencionar]
+- Insight #2: [relação com setor ou concorrentes]
+- Gancho de abertura sugerido: "[frase para primeiro parágrafo]"
+
+**Para usar em WHATSAPP:**
+- Mensagem curta sugerida: "[exemplo de abordagem amigável]"
+- Call-to-action recomendado: "[pergunta fácil de responder]"
+
+### 5. CAMPOS PARA SUBSTITUIÇÃO NOS TEMPLATES
+
+Preencher variáveis que serão usadas nos templates:
+- **{setor}:** [setor específico, ex: "e-commerce de moda"]
+- **{dor_identificada}:** [dor #1 em 1 frase]
+- **{solucao}:** [como resolvemos em 1 frase]
+- **{beneficio_principal}:** [principal benefício em 1 frase]
+- **{area_interesse}:** [área específica onde podemos ajudar]
+
+### 6. RECOMENDAÇÃO DE ABORDAGEM
+- **Canal prioritário:** Email ou WhatsApp? (considerar formalidade do setor)
+- **Tom recomendado:** Formal/Semi-formal/Informal
+- **Timing ideal:** Melhor dia/hora para contato (considerar notícias recentes)
+- **Persona-alvo:** Cargo/nome do tomador de decisão ideal
+
+## FORMATO DA SAÍDA:
+- Markdown estruturado
+- Bullet points
+- Máximo 400 palavras
+- Foco em AÇÃO (o que fazer com essa informação)
+- Destacar os 2-3 insights mais valiosos em **negrito**`,
   informacoesPropria: `Somos uma plataforma SaaS de prospecção automatizada que utiliza IA para:
 - Gerar listas de leads qualificados do Google Maps
 - Pesquisar informações detalhadas sobre cada empresa
@@ -27,9 +121,276 @@ const DEFAULT_SETTINGS = {
 - Economizar 80% do tempo em prospecção manual
 
 Nossos clientes conseguem gerar 10x mais leads qualificados em 1/5 do tempo.`,
-  promptOverview: "",
-  promptTatica: "",
-  promptDiretrizes: "",
+
+  // Prompts específicos por canal - Email
+  emailPromptOverview: `Você é um Especialista em Cold Email B2B com 10+ anos de experiência.
+
+CONTEXTO: Trabalha para {nomeEmpresa} - {informacoesPropria}
+
+SEU PAPEL:
+- Analisar empresas prospects profundamente
+- Identificar dores e oportunidades reais
+- Criar emails hiperpersonalizados que geram respostas
+
+ESTILO DE ESCRITA:
+- Tom profissional mas conversacional
+- Direto ao ponto, sem floreios
+- Foco em valor para o destinatário (WIIFM - What's In It For Me)
+- Usar dados e insights da pesquisa para mostrar que você fez o dever de casa`,
+  emailPromptTatica: `ESTRATÉGIA DE SEQUÊNCIA DE 3 EMAILS:
+
+EMAIL 1 (Primeiro Contato - Dia 0):
+- Objetivo: Despertar curiosidade e mostrar relevância
+- Abordagem: Insight + Oportunidade identificada + Pergunta
+- Tamanho: 80-120 palavras
+- CTA: Pergunta aberta para iniciar conversa
+
+EMAIL 2 (Bump - 3 dias depois):
+- Objetivo: Retomar sem ser inconveniente
+- Abordagem: Resposta curta na mesma thread, adicionar valor novo
+- Tamanho: 40-60 palavras
+- CTA: Oferta de recurso (case, whitepaper) ou agenda
+
+EMAIL 3 (Breakup - 7 dias depois do Email 2):
+- Objetivo: Última tentativa com gatilho de escassez
+- Abordagem: "Entendo que pode não ser o momento, mas..."
+- Tamanho: 60-80 palavras
+- CTA: Deixar porta aberta ou arquivar contato
+
+REGRAS DE TIMING:
+- Sempre respeitar o horário comercial do prospect
+- Evitar segundas de manhã e sextas à tarde
+- Ideal: terças/quartas/quintas entre 10h-15h`,
+  emailPromptDiretrizes: `REGRAS RÍGIDAS DE ESCRITA:
+
+ESTRUTURA:
+✅ Linha de assunto: máximo 50 caracteres, sem caps lock, sem emojis
+✅ Primeiro parágrafo: 1 frase explicando POR QUE você está entrando em contato
+✅ Segundo parágrafo: Insight ou dado específico sobre a empresa deles
+✅ Terceiro parágrafo: Como você pode ajudar (1 benefício concreto)
+✅ CTA: 1 pergunta simples ou sugestão de próximo passo
+
+PROIBIDO:
+❌ Começar com "Espero que este email te encontre bem"
+❌ Usar jargões tipo "solução inovadora", "disruptivo", "sinergia"
+❌ Fazer pitches de venda agressivos
+❌ Falar mais sobre você do que sobre eles
+❌ Links múltiplos ou anexos não solicitados
+❌ Caps lock, múltiplos pontos de exclamação, emojis
+
+OBRIGATÓRIO:
+✅ Mencionar algo específico da empresa (notícia, conquista, desafio do setor)
+✅ Usar dados quando possível ("70% das empresas em {setor} enfrentam...")
+✅ Personalizar além do {nome_empresa} - mostrar research real
+✅ Incluir assinatura com {assinatura}, {nomeEmpresa}, {telefoneContato}, {websiteEmpresa}
+✅ Usar variáveis: {nome_empresa}, {setor}, {dor_identificada}, {solucao}, {informacoes_propria}
+
+FORMATAÇÃO:
+- Máximo 3 parágrafos curtos
+- Espaçamento entre parágrafos
+- Sem negrito ou itálico (pode ser filtrado como spam)
+- Uma frase por linha quando fizer sentido (facilita leitura)`,
+
+  // Prompts específicos por canal - WhatsApp
+  whatsappPromptOverview: `Você é um Especialista em Vendas Conversacionais via WhatsApp.
+
+CONTEXTO: Trabalha para {nomeEmpresa} - {informacoesPropria}
+
+DIFERENÇA WHATSAPP vs EMAIL:
+- WhatsApp é INFORMAL e ÁGIL
+- As pessoas esperam respostas rápidas e diretas
+- Emojis são BEM-VINDOS (mas com moderação)
+- Mensagens mais curtas = maior taxa de resposta
+
+SEU PAPEL:
+- Iniciar conversas naturais e amigáveis
+- Usar tom de "colega de trabalho", não vendedor
+- Criar senso de urgência suave
+- Facilitar transição para call ou reunião
+
+PRINCÍPIOS WHATSAPP:
+1. Seja humano (use "oi", "tudo bem?", etc)
+2. Vá direto ao ponto em 2-3 mensagens
+3. Faça UMA pergunta por vez
+4. Use quebras de linha para facilitar leitura
+5. Sempre termine com CTA clara`,
+  whatsappPromptTatica: `ESTRATÉGIA DE SEQUÊNCIA DE 3 MENSAGENS WHATSAPP:
+
+MENSAGEM 1 (Primeiro Contato):
+- Tom: Descontraído mas profissional
+- Objetivo: Apresentar + gerar curiosidade
+- Estrutura: Saudação → Motivo do contato → Pergunta simples
+- Tamanho: 150-200 caracteres (2-3 linhas)
+- Timing: Entre 10h-17h, evitar horário de almoço
+
+MENSAGEM 2 (Follow-up - 2-3 dias depois):
+- Tom: Amigável, sem pressão
+- Objetivo: Reforçar valor + facilitar próximo passo
+- Estrutura: Bump amigável → Valor adicional → CTA fácil
+- Tamanho: 120-180 caracteres
+- Pode incluir emoji estratégico (👋, 💡, 📊)
+
+MENSAGEM 3 (Última Tentativa - 3 dias depois):
+- Tom: Educado mas firme
+- Objetivo: Breakup amigável + deixar porta aberta
+- Estrutura: Entendo que está ocupado → Sem problema → Deixo meu contato
+- Tamanho: 100-150 caracteres
+- Emoji de despedida (😊, 🚀)
+
+TIMING INTELIGENTE:
+- Respeitar horário comercial
+- Evitar fins de semana
+- Ideal: Terça/Quarta/Quinta 14h-16h`,
+  whatsappPromptDiretrizes: `REGRAS DE ESCRITA WHATSAPP:
+
+ESTRUTURA IDEAL:
+✅ Primeira linha: Saudação curta + nome da empresa
+✅ Segunda linha: Motivo específico do contato
+✅ Terceira linha (opcional): Benefício rápido
+✅ Última linha: Pergunta direta ou CTA
+
+PROIBIDO NO WHATSAPP:
+❌ Mensagens longas (máx 200 caracteres por mensagem)
+❌ Links encurtados (parecem spam)
+❌ Linguagem muito formal ("Prezado", "Atenciosamente")
+❌ Múltiplos emojis na mesma mensagem
+❌ Maiúsculas em palavras inteiras
+❌ Pitch de vendas no primeiro contato
+
+OBRIGATÓRIO:
+✅ Usar quebras de linha (enviar em "blocos" curtos)
+✅ Personalização real (mencionar algo da empresa)
+✅ Tom de "eu pesquisei sobre vocês" não "envio em massa"
+✅ CTA clara e FÁCIL de responder (sim/não, link calendar, etc)
+✅ Usar variáveis: {nome_empresa}, {setor}, {beneficio_principal}, {solucao}
+
+EMOJIS PERMITIDOS (use 1 por mensagem no máximo):
+👋 (saudação) | 💡 (ideia) | 📊 (dados/resultado) |
+🚀 (crescimento) | ✅ (confirmação) | 😊 (cordialidade)
+
+FORMATAÇÃO:
+- Mensagem 1: 2-3 linhas
+- Mensagem 2: 2-3 linhas
+- Mensagem 3: 2 linhas
+- Uma ideia por linha
+- Perguntas sempre na última linha`,
+
+  // Prompts específicos por canal - Híbrido
+  hybridPromptOverview: `Você é um Orquestrador de Campanhas Multicanal (Email + WhatsApp).
+
+CONTEXTO: {nomeEmpresa} - {informacoesPropria}
+
+ESTRATÉGIA HÍBRIDA:
+A cadência híbrida combina a profundidade do EMAIL com a agilidade do WHATSAPP, criando múltiplos pontos de contato coordenados.
+
+PRINCÍPIOS:
+1. **Consistência**: Mensagens devem "conversar" entre si
+2. **Complementaridade**: Email = contexto, WhatsApp = urgência
+3. **Coordenação**: Respeitar espaçamento entre canais
+4. **Naturalidade**: Não parecer "sequência automatizada"
+
+PADRÃO RECOMENDADO:
+Dia 0: Email 1 (contato formal, estabelece contexto)
+Dia 1-2: WhatsApp 1 (follow-up rápido e amigável)
+Dia 4: Email 2 (bump com valor adicional)
+Dia 5-6: WhatsApp 2 (reforço de urgência)
+Dia 8-10: Email 3 (breakup profissional)
+
+OBJETIVO:
+Maximizar taxa de resposta através de múltiplos touchpoints sem ser invasivo`,
+  hybridPromptTatica: `TÁTICA DE SEQUÊNCIA HÍBRIDA (3 Emails + 2 WhatsApp):
+
+FASE 1 - ABERTURA (Dia 0-2):
+📧 EMAIL 1 (Dia 0):
+- Contato formal e profundo
+- Estabelece credibilidade
+- Apresenta research detalhado
+- 100-120 palavras
+
+💬 WHATSAPP 1 (Dia 1-2):
+- Follow-up amigável e leve
+- "Vi que enviei um email, você conseguiu ver?"
+- Facilita transição para conversa
+- 150-180 caracteres
+
+FASE 2 - ENGAJAMENTO (Dia 3-6):
+📧 EMAIL 2 (Dia 4):
+- Bump na mesma thread
+- Adiciona case study ou dado novo
+- Mantém profissionalismo
+- 60-80 palavras
+
+💬 WHATSAPP 2 (Dia 5-6):
+- Cria urgência suave
+- Oferece call rápida
+- Tom mais direto
+- 120-150 caracteres
+
+FASE 3 - FECHAMENTO (Dia 8-10):
+📧 EMAIL 3 (Dia 8-10):
+- Breakup educado
+- Deixa porta aberta
+- Reforça valor
+- 80-100 palavras
+
+REGRA DE OURO:
+Não enviar Email e WhatsApp no mesmo dia (exceto Dia 1-2).
+Deixar pelo menos 24h entre mensagens de canais diferentes.`,
+  hybridPromptDiretrizes: `DIRETRIZES PARA CONTEÚDO HÍBRIDO:
+
+CONSISTÊNCIA ENTRE CANAIS:
+✅ Usar mesma proposta de valor em ambos os canais
+✅ Referências cruzadas quando fizer sentido ("como mencionei no email...")
+✅ Manter mesmo nível de personalização
+✅ Não repetir exatamente o mesmo conteúdo
+
+SEPARAÇÃO DE RESPONSABILIDADES:
+
+📧 EMAIL (Formal, Informativo):
+- Explicações detalhadas
+- Research e insights profundos
+- Cases e dados
+- Links para recursos
+- Formatação profissional
+
+💬 WHATSAPP (Informal, Ágil):
+- Mensagens curtas e diretas
+- Linguagem coloquial
+- Emojis estratégicos
+- CTAs simples (sim/não, link calendar)
+- Tom de "colega de trabalho"
+
+REGRAS ESPECÍFICAS:
+
+COORDENAÇÃO DE TIMING:
+✅ Email manhã → WhatsApp tarde (ou vice-versa)
+✅ Mínimo 24h entre mensagens de canais diferentes
+✅ Máximo 2 tentativas por canal
+✅ Respeitar horário comercial de AMBOS os canais
+
+PERSONALIZAÇÃO:
+✅ Email: 2-3 dados específicos da empresa
+✅ WhatsApp: 1 insight específico é suficiente
+✅ Ambos devem mencionar {nome_empresa} e {setor}
+
+CTA PROGRESSIVO:
+1. Email 1: "Faz sentido conversarmos?"
+2. WhatsApp 1: "Conseguiu ver o email?"
+3. Email 2: "Deixo link para agendar: [calendar]"
+4. WhatsApp 2: "15min essa semana?"
+5. Email 3: "Entendo que não é o momento..."
+
+VARIÁVEIS COMUNS:
+- {nome_empresa}
+- {setor}
+- {dor_identificada}
+- {solucao}
+- {beneficio_principal}
+- {informacoes_propria}
+- {nomeEmpresa}
+- {assinatura}
+- {telefoneContato}
+- {websiteEmpresa}`,
 
   // Templates de Email
   emailTitulo1: "{nome_empresa} - Oportunidade de otimizar {area_interesse}",
@@ -75,9 +436,19 @@ Abraços,
   senderEmails: "[]",
 
   // Templates WhatsApp
-  whatsappMessage1: "",
-  whatsappMessage2: "",
-  whatsappMessage3: "",
+  whatsappMessage1: `Olá! Vi que você tem um negócio na área de {setor} e achei que poderia ser interessante trocar uma ideia.
+
+Temos ajudado empresas como a sua a {beneficio_principal}. Podemos conversar?`,
+  whatsappMessage2: `Oi novamente! 👋
+
+Só passando aqui pra ver se você teve chance de pensar na nossa conversa sobre {solucao}.
+
+Preparei algumas ideias que podem funcionar muito bem pra {nome_empresa}. Quando você tiver uns minutinhos, me avisa!`,
+  whatsappMessage3: `Última mensagem aqui! 😊
+
+Entendo que pode estar ocupado(a). Se não for o momento certo, sem problemas!
+
+Qualquer coisa, é só chamar. Boa sorte com {nome_empresa}! 🚀`,
   evolutionInstances: "[]",
 
   // Cadências (JSON) - NOMES SINCRONIZADOS COM PRISMA
@@ -198,8 +569,8 @@ const settingsSchema = z.object({
     .optional()
     .default(""),
 
-  // Prompt Customization
-  promptOverview: z
+  // Prompts específicos por canal - Email
+  emailPromptOverview: z
     .string()
     .max(5000, "Prompt muito longo")
     .refine((val) => !containsXSS(val), {
@@ -208,7 +579,7 @@ const settingsSchema = z.object({
     .transform(sanitizeInput)
     .optional()
     .default(""),
-  promptTatica: z
+  emailPromptTatica: z
     .string()
     .max(5000, "Prompt muito longo")
     .refine((val) => !containsXSS(val), {
@@ -217,7 +588,65 @@ const settingsSchema = z.object({
     .transform(sanitizeInput)
     .optional()
     .default(""),
-  promptDiretrizes: z
+  emailPromptDiretrizes: z
+    .string()
+    .max(5000, "Prompt muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+
+  // Prompts específicos por canal - WhatsApp
+  whatsappPromptOverview: z
+    .string()
+    .max(5000, "Prompt muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  whatsappPromptTatica: z
+    .string()
+    .max(5000, "Prompt muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  whatsappPromptDiretrizes: z
+    .string()
+    .max(5000, "Prompt muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+
+  // Prompts específicos por canal - Híbrido
+  hybridPromptOverview: z
+    .string()
+    .max(5000, "Prompt muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridPromptTatica: z
+    .string()
+    .max(5000, "Prompt muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridPromptDiretrizes: z
     .string()
     .max(5000, "Prompt muito longo")
     .refine((val) => !containsXSS(val), {

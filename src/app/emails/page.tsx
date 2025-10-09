@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { MessageIntervals, MessageInterval } from "@/components/cadence/MessageIntervals";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, Mail, Calendar, Settings, Building2, X } from "lucide-react";
+import { Save, Loader2, Mail, Calendar, Settings, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-type TabType = "templates" | "cadence" | "settings" | "company";
+type TabType = "templates" | "cadence" | "settings" | "prompts";
 
 export default function EmailsPage() {
   const queryClient = useQueryClient();
@@ -28,7 +28,7 @@ export default function EmailsPage() {
     emailCorpo3: "",
 
     // Intervals (JSON)
-    emailIntervals: [] as MessageInterval[],
+    emailOnlyCadence: [] as MessageInterval[],
 
     // Settings
     senderEmails: [] as string[],
@@ -37,11 +37,10 @@ export default function EmailsPage() {
     emailBusinessHourEnd: 18,
     sendOnlyBusinessHours: true,
 
-    // Company
-    nomeEmpresa: "",
-    assinatura: "",
-    telefoneContato: "",
-    websiteEmpresa: "",
+    // Prompts específicos de Email
+    emailPromptOverview: "",
+    emailPromptTatica: "",
+    emailPromptDiretrizes: "",
   });
 
   // Fetch settings
@@ -63,16 +62,15 @@ export default function EmailsPage() {
         emailCorpo2: s.emailCorpo2 || "",
         emailTitulo3: s.emailTitulo3 || "",
         emailCorpo3: s.emailCorpo3 || "",
-        emailIntervals: JSON.parse(s.emailIntervals || '[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]'),
+        emailOnlyCadence: JSON.parse(s.emailOnlyCadence || '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"14:00-16:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
         senderEmails: JSON.parse(s.senderEmails || "[]"),
         dailyEmailLimit: s.dailyEmailLimit || 100,
         emailBusinessHourStart: (s as any).emailBusinessHourStart || 9,
         emailBusinessHourEnd: (s as any).emailBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
-        nomeEmpresa: s.nomeEmpresa || "",
-        assinatura: s.assinatura || "",
-        telefoneContato: s.telefoneContato || "",
-        websiteEmpresa: s.websiteEmpresa || "",
+        emailPromptOverview: s.emailPromptOverview || "",
+        emailPromptTatica: s.emailPromptTatica || "",
+        emailPromptDiretrizes: s.emailPromptDiretrizes || "",
       });
     }
   }, [settingsData]);
@@ -81,7 +79,7 @@ export default function EmailsPage() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
-        emailIntervals: JSON.stringify(data.emailIntervals),
+        emailOnlyCadence: JSON.stringify(data.emailOnlyCadence),
         senderEmails: JSON.stringify(data.senderEmails),
       };
 
@@ -209,15 +207,15 @@ export default function EmailsPage() {
               Configurações
             </button>
             <button
-              onClick={() => setActiveTab("company")}
+              onClick={() => setActiveTab("prompts")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === "company"
+                activeTab === "prompts"
                   ? "border-b-2 border-blue-600 text-blue-600"
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
               }`}
             >
-              <Building2 className="w-4 h-4" />
-              Empresa
+              <Sparkles className="w-4 h-4" />
+              Prompts IA
             </button>
           </div>
 
@@ -326,9 +324,9 @@ export default function EmailsPage() {
             {activeTab === "cadence" && (
               <div>
                 <MessageIntervals
-                  intervals={config.emailIntervals}
+                  intervals={config.emailOnlyCadence}
                   onChange={(intervals) =>
-                    setConfig((prev) => ({ ...prev, emailIntervals: intervals }))
+                    setConfig((prev) => ({ ...prev, emailOnlyCadence: intervals }))
                   }
                   messageType="email"
                   showMessage3={true}
@@ -364,9 +362,9 @@ export default function EmailsPage() {
                       {config.senderEmails.map((email, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded"
                         >
-                          <span>{email}</span>
+                          <span className="dark:text-white">{email}</span>
                           <Button
                             type="button"
                             variant="ghost"
@@ -491,54 +489,78 @@ export default function EmailsPage() {
               </div>
             )}
 
-            {/* Tab: Company */}
-            {activeTab === "company" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Dados da Empresa</CardTitle>
-                  <CardDescription>Informações que aparecerão nos emails</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Nome da Empresa</Label>
-                      <Input
-                        value={config.nomeEmpresa}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, nomeEmpresa: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Assinatura</Label>
-                      <Input
-                        value={config.assinatura}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, assinatura: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Telefone</Label>
-                      <Input
-                        value={config.telefoneContato}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, telefoneContato: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Website</Label>
-                      <Input
-                        value={config.websiteEmpresa}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, websiteEmpresa: e.target.value }))
-                        }
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Tab: Prompts IA */}
+            {activeTab === "prompts" && (
+              <div className="space-y-6">
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 rounded-lg">
+                  <p className="text-sm text-purple-800 dark:text-purple-300">
+                    <strong>🤖 Prompts Personalizados:</strong> Configure como a IA deve gerar emails para este canal específico.
+                  </p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Prompt Overview</CardTitle>
+                    <CardDescription>
+                      Contexto geral sobre você, sua empresa e como abordar por email
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Contexto</Label>
+                    <textarea
+                      value={config.emailPromptOverview}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, emailPromptOverview: e.target.value }))
+                      }
+                      rows={8}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: Você é um Estrategista de Vendas B2B especializado em cold email..."
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tática de Abordagem</CardTitle>
+                    <CardDescription>
+                      Estratégia de sequência e timing dos emails
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Tática</Label>
+                    <textarea
+                      value={config.emailPromptTatica}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, emailPromptTatica: e.target.value }))
+                      }
+                      rows={6}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: Use abordagem consultiva no Email 1, bump no Email 2 e breakup no Email 3..."
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Diretrizes de Escrita</CardTitle>
+                    <CardDescription>
+                      Regras específicas de como escrever os emails
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Diretrizes</Label>
+                    <textarea
+                      value={config.emailPromptDiretrizes}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, emailPromptDiretrizes: e.target.value }))
+                      }
+                      rows={8}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: - Máximo 150 palavras&#10;- Tom profissional mas amigável&#10;- Sempre incluir call-to-action clara..."
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {/* Save Button */}

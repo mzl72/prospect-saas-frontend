@@ -30,10 +30,20 @@ model UserSettings {
   templateAnaliseEmpresa  String   @default("") @map("template_analise_empresa") @db.Text
   informacoesPropria      String   @default("") @map("informacoes_propria") @db.Text
 
-  // Prompt Customization (Novos campos)
-  promptOverview          String   @default("") @map("prompt_overview") @db.Text
-  promptTatica            String   @default("") @map("prompt_tatica") @db.Text
-  promptDiretrizes        String   @default("") @map("prompt_diretrizes") @db.Text
+  // Prompts específicos por canal - Email
+  emailPromptOverview     String   @default("") @map("email_prompt_overview") @db.Text
+  emailPromptTatica       String   @default("") @map("email_prompt_tatica") @db.Text
+  emailPromptDiretrizes   String   @default("") @map("email_prompt_diretrizes") @db.Text
+
+  // Prompts específicos por canal - WhatsApp
+  whatsappPromptOverview  String   @default("") @map("whatsapp_prompt_overview") @db.Text
+  whatsappPromptTatica    String   @default("") @map("whatsapp_prompt_tatica") @db.Text
+  whatsappPromptDiretrizes String  @default("") @map("whatsapp_prompt_diretrizes") @db.Text
+
+  // Prompts específicos por canal - Híbrido
+  hybridPromptOverview    String   @default("") @map("hybrid_prompt_overview") @db.Text
+  hybridPromptTatica      String   @default("") @map("hybrid_prompt_tatica") @db.Text
+  hybridPromptDiretrizes  String   @default("") @map("hybrid_prompt_diretrizes") @db.Text
 
   // Email Templates
   emailTitulo1            String   @default("") @map("email_titulo_1")

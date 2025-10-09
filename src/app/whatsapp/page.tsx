@@ -8,11 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { MessageIntervals, MessageInterval } from "@/components/cadence/MessageIntervals";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, MessageCircle, Calendar, Settings, Send, Plus, Trash2, ExternalLink, Info } from "lucide-react";
+import { Save, Loader2, MessageCircle, Calendar, Settings, Send, Plus, Trash2, ExternalLink, Info, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
-type TabType = "templates" | "cadence" | "settings" | "instances";
+type TabType = "templates" | "cadence" | "settings" | "instances" | "prompts";
 
 export default function WhatsAppPage() {
   const queryClient = useQueryClient();
@@ -25,7 +25,7 @@ export default function WhatsAppPage() {
     whatsappMessage3: "",
 
     // Cadence (JSON)
-    whatsappIntervals: [] as MessageInterval[],
+    whatsappOnlyCadence: [] as MessageInterval[],
 
     // Evolution API Instances
     evolutionInstances: [] as string[],
@@ -35,6 +35,11 @@ export default function WhatsAppPage() {
     whatsappBusinessHourStart: 9,
     whatsappBusinessHourEnd: 18,
     sendOnlyBusinessHours: true,
+
+    // Prompts específicos de WhatsApp
+    whatsappPromptOverview: "",
+    whatsappPromptTatica: "",
+    whatsappPromptDiretrizes: "",
   });
 
   const [newInstance, setNewInstance] = useState("");
@@ -56,12 +61,15 @@ export default function WhatsAppPage() {
         whatsappMessage1: s.whatsappMessage1 || "",
         whatsappMessage2: s.whatsappMessage2 || "",
         whatsappMessage3: s.whatsappMessage3 || "",
-        whatsappIntervals: JSON.parse(s.whatsappIntervals || '[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]'),
+        whatsappOnlyCadence: JSON.parse(s.whatsappOnlyCadence || '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"10:00-12:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"15:00-17:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"10:00-12:00","daysAfterPrevious":2}]'),
         evolutionInstances: JSON.parse(s.evolutionInstances || "[]"),
         whatsappDailyLimit: s.whatsappDailyLimit || 50,
         whatsappBusinessHourStart: (s as any).whatsappBusinessHourStart || 9,
         whatsappBusinessHourEnd: (s as any).whatsappBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
+        whatsappPromptOverview: s.whatsappPromptOverview || "",
+        whatsappPromptTatica: s.whatsappPromptTatica || "",
+        whatsappPromptDiretrizes: s.whatsappPromptDiretrizes || "",
       });
     }
   }, [settingsData]);
@@ -70,7 +78,7 @@ export default function WhatsAppPage() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
-        whatsappIntervals: JSON.stringify(data.whatsappIntervals),
+        whatsappOnlyCadence: JSON.stringify(data.whatsappOnlyCadence),
         evolutionInstances: JSON.stringify(data.evolutionInstances),
       };
 
@@ -184,6 +192,17 @@ export default function WhatsAppPage() {
               Instâncias
             </button>
             <button
+              onClick={() => setActiveTab("prompts")}
+              className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${
+                activeTab === "prompts"
+                  ? "border-b-2 border-purple-600 text-purple-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Prompts IA
+            </button>
+            <button
               onClick={() => setActiveTab("settings")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${
                 activeTab === "settings"
@@ -281,9 +300,9 @@ export default function WhatsAppPage() {
             {activeTab === "cadence" && (
               <div>
                 <MessageIntervals
-                  intervals={config.whatsappIntervals}
+                  intervals={config.whatsappOnlyCadence}
                   onChange={(intervals) =>
-                    setConfig((prev) => ({ ...prev, whatsappIntervals: intervals }))
+                    setConfig((prev) => ({ ...prev, whatsappOnlyCadence: intervals }))
                   }
                   messageType="whatsapp"
                   showMessage3={true}
@@ -336,11 +355,11 @@ export default function WhatsAppPage() {
                       {config.evolutionInstances.map((instance, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
+                          className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700"
                         >
                           <div className="flex items-center gap-3">
-                            <Send className="w-4 h-4 text-green-600" />
-                            <span className="font-mono text-sm">{instance}</span>
+                            <Send className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span className="font-mono text-sm dark:text-white">{instance}</span>
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -356,7 +375,7 @@ export default function WhatsAppPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeInstance(index)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -465,6 +484,80 @@ export default function WhatsAppPage() {
                   </CardContent>
                 </Card>
 
+              </div>
+            )}
+
+            {/* Tab: Prompts IA */}
+            {activeTab === "prompts" && (
+              <div className="space-y-6">
+                <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                  <p className="text-sm text-purple-800">
+                    <strong>🤖 Prompts Personalizados:</strong> Configure como a IA deve gerar mensagens WhatsApp para este canal específico.
+                  </p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Prompt Overview</CardTitle>
+                    <CardDescription>
+                      Contexto geral sobre você, sua empresa e como abordar por WhatsApp
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Contexto</Label>
+                    <textarea
+                      value={config.whatsappPromptOverview}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, whatsappPromptOverview: e.target.value }))
+                      }
+                      rows={8}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: Você é um especialista em vendas conversacionais via WhatsApp, com tom informal mas profissional..."
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tática de Abordagem</CardTitle>
+                    <CardDescription>
+                      Estratégia de sequência e timing das mensagens WhatsApp
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Tática</Label>
+                    <textarea
+                      value={config.whatsappPromptTatica}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, whatsappPromptTatica: e.target.value }))
+                      }
+                      rows={6}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: Mensagens curtas e diretas, use emojis com moderação, crie urgência suave..."
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Diretrizes de Escrita</CardTitle>
+                    <CardDescription>
+                      Regras específicas de como escrever as mensagens WhatsApp
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Diretrizes</Label>
+                    <textarea
+                      value={config.whatsappPromptDiretrizes}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, whatsappPromptDiretrizes: e.target.value }))
+                      }
+                      rows={8}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: - Máximo 200 caracteres&#10;- Tom informal e amigável&#10;- Usar emojis estrategicamente..."
+                    />
+                  </CardContent>
+                </Card>
               </div>
             )}
 

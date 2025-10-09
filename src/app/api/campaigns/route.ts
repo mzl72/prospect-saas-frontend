@@ -106,6 +106,9 @@ export async function POST(request: NextRequest) {
         missingFieldsByPage["/configuracoes#critical"] = [
           "Informações da Sua Empresa (aba Empresa)"
         ];
+        missingFieldsByPage["/emails#settings"] = [
+          "Pelo menos 1 Email Remetente (aba Configurações)"
+        ];
         missingFieldsByPage["/configuracoes#email"] = [
           "Email 1 (Título e Corpo)",
           "Email 2 (Corpo)",
@@ -170,6 +173,20 @@ export async function POST(request: NextRequest) {
       }
       if (!userSettings.whatsappMessage2?.trim()) {
         addMissingField("/configuracoes#whatsapp", "WhatsApp Mensagem 2");
+      }
+
+      // Validar Emails Remetentes (OBRIGATÓRIO para envio de emails)
+      const senderEmails = (() => {
+        try {
+          const parsed = JSON.parse(userSettings.senderEmails || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+
+      if (senderEmails.length === 0) {
+        addMissingField("/emails#settings", "Pelo menos 1 Email Remetente (aba Configurações)");
       }
 
       // Retornar erro estruturado se houver campos vazios
@@ -261,12 +278,22 @@ export async function POST(request: NextRequest) {
           }
         })(),
 
-        // Prompts customizáveis
-        promptOverview: userSettings.promptOverview,
-        promptTatica: userSettings.promptTatica,
-        promptDiretrizes: userSettings.promptDiretrizes,
+        // Prompts específicos por canal - Email
+        emailPromptOverview: userSettings.emailPromptOverview,
+        emailPromptTatica: userSettings.emailPromptTatica,
+        emailPromptDiretrizes: userSettings.emailPromptDiretrizes,
 
-        // Templates de pesquisa e análise
+        // Prompts específicos por canal - WhatsApp
+        whatsappPromptOverview: userSettings.whatsappPromptOverview,
+        whatsappPromptTatica: userSettings.whatsappPromptTatica,
+        whatsappPromptDiretrizes: userSettings.whatsappPromptDiretrizes,
+
+        // Prompts específicos por canal - Híbrido
+        hybridPromptOverview: userSettings.hybridPromptOverview,
+        hybridPromptTatica: userSettings.hybridPromptTatica,
+        hybridPromptDiretrizes: userSettings.hybridPromptDiretrizes,
+
+        // Templates de pesquisa e análise (genéricos)
         templatePesquisa: userSettings.templatePesquisa,
         templateAnaliseEmpresa: userSettings.templateAnaliseEmpresa,
         informacoesPropria: userSettings.informacoesPropria,
@@ -285,6 +312,67 @@ export async function POST(request: NextRequest) {
             corpo: userSettings.emailCorpo3,
           },
         ],
+
+        // WhatsApp templates
+        whatsappMessages: [
+          userSettings.whatsappMessage1,
+          userSettings.whatsappMessage2,
+          userSettings.whatsappMessage3,
+        ],
+
+        // Evolution API instances
+        evolutionInstances: (() => {
+          try {
+            const parsed = JSON.parse(userSettings.evolutionInstances || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            console.error('[Campaigns] Invalid evolutionInstances JSON:', error);
+            return [];
+          }
+        })(),
+
+        // Cadências (JSON)
+        emailOnlyCadence: (() => {
+          try {
+            return JSON.parse(userSettings.emailOnlyCadence || "[]");
+          } catch (error) {
+            console.error('[Campaigns] Invalid emailOnlyCadence JSON:', error);
+            return [];
+          }
+        })(),
+        whatsappOnlyCadence: (() => {
+          try {
+            return JSON.parse(userSettings.whatsappOnlyCadence || "[]");
+          } catch (error) {
+            console.error('[Campaigns] Invalid whatsappOnlyCadence JSON:', error);
+            return [];
+          }
+        })(),
+        hybridCadence: (() => {
+          try {
+            return JSON.parse(userSettings.hybridCadence || "[]");
+          } catch (error) {
+            console.error('[Campaigns] Invalid hybridCadence JSON:', error);
+            return [];
+          }
+        })(),
+
+        // Configurações de envio
+        useHybridCadence: userSettings.useHybridCadence,
+        sendOnlyBusinessHours: userSettings.sendOnlyBusinessHours,
+
+        // Business hours por canal
+        emailBusinessHourStart: userSettings.emailBusinessHourStart,
+        emailBusinessHourEnd: userSettings.emailBusinessHourEnd,
+        whatsappBusinessHourStart: userSettings.whatsappBusinessHourStart,
+        whatsappBusinessHourEnd: userSettings.whatsappBusinessHourEnd,
+        hybridBusinessHourStart: userSettings.hybridBusinessHourStart,
+        hybridBusinessHourEnd: userSettings.hybridBusinessHourEnd,
+
+        // Limites diários por canal
+        dailyEmailLimit: userSettings.dailyEmailLimit,
+        whatsappDailyLimit: userSettings.whatsappDailyLimit,
+        hybridDailyLimit: userSettings.hybridDailyLimit,
       } : null, // Se não houver settings, envia null (N8N pode usar defaults)
     };
 

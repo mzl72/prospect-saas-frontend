@@ -8,12 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { HybridCadence, HybridCadenceItem } from "@/components/cadence/HybridCadence";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, Zap, Info, Mail, MessageCircle, Calendar, Settings as SettingsIcon, Building2 } from "lucide-react";
+import { Save, Loader2, Zap, Info, Mail, MessageCircle, Calendar, Settings as SettingsIcon, Building2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-type TabType = "templates" | "cadence" | "settings" | "company";
+type TabType = "templates" | "cadence" | "settings" | "company" | "prompts";
 
 export default function CadenciaHibridaPage() {
   const queryClient = useQueryClient();
@@ -21,7 +21,7 @@ export default function CadenciaHibridaPage() {
 
   const [config, setConfig] = useState({
     useHybridCadence: false,
-    hybridIntervals: [] as HybridCadenceItem[],
+    hybridCadence: [] as HybridCadenceItem[],
 
     // Email templates
     emailTitulo1: "",
@@ -45,6 +45,11 @@ export default function CadenciaHibridaPage() {
     hybridBusinessHourStart: 9,
     hybridBusinessHourEnd: 18,
     sendOnlyBusinessHours: true,
+
+    // Prompts específicos de Híbrido
+    hybridPromptOverview: "",
+    hybridPromptTatica: "",
+    hybridPromptDiretrizes: "",
   });
 
   // Fetch settings
@@ -62,7 +67,7 @@ export default function CadenciaHibridaPage() {
       const s = settingsData.settings;
       setConfig({
         useHybridCadence: s.useHybridCadence ?? false,
-        hybridIntervals: JSON.parse(s.hybridIntervals || '[{"type":"email","messageNumber":1,"emailNumber":1,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":4,"whatsappNumber":2,"daysAfterPrevious":1},{"type":"email","messageNumber":5,"emailNumber":3,"daysAfterPrevious":1}]'),
+        hybridCadence: JSON.parse(s.hybridCadence || '[{"type":"email","messageNumber":1,"emailNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"dayOfWeek":2,"timeWindow":"14:00-16:00","daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"dayOfWeek":4,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
         emailTitulo1: s.emailTitulo1 || "",
         emailCorpo1: s.emailCorpo1 || "",
         emailCorpo2: s.emailCorpo2 || "",
@@ -78,6 +83,9 @@ export default function CadenciaHibridaPage() {
         hybridBusinessHourStart: (s as any).hybridBusinessHourStart || 9,
         hybridBusinessHourEnd: (s as any).hybridBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
+        hybridPromptOverview: s.hybridPromptOverview || "",
+        hybridPromptTatica: s.hybridPromptTatica || "",
+        hybridPromptDiretrizes: s.hybridPromptDiretrizes || "",
       });
     }
   }, [settingsData]);
@@ -86,7 +94,7 @@ export default function CadenciaHibridaPage() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
-        hybridIntervals: JSON.stringify(data.hybridIntervals),
+        hybridCadence: JSON.stringify(data.hybridCadence),
       };
 
       const response = await fetch("/api/settings", {
@@ -227,6 +235,17 @@ export default function CadenciaHibridaPage() {
             >
               <Building2 className="w-4 h-4" />
               Empresa
+            </button>
+            <button
+              onClick={() => setActiveTab("prompts")}
+              className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === "prompts"
+                  ? "border-b-2 border-cyan-600 text-cyan-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Prompts IA
             </button>
           </div>
 
@@ -380,9 +399,9 @@ export default function CadenciaHibridaPage() {
                 </CardHeader>
                 <CardContent>
                   <HybridCadence
-                    items={config.hybridIntervals}
+                    items={config.hybridCadence}
                     onChange={(items) =>
-                      setConfig((prev) => ({ ...prev, hybridIntervals: items }))
+                      setConfig((prev) => ({ ...prev, hybridCadence: items }))
                     }
                   />
                 </CardContent>
@@ -515,6 +534,80 @@ export default function CadenciaHibridaPage() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Tab: Prompts IA */}
+            {activeTab === "prompts" && (
+              <div className="space-y-6">
+                <div className="bg-cyan-50 border border-cyan-200 p-4 rounded-lg">
+                  <p className="text-sm text-cyan-800">
+                    <strong>🤖 Prompts Personalizados:</strong> Configure como a IA deve gerar conteúdo para cadência híbrida (Email + WhatsApp combinados).
+                  </p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Prompt Overview</CardTitle>
+                    <CardDescription>
+                      Contexto geral sobre estratégia híbrida de email e WhatsApp
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Contexto</Label>
+                    <textarea
+                      value={config.hybridPromptOverview}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, hybridPromptOverview: e.target.value }))
+                      }
+                      rows={8}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: Você é um especialista em campanhas multicanal, combinando email formal com WhatsApp conversacional..."
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tática de Abordagem</CardTitle>
+                    <CardDescription>
+                      Estratégia de alternância entre canais e timing
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Tática</Label>
+                    <textarea
+                      value={config.hybridPromptTatica}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, hybridPromptTatica: e.target.value }))
+                      }
+                      rows={6}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: Alternar entre email (formal/informativo) e WhatsApp (follow-up rápido), criando múltiplos pontos de contato..."
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Diretrizes de Escrita</CardTitle>
+                    <CardDescription>
+                      Regras específicas para conteúdo híbrido
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Label>Diretrizes</Label>
+                    <textarea
+                      value={config.hybridPromptDiretrizes}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, hybridPromptDiretrizes: e.target.value }))
+                      }
+                      rows={8}
+                      className="w-full mt-2 px-3 py-2 border rounded-md font-mono text-sm"
+                      placeholder="Ex: - Email: tom profissional, máximo 150 palavras&#10;- WhatsApp: tom amigável, máximo 200 caracteres&#10;- Manter consistência na mensagem entre canais..."
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {/* Save Button */}

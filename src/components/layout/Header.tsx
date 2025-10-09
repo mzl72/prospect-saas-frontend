@@ -93,6 +93,16 @@ export function Header() {
             >
               Híbrido
             </Link>
+            <Link
+              href="/configuracoes"
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isActive("/configuracoes")
+                  ? "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              Configurações
+            </Link>
           </nav>
 
           <div className="flex items-center space-x-4">
