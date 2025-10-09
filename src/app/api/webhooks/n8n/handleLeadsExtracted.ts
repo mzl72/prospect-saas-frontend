@@ -202,9 +202,12 @@ export async function handleLeadsExtracted(data: {
         totalScore: normalizeValue(lead.totalScore || lead.nota_media),
         reviewsCount: normalizeValue(lead.reviewsCount || lead.total_reviews),
         url: normalizeValue(lead.url || lead.linkGoogleMaps || lead.link_google_maps),
-        email: Array.isArray(lead.emails) && lead.emails.length > 0
-          ? normalizeValue(lead.emails[0])
-          : normalizeValue(lead.email),
+        email: (() => {
+          const rawEmail = Array.isArray(lead.emails) && lead.emails.length > 0
+            ? normalizeValue(lead.emails[0])
+            : normalizeValue(lead.email);
+          return rawEmail && isValidEmail(rawEmail) ? rawEmail : null;
+        })(),
         linkedinUrl: Array.isArray(lead.linkedIns) && lead.linkedIns.length > 0
           ? normalizeValue(lead.linkedIns[0])
           : normalizeValue(lead.linkedinUrl || lead.linkedin_url),

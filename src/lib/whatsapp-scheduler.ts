@@ -26,6 +26,7 @@ interface CadenceItem {
   messageNumber: 1 | 2 | 3;
   dayOfWeek: number; // 0-6 (0=Dom)
   timeWindow: string; // "09:00-11:00"
+  daysAfterPrevious: number; // Dias desde a mensagem anterior
 }
 
 /**
@@ -60,11 +61,31 @@ export function canSendWhatsApp(
 
   try {
     if (cadenceType === CadenceType.WHATSAPP_ONLY) {
+      if (!userSettings.whatsappOnlyCadence) {
+        console.error('[WhatsApp Scheduler] whatsappOnlyCadence is empty or undefined')
+        return false
+      }
       cadenceItems = JSON.parse(userSettings.whatsappOnlyCadence)
     } else if (cadenceType === CadenceType.HYBRID) {
+      if (!userSettings.hybridCadence) {
+        console.error('[WhatsApp Scheduler] hybridCadence is empty or undefined')
+        return false
+      }
       cadenceItems = JSON.parse(userSettings.hybridCadence)
     } else {
       return false // Email only não envia WhatsApp
+    }
+
+    // Validar se é array
+    if (!Array.isArray(cadenceItems)) {
+      console.error('[WhatsApp Scheduler] Cadence is not an array:', cadenceItems)
+      return false
+    }
+
+    // Validar se array não está vazio
+    if (cadenceItems.length === 0) {
+      console.error('[WhatsApp Scheduler] Cadence array is empty')
+      return false
     }
   } catch (error) {
     console.error('[WhatsApp Scheduler] Failed to parse cadence JSON:', error)

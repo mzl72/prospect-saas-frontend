@@ -1,25 +1,46 @@
 /**
- * Rate limiting simples em memória
- * Previne abuso de APIs públicas
+ * Rate limiting simples em memória com LRU (Least Recently Used)
+ * Previne abuso de APIs públicas e memory leaks
  */
 
 interface RateLimitStore {
   [key: string]: {
     count: number;
     resetTime: number;
+    lastAccess: number; // Para LRU
   };
 }
 
 const store: RateLimitStore = {};
+const MAX_ENTRIES = 10000; // Limite máximo de IPs na memória
 
 // Limpar entradas antigas a cada 5 minutos
 setInterval(() => {
   const now = Date.now();
-  Object.keys(store).forEach(key => {
+  const keys = Object.keys(store);
+
+  // Remover entradas expiradas
+  keys.forEach(key => {
     if (store[key].resetTime < now) {
       delete store[key];
     }
   });
+
+  // Se ainda exceder o limite, aplicar LRU (remover menos usadas)
+  if (Object.keys(store).length > MAX_ENTRIES) {
+    console.warn(`[Rate Limit] Store exceeded ${MAX_ENTRIES} entries, applying LRU cleanup`);
+
+    const sortedByAccess = Object.entries(store)
+      .sort((a, b) => a[1].lastAccess - b[1].lastAccess);
+
+    // Remover 20% das entradas mais antigas
+    const entriesToRemove = Math.floor(MAX_ENTRIES * 0.2);
+    for (let i = 0; i < entriesToRemove; i++) {
+      delete store[sortedByAccess[i][0]];
+    }
+
+    console.log(`[Rate Limit] Removed ${entriesToRemove} old entries`);
+  }
 }, 5 * 60 * 1000);
 
 export interface RateLimitConfig {
@@ -77,9 +98,13 @@ export function checkRateLimit(config: RateLimitConfig): RateLimitResult {
     entry = {
       count: 0,
       resetTime: now + windowMs,
+      lastAccess: now,
     };
     store[identifier] = entry;
   }
+
+  // Atualizar último acesso (para LRU)
+  entry.lastAccess = now;
 
   // Incrementar contador
   entry.count++;

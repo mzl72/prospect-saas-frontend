@@ -65,25 +65,26 @@ export type UpdateUserSettingsDto = z.infer<typeof UpdateUserSettingsSchema>;
 
 /**
  * Schema para validação de lead extraído do webhook
+ * URLs opcionais aceitam null, undefined ou strings válidas (não vazias)
  */
 export const LeadDataSchema = z.object({
   apifyId: z.string().min(1),
   title: z.string().min(1),
   address: z.string().nullable().optional(),
-  website: z.string().url().nullable().optional(),
+  website: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
   phone: z.string().nullable().optional(),
-  email: z.string().email().nullable().optional(),
+  email: z.union([z.string().email(), z.literal(''), z.null()]).optional(),
   category: z.string().nullable().optional(),
   totalScore: z.union([z.string(), z.number()]).nullable().optional(),
   reviewsCount: z.union([z.string(), z.number()]).nullable().optional(),
-  url: z.string().url().nullable().optional(),
-  linkedinUrl: z.string().url().nullable().optional(),
-  twitterUrl: z.string().url().nullable().optional(),
-  instagramUrl: z.string().url().nullable().optional(),
-  facebookUrl: z.string().url().nullable().optional(),
-  youtubeUrl: z.string().url().nullable().optional(),
-  tiktokUrl: z.string().url().nullable().optional(),
-  pinterestUrl: z.string().url().nullable().optional(),
+  url: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  linkedinUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  twitterUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  instagramUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  facebookUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  youtubeUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  tiktokUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  pinterestUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
 });
 
 export type LeadData = z.infer<typeof LeadDataSchema>;

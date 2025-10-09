@@ -4,10 +4,9 @@
  */
 
 import { prisma } from '@/lib/prisma-db';
-import { EmailStatus, WhatsAppStatus, LeadStatus } from '@prisma/client';
+import { EmailStatus, WhatsAppStatus, LeadStatus, UserSettings } from '@prisma/client';
 import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils';
 import { DEMO_USER_ID } from '@/lib/demo-user';
-import type { UserSettingsExtended } from '@/types/settings';
 
 type MessageChannel = 'email' | 'whatsapp';
 type MessageStatus = EmailStatus | WhatsAppStatus;
@@ -18,9 +17,9 @@ interface MessageQueueConfig<TMessage, TSendResult> {
   statusEnum: typeof EmailStatus | typeof WhatsAppStatus;
 
   // Business logic específico do canal
-  getDailyLimit: (settings: UserSettingsExtended) => number;
-  getBusinessHours: (settings: UserSettingsExtended) => { start: number; end: number };
-  canSendMessage: (message: TMessage, settings: UserSettingsExtended) => boolean;
+  getDailyLimit: (settings: UserSettings) => number;
+  getBusinessHours: (settings: UserSettings) => { start: number; end: number };
+  canSendMessage: (message: TMessage, settings: UserSettings) => boolean;
   sendMessage: (message: TMessage) => Promise<TSendResult>;
   getLeadStatusForSequence: (sequenceNumber: 1 | 2 | 3) => LeadStatus;
 
@@ -67,7 +66,7 @@ export async function processMessageQueue<TMessage extends {
     // 1. Buscar configurações do usuário
     const userSettings = await prisma.userSettings.findUnique({
       where: { userId: DEMO_USER_ID },
-    }) as UserSettingsExtended | null;
+    });
 
     if (!userSettings) {
       console.error(`[${config.channel} Queue] User settings not found`);

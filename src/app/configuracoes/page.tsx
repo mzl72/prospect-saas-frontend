@@ -71,6 +71,7 @@ export default function ConfiguracoesPage() {
     // WhatsApp Templates
     whatsappMessage1: "",
     whatsappMessage2: "",
+    whatsappMessage3: "",
 
     // Informações Críticas
     nomeEmpresa: "",
@@ -78,16 +79,26 @@ export default function ConfiguracoesPage() {
     telefoneContato: "",
     websiteEmpresa: "",
     senderEmails: "[]",
+    evolutionInstances: "[]",
+
+    // Cadências
+    emailOnlyCadence: "[]",
+    whatsappOnlyCadence: "[]",
+    hybridCadence: "[]",
 
     // Timing Configuration
     email2DelayDays: 3,
     email3DelayDays: 7,
-    sendDelayMinMs: 100,
-    sendDelayMaxMs: 500,
     dailyEmailLimit: 100,
+    emailBusinessHourStart: 9,
+    emailBusinessHourEnd: 18,
+    whatsappDailyLimit: 50,
+    whatsappBusinessHourStart: 9,
+    whatsappBusinessHourEnd: 18,
+    hybridDailyLimit: 70,
+    hybridBusinessHourStart: 9,
+    hybridBusinessHourEnd: 18,
     sendOnlyBusinessHours: true,
-    businessHourStart: 9,
-    businessHourEnd: 18,
     useHybridCadence: false,
   });
 

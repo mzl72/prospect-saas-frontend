@@ -17,6 +17,7 @@ interface CadenceItem {
   messageNumber: 1 | 2 | 3;
   dayOfWeek: number; // 0-6 (0=Dom)
   timeWindow: string; // "09:00-11:00"
+  daysAfterPrevious: number; // Dias desde a mensagem anterior
 }
 
 /**
@@ -52,14 +53,34 @@ export function canSendEmail(
 
   try {
     if (cadenceType === CadenceType.EMAIL_ONLY) {
+      if (!userSettings.emailOnlyCadence) {
+        console.error('[Email Scheduler] emailOnlyCadence is empty or undefined');
+        return false;
+      }
       cadenceItems = JSON.parse(userSettings.emailOnlyCadence);
     } else if (cadenceType === CadenceType.HYBRID) {
+      if (!userSettings.hybridCadence) {
+        console.error('[Email Scheduler] hybridCadence is empty or undefined');
+        return false;
+      }
       cadenceItems = JSON.parse(userSettings.hybridCadence);
     } else {
       return false; // WhatsApp only não envia emails
     }
+
+    // Validar se é array
+    if (!Array.isArray(cadenceItems)) {
+      console.error('[Email Scheduler] Cadence is not an array:', cadenceItems);
+      return false;
+    }
+
+    // Validar se array não está vazio
+    if (cadenceItems.length === 0) {
+      console.error('[Email Scheduler] Cadence array is empty');
+      return false;
+    }
   } catch (error) {
-    console.error('[Scheduler] Failed to parse cadence JSON:', error);
+    console.error('[Email Scheduler] Failed to parse cadence JSON:', error);
     return false;
   }
 

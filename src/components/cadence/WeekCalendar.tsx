@@ -10,6 +10,7 @@ export interface CadenceItem {
   messageNumber: 1 | 2 | 3;
   dayOfWeek: number; // 0-6 (0=Dom, 1=Seg, ...)
   timeWindow: string; // "09:00-11:00"
+  daysAfterPrevious: number; // Dias desde a mensagem anterior
 }
 
 interface WeekCalendarProps {

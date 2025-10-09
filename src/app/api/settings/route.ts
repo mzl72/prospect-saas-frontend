@@ -80,10 +80,10 @@ Abraços,
   whatsappMessage3: "",
   evolutionInstances: "[]",
 
-  // Intervalos de Cadência (JSON)
-  emailIntervals: '[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]',
-  whatsappIntervals: '[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]',
-  hybridIntervals: '[{"type":"email","messageNumber":1,"emailNumber":1,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":4,"whatsappNumber":2,"daysAfterPrevious":1},{"type":"email","messageNumber":5,"emailNumber":3,"daysAfterPrevious":1}]',
+  // Cadências (JSON) - NOMES SINCRONIZADOS COM PRISMA
+  emailOnlyCadence: '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"14:00-16:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]',
+  whatsappOnlyCadence: '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"10:00-12:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"15:00-17:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"10:00-12:00","daysAfterPrevious":2}]',
+  hybridCadence: '[{"type":"email","messageNumber":1,"emailNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"dayOfWeek":2,"timeWindow":"14:00-16:00","daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"dayOfWeek":4,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]',
   useHybridCadence: false,
 
   // Configurações de Email
@@ -363,8 +363,8 @@ const settingsSchema = z.object({
     .optional()
     .default("[]"),
 
-  // Message Intervals (JSON fields)
-  emailIntervals: z
+  // Cadências (JSON fields) - NOMES SINCRONIZADOS COM PRISMA
+  emailOnlyCadence: z
     .string()
     .refine((val) => {
       try {
@@ -375,8 +375,8 @@ const settingsSchema = z.object({
       }
     }, { message: "JSON inválido" })
     .optional()
-    .default('[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]'),
-  whatsappIntervals: z
+    .default('[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"14:00-16:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
+  whatsappOnlyCadence: z
     .string()
     .refine((val) => {
       try {
@@ -387,8 +387,8 @@ const settingsSchema = z.object({
       }
     }, { message: "JSON inválido" })
     .optional()
-    .default('[{"messageNumber":1,"daysAfterPrevious":1},{"messageNumber":2,"daysAfterPrevious":2},{"messageNumber":3,"daysAfterPrevious":2}]'),
-  hybridIntervals: z
+    .default('[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"10:00-12:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"15:00-17:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"10:00-12:00","daysAfterPrevious":2}]'),
+  hybridCadence: z
     .string()
     .refine((val) => {
       try {
@@ -399,7 +399,7 @@ const settingsSchema = z.object({
       }
     }, { message: "JSON inválido" })
     .optional()
-    .default('[{"type":"email","messageNumber":1,"emailNumber":1,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"daysAfterPrevious":1},{"type":"whatsapp","messageNumber":4,"whatsappNumber":2,"daysAfterPrevious":1},{"type":"email","messageNumber":5,"emailNumber":3,"daysAfterPrevious":1}]'),
+    .default('[{"type":"email","messageNumber":1,"emailNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"dayOfWeek":2,"timeWindow":"14:00-16:00","daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"dayOfWeek":4,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
   useHybridCadence: z.boolean().optional().default(false),
 
   // Configurações de Timing de Emails (deprecated but kept for backward compatibility)

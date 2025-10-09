@@ -16,6 +16,7 @@ interface CadenceItem {
   messageNumber: 1 | 2 | 3;
   dayOfWeek: number; // 0-6 (0=Dom)
   timeWindow: string; // "09:00-11:00"
+  daysAfterPrevious: number; // Dias desde a mensagem anterior
 }
 
 /**
@@ -49,26 +50,47 @@ export function isWithinBusinessHours(
  * Verifica se hoje é o dia correto da semana e se está dentro da janela de tempo
  */
 export function isCorrectDayAndTime(cadenceItem: CadenceItem): boolean {
-  const now = new Date();
-  const currentDay = now.getDay(); // 0-6 (0=Dom)
+  try {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0-6 (0=Dom)
 
-  // Verificar dia da semana
-  if (currentDay !== cadenceItem.dayOfWeek) {
+    // Verificar dia da semana
+    if (currentDay !== cadenceItem.dayOfWeek) {
+      return false;
+    }
+
+    // Verificar janela de tempo
+    if (!cadenceItem.timeWindow || typeof cadenceItem.timeWindow !== 'string') {
+      console.error('[Scheduling Utils] Invalid timeWindow:', cadenceItem.timeWindow);
+      return false;
+    }
+
+    const [startTime, endTime] = cadenceItem.timeWindow.split('-');
+    if (!startTime || !endTime) {
+      console.error('[Scheduling Utils] Invalid timeWindow format:', cadenceItem.timeWindow);
+      return false;
+    }
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    // Validar se os números são válidos
+    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
+      console.error('[Scheduling Utils] Invalid time values in timeWindow:', cadenceItem.timeWindow);
+      return false;
+    }
+
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+    const startTimeInMinutes = startHour * 60 + startMinute;
+    const endTimeInMinutes = endHour * 60 + endMinute;
+
+    return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes;
+  } catch (error) {
+    console.error('[Scheduling Utils] Error parsing cadence timeWindow:', error);
     return false;
   }
-
-  // Verificar janela de tempo
-  const [startTime, endTime] = cadenceItem.timeWindow.split('-');
-  const [startHour, startMinute] = startTime.split(':').map(Number);
-  const [endHour, endMinute] = endTime.split(':').map(Number);
-
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-  const currentTimeInMinutes = currentHour * 60 + currentMinute;
-  const startTimeInMinutes = startHour * 60 + startMinute;
-  const endTimeInMinutes = endHour * 60 + endMinute;
-
-  return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes;
 }
 
 /**
@@ -84,9 +106,14 @@ export function hasCorrectDaysPassed(lastSentAt: Date, cadenceItem: CadenceItem)
     return false;
   }
 
-  // Deve ter passado pelo menos 1 dia desde a última mensagem
+  // Calcular dias desde a última mensagem (arredondado)
   const daysSinceLastSent = Math.floor((now.getTime() - lastSentAt.getTime()) / (24 * 60 * 60 * 1000));
-  if (daysSinceLastSent < 1) {
+
+  // CORREÇÃO: Usar daysAfterPrevious da cadence ao invés de fixo em 1
+  const requiredDays = cadenceItem.daysAfterPrevious;
+
+  if (daysSinceLastSent < requiredDays) {
+    console.log(`[Scheduling Utils] Not enough days passed: ${daysSinceLastSent}/${requiredDays}`);
     return false;
   }
 

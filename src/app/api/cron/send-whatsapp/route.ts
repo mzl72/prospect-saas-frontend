@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { WhatsAppStatus, LeadStatus } from '@prisma/client'
+import { WhatsAppStatus, LeadStatus, UserSettings } from '@prisma/client'
 import { sendWhatsAppMessage } from '@/lib/whatsapp-service'
 import {
   canSendWhatsApp,
@@ -14,7 +14,6 @@ import {
 import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils'
 import { EMAIL_TIMING } from '@/lib/constants'
 import { DEMO_USER_ID } from '@/lib/demo-user'
-import type { UserSettingsExtended } from '@/types/settings'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos timeout
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
     // 1. Buscar configurações do usuário
     const userSettings = await prisma.userSettings.findUnique({
       where: { userId: DEMO_USER_ID },
-    }) as UserSettingsExtended | null
+    })
 
     if (!userSettings) {
       console.error('[WhatsApp Cron] User settings not found')

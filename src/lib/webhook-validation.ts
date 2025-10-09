@@ -19,17 +19,28 @@ export function validateResendWebhookSignature(
 ): boolean {
   if (!signature) return false
 
-  // Resend usa SHA-256 HMAC
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex')
+  try {
+    // Resend usa SHA-256 HMAC
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('hex')
 
-  // Comparação segura contra timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  )
+    // Converter para buffers
+    const signatureBuffer = Buffer.from(signature)
+    const expectedBuffer = Buffer.from(expectedSignature)
+
+    // timingSafeEqual exige buffers do mesmo tamanho
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return false
+    }
+
+    // Comparação segura contra timing attacks
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer)
+  } catch (error) {
+    console.error('[Webhook Validation] Error validating Resend signature:', error)
+    return false
+  }
 }
 
 /**
@@ -48,9 +59,20 @@ export function validateSimpleWebhook(
     return false
   }
 
-  // Comparação segura contra timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(providedKey),
-    Buffer.from(expectedKey)
-  )
+  try {
+    // Converter para buffers
+    const providedBuffer = Buffer.from(providedKey)
+    const expectedBuffer = Buffer.from(expectedKey)
+
+    // timingSafeEqual exige buffers do mesmo tamanho
+    if (providedBuffer.length !== expectedBuffer.length) {
+      return false
+    }
+
+    // Comparação segura contra timing attacks
+    return crypto.timingSafeEqual(providedBuffer, expectedBuffer)
+  } catch (error) {
+    console.error('[Webhook Validation] Error validating simple webhook:', error)
+    return false
+  }
 }

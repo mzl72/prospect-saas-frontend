@@ -8,10 +8,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { useRef, useEffect } from "react";
 import type { CampaignResponse } from "@/types";
+import { CAMPAIGN_TIMEOUT, CAMPAIGN_STATUS_LABELS } from "@/lib/constants";
 
 function calcularTempoEstimado(quantidade: number, tipo: string): string {
-  // Usar valores corretos do constants.ts
-  const segundosPorLead = tipo === "basico" ? 20 : 80;
+  const segundosPorLead = tipo === "basico"
+    ? CAMPAIGN_TIMEOUT.BASICO_SECONDS_PER_LEAD
+    : CAMPAIGN_TIMEOUT.COMPLETO_SECONDS_PER_LEAD;
   const totalSegundos = quantidade * segundosPorLead;
   const minutos = Math.ceil(totalSegundos / 60);
 
@@ -41,9 +43,7 @@ export default function CampanhasPage() {
       if (!data.success) return [];
 
       return data.campaigns.map((c: CampaignResponse) => {
-        const status = c.status === "PROCESSING" ? "processando" :
-                       c.status === "EXTRACTION_COMPLETED" ? "extração concluída" :
-                       c.status === "FAILED" ? "falhou" : "concluido";
+        const status = CAMPAIGN_STATUS_LABELS[c.status as keyof typeof CAMPAIGN_STATUS_LABELS] || "concluído";
 
         // Registra tempo de início do polling
         if ((status === "processando" || status === "extração concluída") && !pollingStartTimes.current[c.id]) {

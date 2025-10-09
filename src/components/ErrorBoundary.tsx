@@ -50,7 +50,7 @@ export class ErrorBoundary extends React.Component<
             <Button
               onClick={() => {
                 this.setState({ hasError: false });
-                window.location.href = "/";
+                window.location.assign("/");
               }}
               className="w-full"
             >

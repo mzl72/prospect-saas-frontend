@@ -8,6 +8,8 @@ import { Mail, MessageCircle, Calendar, Info } from "lucide-react";
 
 export interface MessageInterval {
   messageNumber: 1 | 2 | 3;
+  dayOfWeek: number; // 0-6 (0=Dom, 1=Seg, ..., 6=Sáb)
+  timeWindow: string; // "HH:MM-HH:MM" (ex: "09:00-11:00")
   daysAfterPrevious: number; // Dias após a mensagem anterior (mensagem 1 = dia 1, após extração)
 }
 
@@ -25,7 +27,17 @@ export function MessageIntervals({
   showMessage3 = true
 }: MessageIntervalsProps) {
   const Icon = messageType === "email" ? Mail : MessageCircle;
-  const color = messageType === "email" ? "blue" : "green";
+  const colorClasses = messageType === "email"
+    ? {
+        bg: "bg-blue-100 dark:bg-blue-900/20",
+        text: "text-blue-600 dark:text-blue-400",
+        icon: "text-blue-600 dark:text-blue-400"
+      }
+    : {
+        bg: "bg-green-100 dark:bg-green-900/20",
+        text: "text-green-600 dark:text-green-400",
+        icon: "text-green-600 dark:text-green-400"
+      };
 
   const handleIntervalChange = (messageNumber: 1 | 2 | 3, days: number) => {
     const updated = intervals.map((interval) =>
@@ -55,8 +67,8 @@ export function MessageIntervals({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div className={`p-2 bg-${color}-100 dark:bg-${color}-900/20 rounded-lg`}>
-          <Calendar className={`w-5 h-5 text-${color}-600 dark:text-${color}-400`} />
+        <div className={`p-2 ${colorClasses.bg} rounded-lg`}>
+          <Calendar className={`w-5 h-5 ${colorClasses.icon}`} />
         </div>
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -98,8 +110,8 @@ export function MessageIntervals({
                 <div className="flex items-start gap-4">
                   {/* Icon & Label */}
                   <div className="flex-shrink-0">
-                    <div className={`w-12 h-12 rounded-lg bg-${color}-100 dark:bg-${color}-900/30 flex items-center justify-center`}>
-                      <Icon className={`w-6 h-6 text-${color}-600 dark:text-${color}-400`} />
+                    <div className={`w-12 h-12 rounded-lg ${colorClasses.bg} flex items-center justify-center`}>
+                      <Icon className={`w-6 h-6 ${colorClasses.icon}`} />
                     </div>
                   </div>
 
@@ -188,7 +200,7 @@ export function MessageIntervals({
           })}
           <div className="pt-2 mt-2 border-t border-gray-300 dark:border-gray-600 flex justify-between font-semibold">
             <span>Duração total da campanha:</span>
-            <span className={`text-${color}-600 dark:text-${color}-400`}>
+            <span className={colorClasses.text}>
               {getTotalDays(showMessage3 ? 3 : 2)} {getTotalDays(showMessage3 ? 3 : 2) === 1 ? 'dia' : 'dias'}
             </span>
           </div>

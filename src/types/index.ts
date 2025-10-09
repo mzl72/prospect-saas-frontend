@@ -1,115 +1,40 @@
 // ========================================
-// DATABASE MODELS (from Prisma schema)
+// DATABASE MODELS (Re-exported from Prisma Client)
+// SINGLE SOURCE OF TRUTH: Prisma schema
 // ========================================
 
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  credits: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type {
+  User as PrismaUser,
+  UserSettings as PrismaUserSettings,
+  Campaign as PrismaCampaign,
+  Lead as PrismaLead,
+  Email as PrismaEmail,
+  WhatsAppMessage as PrismaWhatsAppMessage,
+  CampaignStatus,
+  CampaignType,
+  LeadStatus,
+  EmailStatus,
+  WhatsAppStatus,
+  CadenceType,
+} from '@prisma/client';
 
-export interface UserSettings {
-  id: string;
-  userId: string;
+// Re-export Prisma types as-is (no duplicação)
+export type User = PrismaUser;
+export type UserSettings = PrismaUserSettings;
+export type Campaign = PrismaCampaign;
+export type Lead = PrismaLead;
+export type Email = PrismaEmail;
+export type WhatsAppMessage = PrismaWhatsAppMessage;
 
-  // Templates de Pesquisa e Análise
-  templatePesquisa: string;
-  templateAnaliseEmpresa: string;
-  informacoesPropria: string;
-
-  // Prompt Customization
-  promptOverview: string;
-  promptTatica: string;
-  promptDiretrizes: string;
-
-  // Email Templates
-  emailTitulo1: string;
-  emailCorpo1: string;
-  emailCorpo2: string;
-  emailTitulo3: string;
-  emailCorpo3: string;
-
-  // WhatsApp Templates
-  whatsappMessage1: string;
-  whatsappMessage2: string;
-  whatsappMessage3: string;
-
-  // Informações Críticas da Empresa
-  nomeEmpresa: string;
-  assinatura: string;
-  telefoneContato: string;
-  websiteEmpresa: string;
-  senderEmails: string; // JSON array stored as string
-
-  // Evolution API Instances
-  evolutionInstances: string; // JSON array stored as string
-
-  // Cadências (JSON arrays stored as strings)
-  emailOnlyCadence: string;
-  whatsappOnlyCadence: string;
-  hybridCadence: string;
-
-  // Email Configuration
-  email2DelayDays: number;
-  email3DelayDays: number;
-  dailyEmailLimit: number;
-  emailBusinessHourStart: number;
-  emailBusinessHourEnd: number;
-
-  // WhatsApp Configuration
-  whatsappDailyLimit: number;
-  whatsappBusinessHourStart: number;
-  whatsappBusinessHourEnd: number;
-
-  // Hybrid Cadence Configuration
-  hybridDailyLimit: number;
-  hybridBusinessHourStart: number;
-  hybridBusinessHourEnd: number;
-
-  sendOnlyBusinessHours: boolean;
-  useHybridCadence: boolean;
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Campaign {
-  id: string;
-  userId: string;
-  title: string;
-  status: CampaignStatus;
-  quantidade: number;
-  tipo: CampaignType;
-  termos: string;
-  locais: string;
-  planilhaUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Lead {
-  id: string;
-  campaignId: string;
-  nomeEmpresa: string;
-  endereco: string | null;
-  website: string | null;
-  telefone: string | null;
-  categoria: string | null;
-  totalReviews: string | null;
-  notaMedia: string | null;
-  linkGoogleMaps: string | null;
-  createdAt: Date;
-}
-
-// ========================================
-// ENUMS
-// ========================================
-
-export type CampaignStatus = "PROCESSING" | "EXTRACTION_COMPLETED" | "COMPLETED" | "FAILED";
-export type CampaignType = "BASICO" | "COMPLETO";
+// Re-export enums
+export type {
+  CampaignStatus,
+  CampaignType,
+  LeadStatus,
+  EmailStatus,
+  WhatsAppStatus,
+  CadenceType,
+};
 
 // ========================================
 // API REQUEST/RESPONSE TYPES

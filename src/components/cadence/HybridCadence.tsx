@@ -11,6 +11,8 @@ export interface HybridCadenceItem {
   messageNumber: number; // Número sequencial geral (1, 2, 3, 4, 5...)
   emailNumber?: number; // Se for email: 1, 2 ou 3
   whatsappNumber?: number; // Se for whatsapp: 1 ou 2
+  dayOfWeek: number; // 0-6 (0=Dom, 1=Seg, ..., 6=Sáb)
+  timeWindow: string; // "HH:MM-HH:MM" (ex: "09:00-11:00")
   daysAfterPrevious: number;
 }
 
@@ -53,8 +55,18 @@ export function HybridCadence({ items, onChange }: HybridCadenceProps) {
     return type === "email" ? Mail : MessageCircle;
   };
 
-  const getColor = (type: "email" | "whatsapp") => {
-    return type === "email" ? "blue" : "green";
+  const getColorClasses = (type: "email" | "whatsapp") => {
+    return type === "email"
+      ? {
+          bg: "bg-blue-100 dark:bg-blue-900/30",
+          text: "text-blue-600 dark:text-blue-400",
+          icon: "text-blue-600 dark:text-blue-400"
+        }
+      : {
+          bg: "bg-green-100 dark:bg-green-900/30",
+          text: "text-green-600 dark:text-green-400",
+          icon: "text-green-600 dark:text-green-400"
+        };
   };
 
   return (
@@ -96,7 +108,7 @@ export function HybridCadence({ items, onChange }: HybridCadenceProps) {
           const interval = getInterval(item.messageNumber);
           const totalDays = getTotalDays(item.messageNumber);
           const Icon = getIcon(item.type);
-          const color = getColor(item.type);
+          const colorClasses = getColorClasses(item.type);
 
           return (
             <Card key={item.messageNumber} className="border-2">
@@ -104,8 +116,8 @@ export function HybridCadence({ items, onChange }: HybridCadenceProps) {
                 <div className="flex items-start gap-4">
                   {/* Icon & Label */}
                   <div className="flex-shrink-0">
-                    <div className={`w-12 h-12 rounded-lg bg-${color}-100 dark:bg-${color}-900/30 flex items-center justify-center relative`}>
-                      <Icon className={`w-6 h-6 text-${color}-600 dark:text-${color}-400`} />
+                    <div className={`w-12 h-12 rounded-lg ${colorClasses.bg} flex items-center justify-center relative`}>
+                      <Icon className={`w-6 h-6 ${colorClasses.icon}`} />
                       <div className="absolute -top-2 -right-2 w-6 h-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full flex items-center justify-center text-xs font-bold">
                         {item.messageNumber}
                       </div>

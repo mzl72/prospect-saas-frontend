@@ -59,15 +59,15 @@ model UserSettings {
   // Evolution API Instances (armazenado como JSON array)
   evolutionInstances      String   @default("[]") @map("evolution_instances") @db.Text
 
-  // === INTERVALOS ENTRE MENSAGENS ===
-  // Formato: Array de { messageNumber: 1|2|3, daysAfterPrevious: number }
-  // Mensagem 1 sempre no dia 0, mensagem 2 após X dias da msg 1, mensagem 3 após Y dias da msg 2
+  // === CADÊNCIAS (Intervalos + Dias da Semana + Janelas de Tempo) ===
+  // Formato: Array de { type?: "email" | "whatsapp", messageNumber: 1|2|3, dayOfWeek: 0-6, timeWindow: "HH:MM-HH:MM", daysAfterPrevious: number }
+  // Permite configurar dia da semana e janela de tempo para cada mensagem
 
-  emailIntervals          String   @default("[{\"messageNumber\":1,\"daysAfterPrevious\":1},{\"messageNumber\":2,\"daysAfterPrevious\":2},{\"messageNumber\":3,\"daysAfterPrevious\":2}]") @map("email_intervals") @db.Text
+  emailOnlyCadence        String   @default("[{\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":0},{\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"14:00-16:00\",\"daysAfterPrevious\":2},{\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":2}]") @map("email_only_cadence") @db.Text
 
-  whatsappIntervals       String   @default("[{\"messageNumber\":1,\"daysAfterPrevious\":1},{\"messageNumber\":2,\"daysAfterPrevious\":2},{\"messageNumber\":3,\"daysAfterPrevious\":2}]") @map("whatsapp_intervals") @db.Text
+  whatsappOnlyCadence     String   @default("[{\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"10:00-12:00\",\"daysAfterPrevious\":0},{\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"15:00-17:00\",\"daysAfterPrevious\":2},{\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"10:00-12:00\",\"daysAfterPrevious\":2}]") @map("whatsapp_only_cadence") @db.Text
 
-  hybridIntervals         String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"emailNumber\":1,\"daysAfterPrevious\":1},{\"type\":\"whatsapp\",\"messageNumber\":2,\"whatsappNumber\":1,\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":3,\"emailNumber\":2,\"daysAfterPrevious\":1},{\"type\":\"whatsapp\",\"messageNumber\":4,\"whatsappNumber\":2,\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":5,\"emailNumber\":3,\"daysAfterPrevious\":1}]") @map("hybrid_intervals") @db.Text
+  hybridCadence           String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"emailNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":0},{\"type\":\"whatsapp\",\"messageNumber\":2,\"whatsappNumber\":1,\"dayOfWeek\":2,\"timeWindow\":\"14:00-16:00\",\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":3,\"emailNumber\":2,\"dayOfWeek\":4,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":2}]") @map("hybrid_cadence") @db.Text
 
   // Configurações de Email
   email2DelayDays         Int      @default(3) @map("email_2_delay_days")
