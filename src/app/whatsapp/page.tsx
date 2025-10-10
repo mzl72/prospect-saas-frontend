@@ -95,8 +95,11 @@ export default function WhatsAppPage() {
 
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    onSuccess: (data) => {
+      // Atualizar cache diretamente ao invés de invalidar
+      if (data?.success && data?.settings) {
+        queryClient.setQueryData(["settings"], data);
+      }
       toast.success("Configurações salvas!");
     },
     onError: (error: any) => {

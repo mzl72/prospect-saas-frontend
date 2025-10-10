@@ -112,10 +112,11 @@ export async function handleLeadsExtracted(data: {
 
   const duplicatesCount = existingLeads.length
   const newLeadsCount = leadsArray.length - duplicatesCount
-  const insufficientCount = Math.max(0, campaign.leadsRequested - leadsArray.length) // leads que API não conseguiu encontrar
+  const leadsRequested = campaign.leadsRequested ?? 0
+  const insufficientCount = Math.max(0, leadsRequested - leadsArray.length) // leads que API não conseguiu encontrar
 
   console.log(`[Leads Extracted] Estatísticas:`)
-  console.log(`  - Solicitado: ${campaign.leadsRequested}`)
+  console.log(`  - Solicitado: ${leadsRequested}`)
   console.log(`  - Recebido da API: ${leadsArray.length}`)
   console.log(`  - Duplicados: ${duplicatesCount}`)
   console.log(`  - Novos: ${newLeadsCount}`)
@@ -123,7 +124,7 @@ export async function handleLeadsExtracted(data: {
 
   // Calcular créditos a reembolsar usando pricing-service centralizado
   const creditsToRefund = calculateRefund(
-    campaign.leadsRequested,
+    leadsRequested,
     leadsArray.length,
     duplicatesCount,
     campaign.tipo

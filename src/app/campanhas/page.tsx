@@ -140,14 +140,14 @@ export default function CampanhasPage() {
                         {campanha.leadsCreated !== undefined && campanha.leadsRequested !== undefined ? (
                           <>
                             {campanha.leadsCreated} de {campanha.leadsRequested} leads criados
-                            {campanha.leadsDuplicated > 0 && (
+                            {(campanha.leadsDuplicated ?? 0) > 0 && (
                               <span className="text-orange-600 dark:text-orange-400">
                                 {" "}• {campanha.leadsDuplicated} duplicados
                               </span>
                             )}
-                            {campanha.creditsRefunded > 0 && (
+                            {(campanha.creditsRefunded ?? 0) > 0 && (
                               <span className="text-green-600 dark:text-green-400">
-                                {" "}• {campanha.creditsRefunded.toFixed(2)} créditos reembolsados
+                                {" "}• {campanha.creditsRefunded?.toFixed(2)} créditos reembolsados
                               </span>
                             )}
                           </>

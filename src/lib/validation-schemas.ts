@@ -34,7 +34,7 @@ export const CreateCampaignSchema = z.object({
     ),
 
   nivelServico: z.enum(['basico', 'completo'], {
-    errorMap: () => ({ message: 'Nível de serviço deve ser "basico" ou "completo"' }),
+    message: 'Nível de serviço deve ser "basico" ou "completo"',
   }),
 });
 

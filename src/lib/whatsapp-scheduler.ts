@@ -40,7 +40,7 @@ export function canSendWhatsApp(
   const { sequenceNumber, lead } = message
 
   // Verificações básicas - sempre bloqueiam envio
-  if (lead.optedOutAt) return false
+  if (lead.optedOutAt !== null) return false
   if (lead.status === LeadStatus.REPLIED) return false
   if (lead.status === LeadStatus.OPTED_OUT) return false
   if (!lead.telefone) return false
@@ -157,7 +157,7 @@ function hasPreviousMessageBeenSent(
     const prevWhatsApp = lead.whatsappMessages.find(
       (w) => w.sequenceNumber === previousMessage.messageNumber
     )
-    if (!prevWhatsApp || prevWhatsApp.status !== WhatsAppStatus.SENT || !prevWhatsApp.sentAt) {
+    if (!prevWhatsApp || prevWhatsApp.status !== WhatsAppStatus.SENT || prevWhatsApp.sentAt === null) {
       return false
     }
     previousSentAt = prevWhatsApp.sentAt
@@ -165,13 +165,14 @@ function hasPreviousMessageBeenSent(
     const prevEmail = lead.emails.find(
       (e: any) => e.sequenceNumber === previousMessage.messageNumber
     )
-    if (!prevEmail || prevEmail.status !== EmailStatus.SENT || !prevEmail.sentAt) {
+    if (!prevEmail || prevEmail.status !== EmailStatus.SENT || prevEmail.sentAt === null) {
       return false
     }
     previousSentAt = prevEmail.sentAt
   }
 
   // Verificar se já passou o dia correto desde a última mensagem
+  if (previousSentAt === null) return false
   return hasCorrectDaysPassed(previousSentAt, currentMessage)
 }
 

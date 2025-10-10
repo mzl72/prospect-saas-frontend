@@ -102,8 +102,10 @@ export default function EmailsPage() {
       return result;
     },
     onSuccess: (data) => {
-      console.log("✅ Settings saved successfully:", data);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      // Atualizar cache diretamente ao invés de invalidar
+      if (data?.success && data?.settings) {
+        queryClient.setQueryData(["settings"], data);
+      }
       toast.success("Configurações salvas!");
     },
     onError: (error: any) => {

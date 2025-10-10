@@ -18,7 +18,7 @@ function validateWebhookSecret(request: NextRequest): boolean {
 
 // Tipo dos payloads esperados do N8N
 type WebhookPayload = {
-  event: 'leads-extracted' | 'lead-enriched' | 'email-sent' | 'email-replied' | 'opted-out'
+  event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'email-sent' | 'email-replied' | 'opted-out'
   data: any
 }
 

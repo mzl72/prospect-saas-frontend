@@ -55,7 +55,7 @@ export async function sendEmailViaResend(
       subject: params.subject,
       html: params.html,
       tags: params.tags,
-      reply_to: params.replyTo,
+      replyTo: params.replyTo,
     });
 
     if (error) {

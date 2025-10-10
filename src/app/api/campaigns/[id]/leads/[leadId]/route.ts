@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma-db'
 
 export const dynamic = 'force-dynamic'
 
-// UUID validation regex
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// CUID validation regex (formato: c + 24 caracteres alfanuméricos)
+const CUID_REGEX = /^c[a-z0-9]{24}$/i;
 
 // GET - Buscar lead específico com emails
 export async function GET(
@@ -14,8 +14,8 @@ export async function GET(
   try {
     const { leadId } = await params
 
-    // Validate UUID format
-    if (!UUID_REGEX.test(leadId)) {
+    // Validate CUID format
+    if (!CUID_REGEX.test(leadId)) {
       return NextResponse.json(
         { error: 'ID de lead inválido' },
         { status: 400 }

@@ -38,6 +38,8 @@ type TabType = "company" | "prompts";
 export default function ConfiguracoesPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>("company");
+  const [senderEmailInput, setSenderEmailInput] = useState("");
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
 
   // Suporte para navegação via hash (ex: /configuracoes#prompts)
   useEffect(() => {
@@ -96,8 +98,6 @@ export default function ConfiguracoesPage() {
     hybridCadence: "[]",
 
     // Timing Configuration
-    email2DelayDays: 3,
-    email3DelayDays: 7,
     dailyEmailLimit: 100,
     emailBusinessHourStart: 9,
     emailBusinessHourEnd: 18,
@@ -123,10 +123,13 @@ export default function ConfiguracoesPage() {
   });
 
   useEffect(() => {
-    if (settingsData?.success && settingsData?.settings) {
+    // Só atualizar estado se ainda não foi carregado do banco
+    // Isso evita sobrescrever mudanças locais do usuário
+    if (settingsData?.success && settingsData?.settings && !hasLoadedSettings) {
       setConfig(settingsData.settings);
+      setHasLoadedSettings(true);
     }
-  }, [settingsData]);
+  }, [settingsData, hasLoadedSettings]);
 
   const saveMutation = useMutation({
     mutationFn: async (
@@ -139,8 +142,13 @@ export default function ConfiguracoesPage() {
       });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    onSuccess: (savedData) => {
+      // Atualizar o cache do React Query diretamente com os dados salvos
+      // ao invés de invalidar e refetch (que poderia sobrescrever o estado local)
+      if (savedData?.success && savedData?.settings) {
+        queryClient.setQueryData(["settings"], savedData);
+      }
+
       toast.success("Configurações salvas com sucesso!");
     },
     onError: () => {

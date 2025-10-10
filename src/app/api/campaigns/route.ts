@@ -74,9 +74,9 @@ export async function POST(request: NextRequest) {
       CreateCampaignSchema.parse(body);
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        const errorMessages = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         return NextResponse.json(
-          { success: false, error: errorMessages, validationErrors: error.errors },
+          { success: false, error: errorMessages, validationErrors: error.issues },
           { status: 400 }
         );
       }

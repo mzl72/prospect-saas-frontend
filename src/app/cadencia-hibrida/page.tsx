@@ -8,12 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { HybridCadence, HybridCadenceItem } from "@/components/cadence/HybridCadence";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, Zap, Info, Mail, MessageCircle, Calendar, Settings as SettingsIcon, Building2, Sparkles } from "lucide-react";
+import { Save, Loader2, Zap, Info, Mail, MessageCircle, Calendar, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-type TabType = "templates" | "cadence" | "settings" | "company" | "prompts";
+type TabType = "templates" | "cadence" | "settings" | "prompts";
 
 export default function CadenciaHibridaPage() {
   const queryClient = useQueryClient();
@@ -33,12 +33,6 @@ export default function CadenciaHibridaPage() {
     // WhatsApp templates
     whatsappMessage1: "",
     whatsappMessage2: "",
-
-    // Company
-    nomeEmpresa: "",
-    assinatura: "",
-    telefoneContato: "",
-    websiteEmpresa: "",
 
     // Settings
     hybridDailyLimit: 70,
@@ -75,10 +69,6 @@ export default function CadenciaHibridaPage() {
         emailCorpo3: s.emailCorpo3 || "",
         whatsappMessage1: s.whatsappMessage1 || "",
         whatsappMessage2: s.whatsappMessage2 || "",
-        nomeEmpresa: s.nomeEmpresa || "",
-        assinatura: s.assinatura || "",
-        telefoneContato: s.telefoneContato || "",
-        websiteEmpresa: s.websiteEmpresa || "",
         hybridDailyLimit: (s as any).hybridDailyLimit || 70,
         hybridBusinessHourStart: (s as any).hybridBusinessHourStart || 9,
         hybridBusinessHourEnd: (s as any).hybridBusinessHourEnd || 18,
@@ -110,8 +100,11 @@ export default function CadenciaHibridaPage() {
 
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    onSuccess: (data) => {
+      // Atualizar cache diretamente ao invés de invalidar
+      if (data?.success && data?.settings) {
+        queryClient.setQueryData(["settings"], data);
+      }
       toast.success("Configurações salvas!");
     },
     onError: (error: any) => {
@@ -224,17 +217,6 @@ export default function CadenciaHibridaPage() {
             >
               <SettingsIcon className="w-4 h-4" />
               Configurações
-            </button>
-            <button
-              onClick={() => setActiveTab("company")}
-              className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === "company"
-                  ? "border-b-2 border-purple-600 text-purple-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              Empresa
             </button>
             <button
               onClick={() => setActiveTab("prompts")}
@@ -485,55 +467,6 @@ export default function CadenciaHibridaPage() {
                 </Card>
 
               </div>
-            )}
-
-            {/* Tab: Company */}
-            {activeTab === "company" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Dados da Empresa</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Nome da Empresa</Label>
-                      <Input
-                        value={config.nomeEmpresa}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, nomeEmpresa: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Assinatura</Label>
-                      <Input
-                        value={config.assinatura}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, assinatura: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Telefone</Label>
-                      <Input
-                        value={config.telefoneContato}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, telefoneContato: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Website</Label>
-                      <Input
-                        value={config.websiteEmpresa}
-                        onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, websiteEmpresa: e.target.value }))
-                        }
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
             {/* Tab: Prompts IA */}

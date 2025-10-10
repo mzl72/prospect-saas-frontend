@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCampaignCost } from "@/hooks/useCampaignCost";
+import { calculateCampaignCost } from "@/lib/pricing-service";
 import { useState } from "react";
 import {
   Dialog,
@@ -168,8 +168,8 @@ function EtapaNivelServico() {
   const { quantidade, nivelServico, setNivelServico, setCurrentStep } =
     useWizardStore();
 
-  const custoBasico = useCampaignCost(quantidade, "basico");
-  const custoCompleto = useCampaignCost(quantidade, "completo");
+  const custoBasico = calculateCampaignCost(quantidade, "BASICO");
+  const custoCompleto = calculateCampaignCost(quantidade, "COMPLETO");
 
   return (
     <div className="space-y-6">
@@ -262,7 +262,7 @@ function EtapaConfirmacao() {
     },
   });
 
-  const custo = useCampaignCost(quantidade, nivelServico);
+  const custo = calculateCampaignCost(quantidade, nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO');
   const creditosSuficientes = creditos >= custo;
 
   const createCampaign = useMutation({

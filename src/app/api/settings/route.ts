@@ -458,8 +458,6 @@ Qualquer coisa, é só chamar. Boa sorte com {nome_empresa}! 🚀`,
   useHybridCadence: false,
 
   // Configurações de Email
-  email2DelayDays: 3,
-  email3DelayDays: 7,
   dailyEmailLimit: 100,
   emailBusinessHourStart: 9,
   emailBusinessHourEnd: 18,
@@ -831,21 +829,7 @@ const settingsSchema = z.object({
     .default('[{"type":"email","messageNumber":1,"emailNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"dayOfWeek":2,"timeWindow":"14:00-16:00","daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"dayOfWeek":4,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
   useHybridCadence: z.boolean().optional().default(false),
 
-  // Configurações de Timing de Emails (deprecated but kept for backward compatibility)
-  email2DelayDays: z
-    .number()
-    .int()
-    .min(1, "Mínimo 1 dia")
-    .max(30, "Máximo 30 dias")
-    .optional()
-    .default(3),
-  email3DelayDays: z
-    .number()
-    .int()
-    .min(1, "Mínimo 1 dia")
-    .max(30, "Máximo 30 dias")
-    .optional()
-    .default(7),
+  // Configurações de Timing de Emails
   dailyEmailLimit: z
     .number()
     .int()
@@ -919,8 +903,11 @@ const settingsSchema = z.object({
 // GET - Buscar configurações do usuário
 export async function GET(request: NextRequest) {
   try {
+    console.log("[API /settings GET] 🔍 Starting GET request");
+
     // Garante que usuário existe
     await ensureDemoUser();
+    console.log("[API /settings GET] ✅ Demo user ensured");
 
     // Buscar ou criar settings do usuário
     let settings = await prisma.userSettings.findUnique({
@@ -929,12 +916,27 @@ export async function GET(request: NextRequest) {
 
     // Se não existir, cria com valores padrão
     if (!settings) {
+      console.log("[API /settings GET] ⚠️ No settings found, creating with DEFAULT_SETTINGS");
+      console.log("[API /settings GET] 📋 DEFAULT_SETTINGS keys:", Object.keys(DEFAULT_SETTINGS));
+
       settings = await prisma.userSettings.create({
         data: {
           userId: DEMO_USER_ID,
           ...DEFAULT_SETTINGS,
         },
       });
+
+      console.log("[API /settings GET] ✅ Settings created successfully");
+      console.log("[API /settings GET] 📊 Created settings sample (first 3 prompts):");
+      console.log("  - templatePesquisa length:", settings.templatePesquisa?.length || 0);
+      console.log("  - emailPromptOverview length:", settings.emailPromptOverview?.length || 0);
+      console.log("  - whatsappMessage1 length:", settings.whatsappMessage1?.length || 0);
+    } else {
+      console.log("[API /settings GET] ✅ Settings found in database");
+      console.log("[API /settings GET] 📊 Existing settings sample:");
+      console.log("  - templatePesquisa length:", settings.templatePesquisa?.length || 0);
+      console.log("  - emailPromptOverview length:", settings.emailPromptOverview?.length || 0);
+      console.log("  - whatsappMessage1 length:", settings.whatsappMessage1?.length || 0);
     }
 
     return NextResponse.json({
@@ -942,7 +944,7 @@ export async function GET(request: NextRequest) {
       settings,
     });
   } catch (error) {
-    console.error("[API /settings GET] Erro ao buscar configurações:", {
+    console.error("[API /settings GET] ❌ Erro ao buscar configurações:", {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
@@ -979,6 +981,60 @@ export async function POST(request: NextRequest) {
 
     const dataToSave = validatedBody.data;
     console.log("✅ [API] Validation passed, saving:", JSON.stringify(dataToSave, null, 2));
+
+    // PROTEÇÃO: Buscar settings existentes para preservar templates preenchidos
+    const existingSettings = await prisma.userSettings.findUnique({
+      where: { userId: DEMO_USER_ID },
+    });
+
+    // Lista de campos que NUNCA devem ser sobrescritos com vazio
+    const protectedFields = [
+      // Templates e Prompts (>50 chars mínimo)
+      'templatePesquisa',
+      'templateAnaliseEmpresa',
+      'informacoesPropria',
+      'emailPromptOverview',
+      'emailPromptTatica',
+      'emailPromptDiretrizes',
+      'whatsappPromptOverview',
+      'whatsappPromptTatica',
+      'whatsappPromptDiretrizes',
+      'hybridPromptOverview',
+      'hybridPromptTatica',
+      'hybridPromptDiretrizes',
+      'whatsappMessage1',
+      'whatsappMessage2',
+      'whatsappMessage3',
+      'emailTitulo1',
+      'emailCorpo1',
+      'emailCorpo2',
+      'emailTitulo3',
+      'emailCorpo3',
+      // Dados da Empresa (>1 char mínimo)
+      'nomeEmpresa',
+      'assinatura',
+      'telefoneContato',
+      'websiteEmpresa',
+    ] as const;
+
+    // Se settings existem, preservar campos preenchidos
+    if (existingSettings) {
+      protectedFields.forEach((field) => {
+        const existingValue = existingSettings[field];
+        const newValue = dataToSave[field];
+
+        // Definir threshold baseado no tipo de campo
+        const isCompanyField = ['nomeEmpresa', 'assinatura', 'telefoneContato', 'websiteEmpresa'].includes(field);
+        const threshold = isCompanyField ? 1 : 50; // Dados da empresa: >1 char, Templates: >50 chars
+
+        // Se o campo existente tem conteúdo e o novo está vazio/curto
+        // PRESERVA o existente ao invés de sobrescrever
+        if (existingValue && existingValue.length > threshold && (!newValue || newValue.length < threshold)) {
+          console.log(`⚠️ [API] Preserving existing ${field} (${existingValue.length} chars) - new value too short (${newValue?.length || 0} chars)`);
+          (dataToSave as any)[field] = existingValue;
+        }
+      });
+    }
 
     // Upsert (criar ou atualizar) settings
     const settings = await prisma.userSettings.upsert({

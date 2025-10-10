@@ -80,8 +80,6 @@ model UserSettings {
   hybridCadence           String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"emailNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":0},{\"type\":\"whatsapp\",\"messageNumber\":2,\"whatsappNumber\":1,\"dayOfWeek\":2,\"timeWindow\":\"14:00-16:00\",\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":3,\"emailNumber\":2,\"dayOfWeek\":4,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":2}]") @map("hybrid_cadence") @db.Text
 
   // Configurações de Email
-  email2DelayDays         Int      @default(3) @map("email_2_delay_days")
-  email3DelayDays         Int      @default(7) @map("email_3_delay_days")
   dailyEmailLimit         Int      @default(100) @map("daily_email_limit")
   emailBusinessHourStart  Int      @default(9) @map("email_business_hour_start")
   emailBusinessHourEnd    Int      @default(18) @map("email_business_hour_end")

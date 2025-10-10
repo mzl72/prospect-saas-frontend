@@ -149,6 +149,7 @@ export function addUnsubscribeFooter(
 /**
  * Calcula quanto tempo falta para o próximo email poder ser enviado
  * Útil para logging e debugging
+ * NOTA: Usa delays padrão de 3 e 7 dias (sistema antigo - novo sistema usa JSON cadences)
  */
 export function getTimeUntilNextEmail(
   email: EmailWithLead,
@@ -164,7 +165,7 @@ export function getTimeUntilNextEmail(
     const email1 = lead.emails.find((e) => e.sequenceNumber === 1);
     if (!email1?.sentAt) return null;
 
-    const delayMs = userSettings.email2DelayDays * 24 * 60 * 60 * 1000;
+    const delayMs = 3 * 24 * 60 * 60 * 1000; // Default: 3 dias
     const timeSinceEmail1 = Date.now() - email1.sentAt.getTime();
     return Math.max(0, delayMs - timeSinceEmail1);
   }
@@ -173,7 +174,7 @@ export function getTimeUntilNextEmail(
     const email2 = lead.emails.find((e) => e.sequenceNumber === 2);
     if (!email2?.sentAt) return null;
 
-    const delayMs = userSettings.email3DelayDays * 24 * 60 * 60 * 1000;
+    const delayMs = 7 * 24 * 60 * 60 * 1000; // Default: 7 dias
     const timeSinceEmail2 = Date.now() - email2.sentAt.getTime();
     return Math.max(0, delayMs - timeSinceEmail2);
   }

@@ -141,8 +141,6 @@ export function getCampaignStatusMessage(
   progress: number
 ): string {
   switch (status) {
-    case 'PENDING':
-      return 'Aguardando processamento...';
     case 'PROCESSING':
       return `Processando... ${progress}%`;
     case 'EXTRACTION_COMPLETED':
