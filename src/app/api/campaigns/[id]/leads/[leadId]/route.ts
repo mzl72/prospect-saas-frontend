@@ -28,6 +28,9 @@ export async function GET(
         emails: {
           orderBy: { sequenceNumber: 'asc' },
         },
+        whatsappMessages: {
+          orderBy: { sequenceNumber: 'asc' },
+        },
         campaign: {
           select: {
             id: true,

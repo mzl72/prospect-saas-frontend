@@ -103,18 +103,21 @@ export async function POST(request: NextRequest) {
 
       // Se não tem userSettings, todos os campos estão faltando
       if (!userSettings) {
-        missingFieldsByPage["/configuracoes#critical"] = [
+        missingFieldsByPage["/configuracoes"] = [
           "Informações da Sua Empresa (aba Empresa)"
         ];
         missingFieldsByPage["/emails#settings"] = [
           "Pelo menos 1 Email Remetente (aba Configurações)"
         ];
-        missingFieldsByPage["/configuracoes#email"] = [
+        missingFieldsByPage["/whatsapp#instances"] = [
+          "Pelo menos 1 Instância Evolution API (aba Instâncias)"
+        ];
+        missingFieldsByPage["/emails"] = [
           "Email 1 (Título e Corpo)",
           "Email 2 (Corpo)",
           "Email 3 (Título e Corpo)"
         ];
-        missingFieldsByPage["/configuracoes#whatsapp"] = [
+        missingFieldsByPage["/whatsapp"] = [
           "WhatsApp Mensagem 1",
           "WhatsApp Mensagem 2"
         ];
@@ -153,26 +156,26 @@ export async function POST(request: NextRequest) {
 
       // Validar Informações da Empresa (aba Empresa)
       if (!userSettings.informacoesPropria?.trim()) {
-        addMissingField("/configuracoes#critical", "Informações da Sua Empresa");
+        addMissingField("/configuracoes", "Informações da Sua Empresa");
       }
 
       // Validar Emails (aba Email)
       if (!userSettings.emailTitulo1?.trim() || !userSettings.emailCorpo1?.trim()) {
-        addMissingField("/configuracoes#email", "Email 1 (Título e Corpo)");
+        addMissingField("/emails", "Email 1 (Título e Corpo)");
       }
       if (!userSettings.emailCorpo2?.trim()) {
-        addMissingField("/configuracoes#email", "Email 2 (Corpo)");
+        addMissingField("/emails", "Email 2 (Corpo)");
       }
       if (!userSettings.emailTitulo3?.trim() || !userSettings.emailCorpo3?.trim()) {
-        addMissingField("/configuracoes#email", "Email 3 (Título e Corpo)");
+        addMissingField("/emails", "Email 3 (Título e Corpo)");
       }
 
       // Validar WhatsApp (aba WhatsApp)
       if (!userSettings.whatsappMessage1?.trim()) {
-        addMissingField("/configuracoes#whatsapp", "WhatsApp Mensagem 1");
+        addMissingField("/whatsapp", "WhatsApp Mensagem 1");
       }
       if (!userSettings.whatsappMessage2?.trim()) {
-        addMissingField("/configuracoes#whatsapp", "WhatsApp Mensagem 2");
+        addMissingField("/whatsapp", "WhatsApp Mensagem 2");
       }
 
       // Validar Emails Remetentes (OBRIGATÓRIO para envio de emails)
@@ -187,6 +190,20 @@ export async function POST(request: NextRequest) {
 
       if (senderEmails.length === 0) {
         addMissingField("/emails#settings", "Pelo menos 1 Email Remetente (aba Configurações)");
+      }
+
+      // Validar Evolution Instances (OBRIGATÓRIO para envio de WhatsApp)
+      const evolutionInstances = (() => {
+        try {
+          const parsed = JSON.parse(userSettings.evolutionInstances || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+
+      if (evolutionInstances.length === 0) {
+        addMissingField("/whatsapp#instances", "Pelo menos 1 Instância Evolution API (aba Instâncias)");
       }
 
       // Retornar erro estruturado se houver campos vazios

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ArrowLeft, Download, RefreshCw, Mail, Info, ExternalLink, MapPin, Phone, Globe, Calendar, Star } from "lucide-react";
+import { ArrowLeft, Download, RefreshCw, Mail, Info, ExternalLink, MapPin, Phone, Globe, Calendar, Star, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import { exportLeadsToCSV } from "@/lib/csv-export";
 import { toast } from "sonner";
@@ -51,6 +51,14 @@ interface Lead {
     status: string;
     sentAt: string | null;
   }>;
+  whatsappMessages?: Array<{
+    id: string;
+    sequenceNumber: number;
+    message: string;
+    status: string;
+    sentAt: string | null;
+  }>;
+  cadenceType?: string | null;
 }
 
 interface Campaign {
@@ -546,6 +554,17 @@ export default function CampaignDetailPage() {
                           >
                             <Mail className="w-4 h-4 mr-1" />
                             Ver Emails
+                          </Button>
+                        )}
+                        {lead.whatsappMessages && lead.whatsappMessages.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/campanhas/${campaignId}/leads/${lead.id}/whatsapp`)}
+                            className="text-green-600 hover:text-green-700"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-1" />
+                            Ver WhatsApp
                           </Button>
                         )}
                       </div>

@@ -385,10 +385,11 @@ function EtapaConfirmacao() {
 
         if (missingFieldsByPage && Object.keys(missingFieldsByPage).length > 0) {
           const pageNames: Record<string, string> = {
-            "/configuracoes#critical": "Configurações (Empresa)",
-            "/configuracoes#email": "Configurações (Email)",
-            "/configuracoes#whatsapp": "Configurações (WhatsApp)",
-            "/configuracoes#cadence": "Configurações (Cadência)",
+            "/configuracoes": "Configurações (Empresa)",
+            "/emails": "E-mails (Templates)",
+            "/emails#settings": "E-mails (Configurações)",
+            "/whatsapp": "WhatsApp (Templates)",
+            "/whatsapp#instances": "WhatsApp (Instâncias)",
             "/configuracoes#prompts": "Configurações (Prompts IA)"
           };
 

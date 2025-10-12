@@ -61,8 +61,10 @@ export async function GET(
     // Determinar status correto usando serviço centralizado
     const newStatus = determineCampaignStatus(campaign.status, campaign.tipo, stats)
 
-    // Atualizar no banco se mudou
-    if (newStatus !== campaign.status) {
+    // Atualizar no banco se mudou (mas não sobrescrever COMPLETED/FAILED)
+    if (newStatus !== campaign.status &&
+        campaign.status !== 'COMPLETED' &&
+        campaign.status !== 'FAILED') {
       await prisma.campaign.update({
         where: { id: campaignId },
         data: { status: newStatus },

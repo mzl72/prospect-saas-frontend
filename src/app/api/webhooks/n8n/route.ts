@@ -18,7 +18,7 @@ function validateWebhookSecret(request: NextRequest): boolean {
 
 // Tipo dos payloads esperados do N8N
 type WebhookPayload = {
-  event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'email-sent' | 'email-replied' | 'opted-out'
+  event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'lead-enriched-hybrid' | 'campaign-completed' | 'email-sent' | 'email-replied' | 'opted-out'
   data: any
 }
 
@@ -68,6 +68,14 @@ export async function POST(request: NextRequest) {
         await handleLeadEnrichedWhatsApp(data)
         break
 
+      case 'lead-enriched-hybrid':
+        await handleLeadEnrichedHybrid(data)
+        break
+
+      case 'campaign-completed':
+        await handleCampaignCompleted(data)
+        break
+
       case 'email-sent':
         await handleEmailSent(data)
         break
@@ -95,6 +103,68 @@ export async function POST(request: NextRequest) {
       { error: 'Erro ao processar webhook' },
       { status: 500 }
     )
+  }
+}
+
+// Handler: Campanha finalizada (N8N terminou o loop de enriquecimento)
+async function handleCampaignCompleted(data: {
+  campaignId: string
+}) {
+  const { campaignId } = data
+
+  console.log(`[Campaign Completed] Recebido para campanha: ${campaignId}`)
+
+  // Buscar campanha com contagem de leads
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: campaignId },
+    select: {
+      id: true,
+      status: true,
+      tipo: true,
+      leadsCreated: true,
+      _count: {
+        select: {
+          leads: {
+            where: {
+              status: {
+                not: LeadStatus.EXTRACTED
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  if (!campaign) {
+    console.error(`[Campaign Completed] Campanha ${campaignId} não encontrada`)
+    throw new Error('Campanha não encontrada')
+  }
+
+  // Se já está COMPLETED ou FAILED, não fazer nada
+  if (campaign.status === 'COMPLETED' || campaign.status === 'FAILED') {
+    console.log(`[Campaign Completed] Campanha já está no status ${campaign.status}, ignorando`)
+    return
+  }
+
+  const enrichedCount = campaign._count.leads
+  const totalLeads = campaign.leadsCreated
+
+  console.log(`[Campaign Completed] Campanha ${campaignId}:`)
+  console.log(`[Campaign Completed]   - Tipo: ${campaign.tipo}`)
+  console.log(`[Campaign Completed]   - Total de leads: ${totalLeads}`)
+  console.log(`[Campaign Completed]   - Leads enriquecidos: ${enrichedCount}`)
+
+  // Para campanhas COMPLETO, marcar como COMPLETED
+  if (campaign.tipo === 'COMPLETO') {
+    await prisma.campaign.update({
+      where: { id: campaignId },
+      data: { status: 'COMPLETED' }
+    })
+
+    console.log(`[Campaign Completed] ✅ Campanha ${campaignId} marcada como COMPLETED`)
+  } else {
+    console.log(`[Campaign Completed] Campanha é BASICO, status já deve estar correto`)
   }
 }
 
@@ -212,14 +282,14 @@ async function handleLeadEnriched(data: {
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
-      // Redes sociais (opcionais)
-      linkedinUrl: linkedinUrl || null,
-      twitterUrl: twitterUrl || null,
-      instagramUrl: instagramUrl || null,
-      facebookUrl: facebookUrl || null,
-      youtubeUrl: youtubeUrl || null,
-      tiktokUrl: tiktokUrl || null,
-      pinterestUrl: pinterestUrl || null,
+      // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
+      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
+      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
+      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
+      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
+      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
+      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
+      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
 
       assignedSender,
       optOutToken,
@@ -260,40 +330,6 @@ async function handleLeadEnriched(data: {
   })
 
   console.log(`[Lead Enriched] Lead ${lead.id} enriquecido e 3 emails criados`)
-
-  // Verificar se todos os leads da campanha foram enriquecidos
-  const campaign = await prisma.campaign.findUnique({
-    where: { id: lead.campaignId },
-    select: {
-      id: true,
-      tipo: true,
-      leadsCreated: true,
-      _count: {
-        select: {
-          leads: {
-            where: { status: LeadStatus.ENRICHED }
-          }
-        }
-      }
-    }
-  })
-
-  if (campaign && campaign.tipo === 'COMPLETO') {
-    const enrichedCount = campaign._count.leads
-    const totalLeads = campaign.leadsCreated
-
-    console.log(`[Lead Enriched] Progresso da campanha ${campaign.id}: ${enrichedCount}/${totalLeads} enriquecidos`)
-
-    // Se todos os leads foram enriquecidos, marcar campanha como COMPLETED
-    if (enrichedCount >= totalLeads && totalLeads > 0) {
-      await prisma.campaign.update({
-        where: { id: campaign.id },
-        data: { status: 'COMPLETED' }
-      })
-
-      console.log(`[Lead Enriched] ✅ Campanha ${campaign.id} marcada como COMPLETED (todos os ${totalLeads} leads enriquecidos)`)
-    }
-  }
 }
 
 // Handler: Lead enriquecido para WhatsApp (nova automação N8N)
@@ -301,25 +337,94 @@ async function handleLeadEnrichedWhatsApp(data: {
   leadId?: string
   apifyId?: string
   companyName?: string
-  whatsapp1Message: string
-  whatsapp2Message: string
-  whatsapp3Message: string
+  telefone?: string
+  companyResearch?: string
+  strategicAnalysis?: string
+  personalization?: string
+  analysisLink?: string
+
+  // Redes sociais (opcionais)
+  linkedinUrl?: string
+  twitterUrl?: string
+  instagramUrl?: string
+  facebookUrl?: string
+  youtubeUrl?: string
+  tiktokUrl?: string
+  pinterestUrl?: string
+
+  // WhatsApp messages (podem vir como JSON string ou objeto)
+  whatsapp1?: string | { mensagem: string }
+  whatsapp2?: string | { mensagem: string }
+  whatsapp3?: string | { mensagem: string }
+  sender_whatsapp?: string
   optOutToken: string
 }) {
   const {
     leadId,
     apifyId,
     companyName,
-    whatsapp1Message,
-    whatsapp2Message,
-    whatsapp3Message,
+    telefone,
+    companyResearch,
+    strategicAnalysis,
+    personalization,
+    analysisLink,
+    linkedinUrl,
+    twitterUrl,
+    instagramUrl,
+    facebookUrl,
+    youtubeUrl,
+    tiktokUrl,
+    pinterestUrl,
+    whatsapp1,
+    whatsapp2,
+    whatsapp3,
+    sender_whatsapp,
     optOutToken,
   } = data
 
   console.log(`[Lead Enriched WhatsApp] Lead: ${leadId || apifyId || companyName}`)
+  console.log(`[Lead Enriched WhatsApp] Payload recebido:`, JSON.stringify(data, null, 2))
+
+  // Parse WhatsApp messages (N8N envia como JSON string ou objeto)
+  const parseWhatsAppMessage = (field: string | { mensagem: string } | undefined): string | null => {
+    if (!field) return null
+
+    // Se já é string, tentar fazer parse como JSON
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field)
+        return parsed.mensagem || field
+      } catch {
+        // Se não for JSON válido, retornar como está
+        return field
+      }
+    }
+
+    // Se é objeto, extrair mensagem
+    if (typeof field === 'object' && 'mensagem' in field) {
+      return field.mensagem
+    }
+
+    return null
+  }
+
+  const whatsapp1Message = parseWhatsAppMessage(whatsapp1)
+  const whatsapp2Message = parseWhatsAppMessage(whatsapp2)
+  const whatsapp3Message = parseWhatsAppMessage(whatsapp3)
+
+  console.log(`[Lead Enriched WhatsApp] Mensagens parseadas:`, {
+    whatsapp1Message: whatsapp1Message?.substring(0, 50),
+    whatsapp2Message: whatsapp2Message?.substring(0, 50),
+    whatsapp3Message: whatsapp3Message?.substring(0, 50),
+  })
 
   // Validação: campos obrigatórios
   if (!whatsapp1Message || !whatsapp2Message || !whatsapp3Message) {
+    console.error(`[Lead Enriched WhatsApp] Campos obrigatórios de WhatsApp ausentes no payload:`, {
+      whatsapp1Message: !!whatsapp1Message,
+      whatsapp2Message: !!whatsapp2Message,
+      whatsapp3Message: !!whatsapp3Message,
+    })
     throw new Error('Campos obrigatórios de WhatsApp ausentes no payload')
   }
 
@@ -337,24 +442,90 @@ async function handleLeadEnrichedWhatsApp(data: {
     return
   }
 
-  if (!lead.telefone) {
+  // Verificar telefone (usar do payload se disponível, senão do lead)
+  const phoneNumber = telefone || lead.telefone
+  if (!phoneNumber) {
     console.error(`[Lead Enriched WhatsApp] Lead sem telefone, impossível enviar WhatsApp`)
     return
+  }
+
+  // Buscar configurações do usuário
+  const userSettings = await prisma.userSettings.findFirst()
+  if (!userSettings) {
+    console.error(`[Lead Enriched WhatsApp] UserSettings não encontrado`)
+    throw new Error('Configurações do usuário não encontradas')
+  }
+
+  // Parse Evolution instances com validação robusta
+  let evolutionInstances: Array<{ url: string; apiKey: string; name: string }> = []
+  try {
+    const parsed = JSON.parse(userSettings.evolutionInstances || '[]')
+    if (Array.isArray(parsed)) {
+      evolutionInstances = parsed
+    } else {
+      console.error(`[Lead Enriched WhatsApp] evolutionInstances não é um array:`, parsed)
+      throw new Error('Evolution instances tem formato inválido')
+    }
+  } catch (error) {
+    console.error(`[Lead Enriched WhatsApp] Erro ao parsear evolutionInstances:`, error)
+    throw new Error('Evolution instances inválidas')
+  }
+
+  console.log(`[Lead Enriched WhatsApp] Instâncias Evolution disponíveis: ${evolutionInstances.length}`)
+  console.log(`[Lead Enriched WhatsApp] Instâncias completas:`, JSON.stringify(evolutionInstances, null, 2))
+
+  if (evolutionInstances.length === 0) {
+    console.error(`[Lead Enriched WhatsApp] Nenhuma instância Evolution configurada`)
+    throw new Error('Nenhuma instância Evolution API configurada')
+  }
+
+  // Validar que todas as instâncias têm campo 'url'
+  const instancesWithoutUrl = evolutionInstances.filter(i => !i.url)
+  if (instancesWithoutUrl.length > 0) {
+    console.error(`[Lead Enriched WhatsApp] ⚠️ ${instancesWithoutUrl.length} instância(s) sem campo 'url':`, instancesWithoutUrl)
+    throw new Error(`Evolution instances inválidas: ${instancesWithoutUrl.length} instância(s) sem campo 'url'. Configure corretamente em Settings.`)
+  }
+
+  console.log(`[Lead Enriched WhatsApp] ✅ Todas as instâncias têm URL válida`)
+
+  // Determinar instância usando round-robin ou valor fornecido pelo N8N
+  let assignedInstance: string
+
+  console.log(`[Lead Enriched WhatsApp] sender_whatsapp fornecido pelo N8N: ${sender_whatsapp || 'NÃO FORNECIDO'}`)
+
+  if (sender_whatsapp) {
+    assignedInstance = sender_whatsapp
+    console.log(`[Lead Enriched WhatsApp] ✅ Usando instância atribuída pelo N8N: ${assignedInstance}`)
+  } else {
+    // Contar apenas leads ENRIQUECIDOS na campanha para fazer round-robin correto
+    const enrichedLeadsCount = await prisma.lead.count({
+      where: {
+        campaignId: lead.campaignId,
+        status: LeadStatus.ENRICHED
+      }
+    })
+
+    const instanceIndex = enrichedLeadsCount % evolutionInstances.length
+    assignedInstance = evolutionInstances[instanceIndex].url
+
+    console.log(`[Lead Enriched WhatsApp] Round-robin calculado:`)
+    console.log(`[Lead Enriched WhatsApp]   - Leads enriquecidos: ${enrichedLeadsCount}`)
+    console.log(`[Lead Enriched WhatsApp]   - Instâncias disponíveis: ${evolutionInstances.length}`)
+    console.log(`[Lead Enriched WhatsApp]   - Índice calculado: ${instanceIndex}`)
+    console.log(`[Lead Enriched WhatsApp]   - ✅ Instância selecionada: ${assignedInstance}`)
   }
 
   // Determinar tipo de cadência baseado em email e telefone disponíveis
   let cadenceType: CadenceType = CadenceType.WHATSAPP_ONLY
 
   const hasEmail = !!lead.email
-  const hasPhone = !!lead.telefone
+  const hasPhone = !!phoneNumber
 
   if (hasEmail && hasPhone) {
-    // Buscar configurações do usuário para verificar se híbrido está ativo
-    const userSettings = await prisma.userSettings.findFirst()
     if (userSettings?.useHybridCadence) {
       cadenceType = CadenceType.HYBRID
     } else {
-      cadenceType = CadenceType.WHATSAPP_ONLY // Default para whatsapp se híbrido desativado
+      cadenceType = CadenceType.WHATSAPP_ONLY
     }
   } else if (hasEmail) {
     cadenceType = CadenceType.EMAIL_ONLY
@@ -362,12 +533,28 @@ async function handleLeadEnrichedWhatsApp(data: {
     cadenceType = CadenceType.WHATSAPP_ONLY
   }
 
-  // Atualizar lead com optOutToken e status
+  // Atualizar lead com dados enriquecidos + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
+      telefone: phoneNumber, // Atualizar telefone se veio do payload
+      companyResearch: companyResearch || null,
+      strategicAnalysis: strategicAnalysis || null,
+      personalization: personalization || null,
+      analysisLink: analysisLink || null,
+
+      // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
+      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
+      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
+      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
+      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
+      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
+      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
+      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+
+      assignedSender: assignedInstance,
       optOutToken,
-      cadenceType, // Atribuir tipo de cadência
+      cadenceType,
       status: LeadStatus.ENRICHED,
       enrichedAt: new Date(),
     },
@@ -379,21 +566,21 @@ async function handleLeadEnrichedWhatsApp(data: {
       {
         leadId: lead.id,
         sequenceNumber: 1,
-        phoneNumber: lead.telefone,
+        phoneNumber,
         message: whatsapp1Message,
         status: WhatsAppStatus.PENDING,
       },
       {
         leadId: lead.id,
         sequenceNumber: 2,
-        phoneNumber: lead.telefone,
+        phoneNumber,
         message: whatsapp2Message,
         status: WhatsAppStatus.PENDING,
       },
       {
         leadId: lead.id,
         sequenceNumber: 3,
-        phoneNumber: lead.telefone,
+        phoneNumber,
         message: whatsapp3Message,
         status: WhatsAppStatus.PENDING,
       },
@@ -401,6 +588,286 @@ async function handleLeadEnrichedWhatsApp(data: {
   })
 
   console.log(`[Lead Enriched WhatsApp] Lead ${lead.id} enriquecido e 3 mensagens WhatsApp criadas`)
+}
+
+// Handler: Lead enriquecido para Híbrido (Email + WhatsApp)
+async function handleLeadEnrichedHybrid(data: {
+  leadId?: string
+  apifyId?: string
+  companyName?: string
+  email?: string
+  telefone?: string
+  companyResearch?: string
+  strategicAnalysis?: string
+  personalization?: string
+  analysisLink?: string
+
+  // Redes sociais (opcionais)
+  linkedinUrl?: string
+  twitterUrl?: string
+  instagramUrl?: string
+  facebookUrl?: string
+  youtubeUrl?: string
+  tiktokUrl?: string
+  pinterestUrl?: string
+
+  // Email messages
+  email1Subject?: string
+  email1Body?: string
+  email2Body?: string
+  email3Subject?: string
+  email3Body?: string
+
+  // WhatsApp messages (podem vir como JSON string ou objeto)
+  whatsapp1?: string | { mensagem: string }
+  whatsapp2?: string | { mensagem: string }
+  whatsapp3?: string | { mensagem: string }
+
+  // Senders
+  sender_email?: string
+  sender_whatsapp?: string
+  optOutToken: string
+}) {
+  const {
+    leadId,
+    apifyId,
+    companyName,
+    email,
+    telefone,
+    companyResearch,
+    strategicAnalysis,
+    personalization,
+    analysisLink,
+    linkedinUrl,
+    twitterUrl,
+    instagramUrl,
+    facebookUrl,
+    youtubeUrl,
+    tiktokUrl,
+    pinterestUrl,
+    email1Subject,
+    email1Body,
+    email2Body,
+    email3Subject,
+    email3Body,
+    whatsapp1,
+    whatsapp2,
+    whatsapp3,
+    sender_email,
+    sender_whatsapp,
+    optOutToken,
+  } = data
+
+  console.log(`[Lead Enriched Hybrid] Lead: ${leadId || apifyId || companyName}`)
+  console.log(`[Lead Enriched Hybrid] Payload recebido:`, JSON.stringify(data, null, 2))
+
+  // Parse WhatsApp messages
+  const parseWhatsAppMessage = (field: string | { mensagem: string } | undefined): string | null => {
+    if (!field) return null
+
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field)
+        return parsed.mensagem || field
+      } catch {
+        return field
+      }
+    }
+
+    if (typeof field === 'object' && 'mensagem' in field) {
+      return field.mensagem
+    }
+
+    return null
+  }
+
+  const whatsapp1Message = parseWhatsAppMessage(whatsapp1)
+  const whatsapp2Message = parseWhatsAppMessage(whatsapp2)
+  const whatsapp3Message = parseWhatsAppMessage(whatsapp3)
+
+  // Buscar lead
+  const whereClause = leadId
+    ? { id: leadId }
+    : apifyId
+    ? { apifyLeadId: apifyId }
+    : { nomeEmpresa: companyName }
+
+  const lead = await prisma.lead.findFirst({ where: whereClause })
+
+  if (!lead) {
+    console.error(`[Lead Enriched Hybrid] Lead não encontrado`)
+    return
+  }
+
+  // Buscar configurações do usuário
+  const userSettings = await prisma.userSettings.findFirst()
+  if (!userSettings) {
+    console.error(`[Lead Enriched Hybrid] UserSettings não encontrado`)
+    throw new Error('Configurações do usuário não encontradas')
+  }
+
+  // Parse hybrid cadence
+  let hybridCadence: Array<{ day: number; type: 'email' | 'whatsapp'; sequenceNumber: number }> = []
+  try {
+    hybridCadence = JSON.parse(userSettings.hybridCadence || '[]')
+  } catch (error) {
+    console.error(`[Lead Enriched Hybrid] Erro ao parsear hybridCadence:`, error)
+  }
+
+  console.log(`[Lead Enriched Hybrid] Cadência híbrida:`, hybridCadence)
+
+  // Validar dados baseado na cadência configurada
+  const needsEmail = hybridCadence.some(c => c.type === 'email')
+  const needsWhatsApp = hybridCadence.some(c => c.type === 'whatsapp')
+
+  if (needsEmail && (!email1Subject || !email1Body || !email2Body || !email3Subject || !email3Body)) {
+    console.error(`[Lead Enriched Hybrid] Cadência requer emails mas dados ausentes`)
+    throw new Error('Campos de email obrigatórios ausentes no payload')
+  }
+
+  if (needsWhatsApp && (!whatsapp1Message || !whatsapp2Message || !whatsapp3Message)) {
+    console.error(`[Lead Enriched Hybrid] Cadência requer WhatsApp mas dados ausentes`)
+    throw new Error('Campos de WhatsApp obrigatórios ausentes no payload')
+  }
+
+  // Determinar senders (usar round-robin se não fornecidos)
+  let assignedEmailSender: string | undefined
+  let assignedWhatsAppSender: string | undefined
+
+  if (needsEmail) {
+    if (sender_email) {
+      assignedEmailSender = sender_email
+    } else {
+      // Round-robin para email
+      let senderEmails: string[] = []
+      try {
+        senderEmails = JSON.parse(userSettings.senderEmails || '[]')
+      } catch { }
+
+      if (senderEmails.length > 0) {
+        const campaign = await prisma.campaign.findUnique({
+          where: { id: lead.campaignId },
+          select: { _count: { select: { leads: true } } }
+        })
+        const leadIndex = campaign?._count.leads || 0
+        assignedEmailSender = senderEmails[leadIndex % senderEmails.length]
+      }
+    }
+  }
+
+  if (needsWhatsApp) {
+    if (sender_whatsapp) {
+      assignedWhatsAppSender = sender_whatsapp
+    } else {
+      // Round-robin para WhatsApp
+      let evolutionInstances: Array<{ url: string; apiKey: string; name: string }> = []
+      try {
+        evolutionInstances = JSON.parse(userSettings.evolutionInstances || '[]')
+      } catch { }
+
+      if (evolutionInstances.length > 0) {
+        const campaign = await prisma.campaign.findUnique({
+          where: { id: lead.campaignId },
+          select: { _count: { select: { leads: true } } }
+        })
+        const leadIndex = campaign?._count.leads || 0
+        assignedWhatsAppSender = evolutionInstances[leadIndex % evolutionInstances.length].url
+      }
+    }
+  }
+
+  // Atualizar lead
+  await prisma.lead.update({
+    where: { id: lead.id },
+    data: {
+      email: email || null,
+      telefone: telefone || null,
+      companyResearch: companyResearch || null,
+      strategicAnalysis: strategicAnalysis || null,
+      personalization: personalization || null,
+      analysisLink: analysisLink || null,
+
+      // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
+      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
+      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
+      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
+      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
+      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
+      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
+      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+
+      assignedSender: assignedEmailSender || assignedWhatsAppSender || null,
+      optOutToken,
+      cadenceType: CadenceType.HYBRID,
+      status: LeadStatus.ENRICHED,
+      enrichedAt: new Date(),
+    },
+  })
+
+  // Criar registros de Email e WhatsApp baseado na cadência
+  if (needsEmail && email1Subject && email1Body && email2Body && email3Subject && email3Body && assignedEmailSender) {
+    await prisma.email.createMany({
+      data: [
+        {
+          leadId: lead.id,
+          sequenceNumber: 1,
+          subject: email1Subject,
+          body: email1Body,
+          senderAccount: assignedEmailSender,
+          status: EmailStatus.PENDING,
+        },
+        {
+          leadId: lead.id,
+          sequenceNumber: 2,
+          subject: `Re: ${email1Subject}`,
+          body: email2Body,
+          senderAccount: assignedEmailSender,
+          status: EmailStatus.PENDING,
+        },
+        {
+          leadId: lead.id,
+          sequenceNumber: 3,
+          subject: email3Subject,
+          body: email3Body,
+          senderAccount: assignedEmailSender,
+          status: EmailStatus.PENDING,
+        },
+      ],
+    })
+    console.log(`[Lead Enriched Hybrid] 3 emails criados para lead ${lead.id}`)
+  }
+
+  if (needsWhatsApp && whatsapp1Message && whatsapp2Message && whatsapp3Message && (telefone || lead.telefone)) {
+    const phoneNumber = telefone || lead.telefone!
+    await prisma.whatsAppMessage.createMany({
+      data: [
+        {
+          leadId: lead.id,
+          sequenceNumber: 1,
+          phoneNumber,
+          message: whatsapp1Message,
+          status: WhatsAppStatus.PENDING,
+        },
+        {
+          leadId: lead.id,
+          sequenceNumber: 2,
+          phoneNumber,
+          message: whatsapp2Message,
+          status: WhatsAppStatus.PENDING,
+        },
+        {
+          leadId: lead.id,
+          sequenceNumber: 3,
+          phoneNumber,
+          message: whatsapp3Message,
+          status: WhatsAppStatus.PENDING,
+        },
+      ],
+    })
+    console.log(`[Lead Enriched Hybrid] 3 mensagens WhatsApp criadas para lead ${lead.id}`)
+  }
+
+  console.log(`[Lead Enriched Hybrid] Lead ${lead.id} enriquecido com cadência híbrida`)
 }
 
 // Handler: Email enviado (Fluxos 3, 4, 5)

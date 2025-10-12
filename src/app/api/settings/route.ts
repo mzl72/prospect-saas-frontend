@@ -1015,6 +1015,9 @@ export async function POST(request: NextRequest) {
       'assinatura',
       'telefoneContato',
       'websiteEmpresa',
+      // Arrays de Configuração (JSON com dados - >2 chars = não vazio: "[]")
+      'senderEmails',
+      'evolutionInstances',
     ] as const;
 
     // Se settings existem, preservar campos preenchidos
@@ -1023,14 +1026,40 @@ export async function POST(request: NextRequest) {
         const existingValue = existingSettings[field];
         const newValue = dataToSave[field];
 
-        // Definir threshold baseado no tipo de campo
+        // Definir tipo de campo
         const isCompanyField = ['nomeEmpresa', 'assinatura', 'telefoneContato', 'websiteEmpresa'].includes(field);
-        const threshold = isCompanyField ? 1 : 50; // Dados da empresa: >1 char, Templates: >50 chars
+        const isArrayField = ['senderEmails', 'evolutionInstances'].includes(field);
+        const isEmailSubject = ['emailTitulo1', 'emailTitulo3'].includes(field);
 
-        // Se o campo existente tem conteúdo e o novo está vazio/curto
-        // PRESERVA o existente ao invés de sobrescrever
-        if (existingValue && existingValue.length > threshold && (!newValue || newValue.length < threshold)) {
-          console.log(`⚠️ [API] Preserving existing ${field} (${existingValue.length} chars) - new value too short (${newValue?.length || 0} chars)`);
+        // Helper: Verificar se valor de array está realmente preenchido
+        const isArrayFilled = (value: string | undefined | null): boolean => {
+          if (!value) return false;
+          try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) && parsed.length > 0;
+          } catch {
+            return false;
+          }
+        };
+
+        // Helper: Verificar se campo está preenchido baseado no tipo
+        const isFilled = (value: string | undefined | null): boolean => {
+          if (!value) return false;
+
+          if (isArrayField) {
+            return isArrayFilled(value);
+          } else if (isCompanyField) {
+            return value.length > 1;
+          } else if (isEmailSubject) {
+            return value.length > 5;
+          } else {
+            return value.length > 50; // Templates/Prompts
+          }
+        };
+
+        // Se o existente está preenchido e o novo NÃO está, PRESERVA o existente
+        if (isFilled(existingValue) && !isFilled(newValue)) {
+          console.log(`⚠️ [API] Preserving existing ${field} (${existingValue?.length || 0} chars) - new value is empty or invalid (${newValue?.length || 0} chars)`);
           (dataToSave as any)[field] = existingValue;
         }
       });
