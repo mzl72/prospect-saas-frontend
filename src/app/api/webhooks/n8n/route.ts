@@ -16,6 +16,29 @@ function validateWebhookSecret(request: NextRequest): boolean {
   return secret === expectedSecret
 }
 
+// Normalizar valores "Não Informado" para null
+// N8N envia "Não Informado" como string quando um campo não tem valor
+function normalizeToNull(value: string | null | undefined): string | null {
+  if (!value) return null
+
+  const trimmed = value.trim()
+  const sentinelValues = [
+    'não informado',
+    'não informada',
+    'not provided',
+    'not available',
+    'n/a',
+    'na',
+  ]
+
+  // Comparação case-insensitive
+  if (sentinelValues.some(sentinel => trimmed.toLowerCase() === sentinel)) {
+    return null
+  }
+
+  return value
+}
+
 // Tipo dos payloads esperados do N8N
 type WebhookPayload = {
   event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'lead-enriched-hybrid' | 'campaign-completed' | 'email-sent' | 'email-replied' | 'opted-out'
@@ -272,24 +295,34 @@ async function handleLeadEnriched(data: {
     cadenceType = CadenceType.WHATSAPP_ONLY
   }
 
+  // Normalizar campos antes de salvar (converter "Não Informado" para null)
+  const normalizedEmail = normalizeToNull(email)
+  const normalizedLinkedin = normalizeToNull(linkedinUrl)
+  const normalizedTwitter = normalizeToNull(twitterUrl)
+  const normalizedInstagram = normalizeToNull(instagramUrl)
+  const normalizedFacebook = normalizeToNull(facebookUrl)
+  const normalizedYoutube = normalizeToNull(youtubeUrl)
+  const normalizedTiktok = normalizeToNull(tiktokUrl)
+  const normalizedPinterest = normalizeToNull(pinterestUrl)
+
   // Atualizar lead com dados enriquecidos + EMAIL + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      email: email || null, // Salvar email se N8N conseguiu obter
+      email: normalizedEmail, // Salvar email se N8N conseguiu obter (null se "Não Informado")
       companyResearch: companyResearch || null,
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
       // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
-      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
-      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
-      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
-      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
-      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
-      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
-      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+      ...(normalizedLinkedin && { linkedinUrl: normalizedLinkedin }),
+      ...(normalizedTwitter && { twitterUrl: normalizedTwitter }),
+      ...(normalizedInstagram && { instagramUrl: normalizedInstagram }),
+      ...(normalizedFacebook && { facebookUrl: normalizedFacebook }),
+      ...(normalizedYoutube && { youtubeUrl: normalizedYoutube }),
+      ...(normalizedTiktok && { tiktokUrl: normalizedTiktok }),
+      ...(normalizedPinterest && { pinterestUrl: normalizedPinterest }),
 
       assignedSender,
       optOutToken,
@@ -456,37 +489,42 @@ async function handleLeadEnrichedWhatsApp(data: {
     throw new Error('Configurações do usuário não encontradas')
   }
 
-  // Parse Evolution instances com validação robusta
-  let evolutionInstances: Array<{ url: string; apiKey: string; name: string }> = []
+  // Parse Evolution instances com suporte para AMBOS formatos (string[] ou objeto[])
+  let evolutionInstances: Array<{ url: string }> = []
   try {
     const parsed = JSON.parse(userSettings.evolutionInstances || '[]')
-    if (Array.isArray(parsed)) {
-      evolutionInstances = parsed
-    } else {
+
+    if (!Array.isArray(parsed)) {
       console.error(`[Lead Enriched WhatsApp] evolutionInstances não é um array:`, parsed)
       throw new Error('Evolution instances tem formato inválido')
     }
+
+    // Normalizar: aceitar strings simples OU objetos com campo 'url'
+    evolutionInstances = parsed.map((instance: any) => {
+      if (typeof instance === 'string') {
+        // Formato antigo: array de strings (URLs diretas)
+        return { url: instance }
+      } else if (typeof instance === 'object' && instance.url) {
+        // Formato novo: array de objetos com campo 'url'
+        return { url: instance.url }
+      } else {
+        console.error(`[Lead Enriched WhatsApp] Instância inválida:`, instance)
+        return null
+      }
+    }).filter((i): i is { url: string } => i !== null)
+
   } catch (error) {
     console.error(`[Lead Enriched WhatsApp] Erro ao parsear evolutionInstances:`, error)
     throw new Error('Evolution instances inválidas')
   }
 
   console.log(`[Lead Enriched WhatsApp] Instâncias Evolution disponíveis: ${evolutionInstances.length}`)
-  console.log(`[Lead Enriched WhatsApp] Instâncias completas:`, JSON.stringify(evolutionInstances, null, 2))
+  console.log(`[Lead Enriched WhatsApp] URLs normalizadas:`, evolutionInstances.map(i => i.url))
 
   if (evolutionInstances.length === 0) {
     console.error(`[Lead Enriched WhatsApp] Nenhuma instância Evolution configurada`)
-    throw new Error('Nenhuma instância Evolution API configurada')
+    throw new Error('Nenhuma instância Evolution API configurada. Vá em /whatsapp > Instâncias para configurar.')
   }
-
-  // Validar que todas as instâncias têm campo 'url'
-  const instancesWithoutUrl = evolutionInstances.filter(i => !i.url)
-  if (instancesWithoutUrl.length > 0) {
-    console.error(`[Lead Enriched WhatsApp] ⚠️ ${instancesWithoutUrl.length} instância(s) sem campo 'url':`, instancesWithoutUrl)
-    throw new Error(`Evolution instances inválidas: ${instancesWithoutUrl.length} instância(s) sem campo 'url'. Configure corretamente em Settings.`)
-  }
-
-  console.log(`[Lead Enriched WhatsApp] ✅ Todas as instâncias têm URL válida`)
 
   // Determinar instância usando round-robin ou valor fornecido pelo N8N
   let assignedInstance: string
@@ -533,24 +571,34 @@ async function handleLeadEnrichedWhatsApp(data: {
     cadenceType = CadenceType.WHATSAPP_ONLY
   }
 
+  // Normalizar campos antes de salvar (converter "Não Informado" para null)
+  const normalizedTelefone = normalizeToNull(telefone)
+  const normalizedLinkedin = normalizeToNull(linkedinUrl)
+  const normalizedTwitter = normalizeToNull(twitterUrl)
+  const normalizedInstagram = normalizeToNull(instagramUrl)
+  const normalizedFacebook = normalizeToNull(facebookUrl)
+  const normalizedYoutube = normalizeToNull(youtubeUrl)
+  const normalizedTiktok = normalizeToNull(tiktokUrl)
+  const normalizedPinterest = normalizeToNull(pinterestUrl)
+
   // Atualizar lead com dados enriquecidos + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      telefone: phoneNumber, // Atualizar telefone se veio do payload
+      telefone: normalizedTelefone || phoneNumber, // Atualizar telefone se veio do payload
       companyResearch: companyResearch || null,
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
       // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
-      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
-      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
-      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
-      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
-      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
-      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
-      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+      ...(normalizedLinkedin && { linkedinUrl: normalizedLinkedin }),
+      ...(normalizedTwitter && { twitterUrl: normalizedTwitter }),
+      ...(normalizedInstagram && { instagramUrl: normalizedInstagram }),
+      ...(normalizedFacebook && { facebookUrl: normalizedFacebook }),
+      ...(normalizedYoutube && { youtubeUrl: normalizedYoutube }),
+      ...(normalizedTiktok && { tiktokUrl: normalizedTiktok }),
+      ...(normalizedPinterest && { pinterestUrl: normalizedPinterest }),
 
       assignedSender: assignedInstance,
       optOutToken,
@@ -776,25 +824,36 @@ async function handleLeadEnrichedHybrid(data: {
     }
   }
 
+  // Normalizar campos antes de salvar (converter "Não Informado" para null)
+  const normalizedEmail = normalizeToNull(email)
+  const normalizedTelefone = normalizeToNull(telefone)
+  const normalizedLinkedin = normalizeToNull(linkedinUrl)
+  const normalizedTwitter = normalizeToNull(twitterUrl)
+  const normalizedInstagram = normalizeToNull(instagramUrl)
+  const normalizedFacebook = normalizeToNull(facebookUrl)
+  const normalizedYoutube = normalizeToNull(youtubeUrl)
+  const normalizedTiktok = normalizeToNull(tiktokUrl)
+  const normalizedPinterest = normalizeToNull(pinterestUrl)
+
   // Atualizar lead
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      email: email || null,
-      telefone: telefone || null,
+      email: normalizedEmail,
+      telefone: normalizedTelefone,
       companyResearch: companyResearch || null,
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
       // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
-      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
-      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
-      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
-      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
-      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
-      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
-      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+      ...(normalizedLinkedin && { linkedinUrl: normalizedLinkedin }),
+      ...(normalizedTwitter && { twitterUrl: normalizedTwitter }),
+      ...(normalizedInstagram && { instagramUrl: normalizedInstagram }),
+      ...(normalizedFacebook && { facebookUrl: normalizedFacebook }),
+      ...(normalizedYoutube && { youtubeUrl: normalizedYoutube }),
+      ...(normalizedTiktok && { tiktokUrl: normalizedTiktok }),
+      ...(normalizedPinterest && { pinterestUrl: normalizedPinterest }),
 
       assignedSender: assignedEmailSender || assignedWhatsAppSender || null,
       optOutToken,

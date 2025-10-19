@@ -178,7 +178,7 @@ export default function CampanhasPage() {
                       </Badge>
                     )}
 
-                    {campanha.status === "concluido" && (
+                    {(campanha.status === "concluído" || campanha.status === "concluido") && (
                       <Badge
                         variant="default"
                         className="flex items-center gap-1"
@@ -229,7 +229,7 @@ export default function CampanhasPage() {
                     </div>
                   )}
 
-                  {(campanha.status === "concluido" || campanha.status === "extração concluída") && (
+                  {(campanha.status === "concluído" || campanha.status === "concluido" || campanha.status === "extração concluída") && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
