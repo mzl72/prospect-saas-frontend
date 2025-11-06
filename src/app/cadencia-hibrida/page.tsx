@@ -23,16 +23,16 @@ export default function CadenciaHibridaPage() {
     useHybridCadence: false,
     hybridCadence: [] as HybridCadenceItem[],
 
-    // Email templates
-    emailTitulo1: "",
-    emailCorpo1: "",
-    emailCorpo2: "",
-    emailTitulo3: "",
-    emailCorpo3: "",
+    // Hybrid-specific Email templates (não reusar os de /emails)
+    hybridEmailTitulo1: "",
+    hybridEmailCorpo1: "",
+    hybridEmailCorpo2: "",
+    hybridEmailTitulo3: "",
+    hybridEmailCorpo3: "",
 
-    // WhatsApp templates
-    whatsappMessage1: "",
-    whatsappMessage2: "",
+    // Hybrid-specific WhatsApp templates (não reusar os de /whatsapp)
+    hybridWhatsappMessage1: "",
+    hybridWhatsappMessage2: "",
 
     // Settings
     hybridDailyLimit: 70,
@@ -62,13 +62,13 @@ export default function CadenciaHibridaPage() {
       setConfig({
         useHybridCadence: s.useHybridCadence ?? false,
         hybridCadence: JSON.parse(s.hybridCadence || '[{"type":"email","messageNumber":1,"emailNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"type":"whatsapp","messageNumber":2,"whatsappNumber":1,"dayOfWeek":2,"timeWindow":"14:00-16:00","daysAfterPrevious":1},{"type":"email","messageNumber":3,"emailNumber":2,"dayOfWeek":4,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
-        emailTitulo1: s.emailTitulo1 || "",
-        emailCorpo1: s.emailCorpo1 || "",
-        emailCorpo2: s.emailCorpo2 || "",
-        emailTitulo3: s.emailTitulo3 || "",
-        emailCorpo3: s.emailCorpo3 || "",
-        whatsappMessage1: s.whatsappMessage1 || "",
-        whatsappMessage2: s.whatsappMessage2 || "",
+        hybridEmailTitulo1: s.hybridEmailTitulo1 || "",
+        hybridEmailCorpo1: s.hybridEmailCorpo1 || "",
+        hybridEmailCorpo2: s.hybridEmailCorpo2 || "",
+        hybridEmailTitulo3: s.hybridEmailTitulo3 || "",
+        hybridEmailCorpo3: s.hybridEmailCorpo3 || "",
+        hybridWhatsappMessage1: s.hybridWhatsappMessage1 || "",
+        hybridWhatsappMessage2: s.hybridWhatsappMessage2 || "",
         hybridDailyLimit: (s as any).hybridDailyLimit || 70,
         hybridBusinessHourStart: (s as any).hybridBusinessHourStart || 9,
         hybridBusinessHourEnd: (s as any).hybridBusinessHourEnd || 18,
@@ -134,11 +134,11 @@ export default function CadenciaHibridaPage() {
         <div className="max-w-7xl mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <Zap className="w-8 h-8 text-purple-600" />
               Híbrido
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-gray-300 mt-2">
               Combine emails e WhatsApp em uma única cadência coordenada
             </p>
           </div>
@@ -184,7 +184,7 @@ export default function CadenciaHibridaPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <div className="flex gap-2 mb-6 border-b border-gray-700 overflow-x-auto">
             <button
               onClick={() => setActiveTab("templates")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
@@ -253,18 +253,18 @@ export default function CadenciaHibridaPage() {
                     <div>
                       <Label>Assunto</Label>
                       <Input
-                        value={config.emailTitulo1}
+                        value={config.hybridEmailTitulo1}
                         onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, emailTitulo1: e.target.value }))
+                          setConfig((prev) => ({ ...prev, hybridEmailTitulo1: e.target.value }))
                         }
                       />
                     </div>
                     <div>
                       <Label>Corpo</Label>
                       <textarea
-                        value={config.emailCorpo1}
+                        value={config.hybridEmailCorpo1}
                         onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, emailCorpo1: e.target.value }))
+                          setConfig((prev) => ({ ...prev, hybridEmailCorpo1: e.target.value }))
                         }
                         rows={6}
                         className="w-full px-3 py-2 border rounded-md"
@@ -284,9 +284,9 @@ export default function CadenciaHibridaPage() {
                   <CardContent>
                     <Label>Mensagem</Label>
                     <textarea
-                      value={config.whatsappMessage1}
+                      value={config.hybridWhatsappMessage1}
                       onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, whatsappMessage1: e.target.value }))
+                        setConfig((prev) => ({ ...prev, hybridWhatsappMessage1: e.target.value }))
                       }
                       rows={6}
                       className="w-full mt-2 px-3 py-2 border rounded-md"
@@ -305,9 +305,9 @@ export default function CadenciaHibridaPage() {
                   <CardContent>
                     <Label>Corpo</Label>
                     <textarea
-                      value={config.emailCorpo2}
+                      value={config.hybridEmailCorpo2}
                       onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, emailCorpo2: e.target.value }))
+                        setConfig((prev) => ({ ...prev, hybridEmailCorpo2: e.target.value }))
                       }
                       rows={5}
                       className="w-full mt-2 px-3 py-2 border rounded-md"
@@ -326,9 +326,9 @@ export default function CadenciaHibridaPage() {
                   <CardContent>
                     <Label>Mensagem</Label>
                     <textarea
-                      value={config.whatsappMessage2}
+                      value={config.hybridWhatsappMessage2}
                       onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, whatsappMessage2: e.target.value }))
+                        setConfig((prev) => ({ ...prev, hybridWhatsappMessage2: e.target.value }))
                       }
                       rows={6}
                       className="w-full mt-2 px-3 py-2 border rounded-md"
@@ -348,18 +348,18 @@ export default function CadenciaHibridaPage() {
                     <div>
                       <Label>Assunto</Label>
                       <Input
-                        value={config.emailTitulo3}
+                        value={config.hybridEmailTitulo3}
                         onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, emailTitulo3: e.target.value }))
+                          setConfig((prev) => ({ ...prev, hybridEmailTitulo3: e.target.value }))
                         }
                       />
                     </div>
                     <div>
                       <Label>Corpo</Label>
                       <textarea
-                        value={config.emailCorpo3}
+                        value={config.hybridEmailCorpo3}
                         onChange={(e) =>
-                          setConfig((prev) => ({ ...prev, emailCorpo3: e.target.value }))
+                          setConfig((prev) => ({ ...prev, hybridEmailCorpo3: e.target.value }))
                         }
                         rows={6}
                         className="w-full px-3 py-2 border rounded-md"
@@ -449,11 +449,11 @@ export default function CadenciaHibridaPage() {
                     </div>
 
                     {/* Mostrar cálculo automático */}
-                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
-                      <p className="text-xs text-purple-700 dark:text-purple-300 font-medium mb-1">
+                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                      <p className="text-xs text-purple-700 font-medium mb-1">
                         ⏱️ Delay calculado automaticamente
                       </p>
-                      <p className="text-xs text-purple-600 dark:text-purple-400">
+                      <p className="text-xs text-purple-600">
                         {(() => {
                           const hours = config.hybridBusinessHourEnd - config.hybridBusinessHourStart;
                           const avgMinutes = (hours * 60) / config.hybridDailyLimit;

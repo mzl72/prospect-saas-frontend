@@ -38,11 +38,11 @@ interface Lead {
 }
 
 const whatsappStatusColors: Record<string, string> = {
-  PENDING: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-  SENT: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-  DELIVERED: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
-  READ: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-  FAILED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  PENDING: "bg-gray-100 text-gray-800",
+  SENT: "bg-blue-100 text-blue-800",
+  DELIVERED: "bg-cyan-100 text-cyan-800",
+  READ: "bg-green-100 text-green-800",
+  FAILED: "bg-red-100 text-red-800",
 };
 
 const whatsappStatusLabels: Record<string, string> = {
@@ -73,10 +73,10 @@ export default function LeadWhatsAppPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-green-600 dark:border-green-400 border-t-transparent dark:border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Carregando mensagens WhatsApp...</p>
+          <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando mensagens WhatsApp...</p>
         </div>
       </div>
     );
@@ -84,9 +84,9 @@ export default function LeadWhatsAppPage() {
 
   if (!lead) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400">Lead não encontrado</p>
+          <p className="text-gray-400">Lead não encontrado</p>
           <Button onClick={() => router.back()} className="mt-4">
             Voltar
           </Button>
@@ -106,10 +106,10 @@ export default function LeadWhatsAppPage() {
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-white mb-2">
               {lead.nomeEmpresa}
             </h1>
-            <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex flex-col gap-1 text-sm text-gray-400">
               {lead.categoria && <span>📂 {lead.categoria}</span>}
               {lead.telefone && (
                 <span className="flex items-center gap-1">
@@ -144,7 +144,7 @@ export default function LeadWhatsAppPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+            <p className="text-sm text-gray-400 whitespace-pre-wrap">
               {lead.companyResearch}
             </p>
 
@@ -166,7 +166,7 @@ export default function LeadWhatsAppPage() {
 
       {/* Mensagens WhatsApp */}
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-white">
           Mensagens WhatsApp ({lead.whatsappMessages.length})
         </h2>
 
@@ -174,7 +174,7 @@ export default function LeadWhatsAppPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-gray-400">
                 Nenhuma mensagem WhatsApp gerada ainda. As mensagens serão criadas após o enriquecimento do lead.
               </p>
             </CardContent>
@@ -185,7 +185,7 @@ export default function LeadWhatsAppPage() {
           .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
           .map((message) => (
             <Card key={message.id} className="overflow-hidden">
-              <CardHeader className="bg-green-50 dark:bg-green-900/20">
+              <CardHeader className="bg-green-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-sm">
@@ -197,7 +197,7 @@ export default function LeadWhatsAppPage() {
                   </div>
 
                   {message.sentAt && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Calendar className="w-4 h-4" />
                       {new Date(message.sentAt).toLocaleString("pt-BR")}
                     </div>
@@ -209,10 +209,10 @@ export default function LeadWhatsAppPage() {
                 <div className="space-y-4">
                   {/* Telefone */}
                   <div>
-                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <label className="text-xs font-medium text-gray-400">
                       PARA:
                     </label>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    <p className="text-sm font-medium text-white flex items-center gap-2">
                       <Phone className="w-4 h-4" />
                       {message.phoneNumber}
                     </p>
@@ -220,11 +220,11 @@ export default function LeadWhatsAppPage() {
 
                   {/* Mensagem */}
                   <div>
-                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <label className="text-xs font-medium text-gray-400">
                       MENSAGEM:
                     </label>
-                    <div className="mt-2 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
-                      <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans">
+                    <div className="mt-2 p-4 bg-gray-900 border border-gray-700 rounded-lg">
+                      <pre className="text-sm text-gray-300 whitespace-pre-wrap font-sans">
                         {message.message}
                       </pre>
                     </div>
@@ -232,7 +232,7 @@ export default function LeadWhatsAppPage() {
 
                   {/* Status detalhado */}
                   {(message.deliveredAt || message.readAt) && (
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="pt-4 border-t border-gray-700">
                       <div className="flex items-center gap-4 text-sm">
                         {message.deliveredAt && (
                           <div className="flex items-center gap-2 text-cyan-600">

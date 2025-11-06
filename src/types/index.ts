@@ -76,6 +76,47 @@ export interface SettingsResponse {
 }
 
 // ========================================
+// SCHEDULER & MESSAGING TYPES
+// ========================================
+
+// Re-export from specialized modules (evita duplicação)
+export type { CadenceItem } from '@/lib/base-scheduler';
+export type {
+  SendEmailParams,
+  SendWhatsAppParams,
+  SendMessageResult
+} from '@/lib/message-service';
+
+// ========================================
+// CAMPAIGN UTILITIES TYPES
+// ========================================
+
+export interface CampaignStats {
+  total: number;
+  extracted: number;
+  enriched: number;
+  email1Sent: number;
+  email2Sent: number;
+  email3Sent: number;
+  whatsapp1Sent: number;
+  whatsapp2Sent: number;
+  whatsapp3Sent: number;
+  replied: number;
+  optedOut: number;
+  bounced: number;
+}
+
+// ========================================
+// VALIDATION TYPES (Zod schemas)
+// ========================================
+
+export type {
+  CreateCampaignDto,
+  UpdateUserSettingsDto,
+  LeadData
+} from '@/lib/validation-schemas';
+
+// ========================================
 // FRONTEND-ONLY TYPES
 // ========================================
 

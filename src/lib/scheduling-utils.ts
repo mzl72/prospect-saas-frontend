@@ -4,20 +4,13 @@
  */
 
 import { UserSettings } from '@prisma/client'
+import type { CadenceItem } from './base-scheduler'
 
 // Constantes para cálculo de delay automático
 const DELAY_VARIATION = {
   MIN: 0.75,  // -25% para garantir que não exceda o limite diário
   MAX: 1.10,  // +10% para randomização e naturalidade
 } as const
-
-interface CadenceItem {
-  type: "email" | "whatsapp";
-  messageNumber: 1 | 2 | 3;
-  dayOfWeek: number; // 0-6 (0=Dom)
-  timeWindow: string; // "09:00-11:00"
-  daysAfterPrevious: number; // Dias desde a mensagem anterior
-}
 
 /**
  * Verifica se está dentro do horário comercial configurado

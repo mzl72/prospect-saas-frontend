@@ -66,6 +66,15 @@ model UserSettings {
   whatsappMessage2        String   @default("") @map("whatsapp_message_2") @db.Text
   whatsappMessage3        String   @default("") @map("whatsapp_message_3") @db.Text
 
+  // Hybrid Templates (3 Emails + 2 WhatsApp dedicados para cadência híbrida)
+  hybridEmailTitulo1      String   @default("") @map("hybrid_email_titulo_1")
+  hybridEmailCorpo1       String   @default("") @map("hybrid_email_corpo_1") @db.Text
+  hybridEmailCorpo2       String   @default("") @map("hybrid_email_corpo_2") @db.Text
+  hybridEmailTitulo3      String   @default("") @map("hybrid_email_titulo_3")
+  hybridEmailCorpo3       String   @default("") @map("hybrid_email_corpo_3") @db.Text
+  hybridWhatsappMessage1  String   @default("") @map("hybrid_whatsapp_message_1") @db.Text
+  hybridWhatsappMessage2  String   @default("") @map("hybrid_whatsapp_message_2") @db.Text
+
   // Evolution API Instances (armazenado como JSON array)
   evolutionInstances      String   @default("[]") @map("evolution_instances") @db.Text
 
@@ -266,6 +275,7 @@ model WhatsAppMessage {
   sequenceNumber Int            @map("sequence_number") // 1, 2 ou 3
   phoneNumber    String         @map("phone_number")
   message        String         @db.Text
+  senderInstance String?        @map("sender_instance") // URL da instância Evolution API
   status         WhatsAppStatus @default(PENDING)
 
   // Tracking

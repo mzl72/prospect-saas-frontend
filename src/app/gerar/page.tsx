@@ -7,10 +7,10 @@ export default function GerarLeadsPage() {
       <div className="py-8">
         <div className="max-w-2xl mx-auto px-4">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-white">
               Gerar Lista de Leads
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-gray-300 mt-2">
               Configure sua busca em 3 etapas simples
             </p>
           </div>

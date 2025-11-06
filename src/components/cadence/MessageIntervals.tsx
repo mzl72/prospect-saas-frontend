@@ -5,13 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Mail, MessageCircle, Calendar, Info } from "lucide-react";
+import {
+  type MessageInterval,
+  getChannelColors,
+  formatInterval
+} from "./cadence-utils";
 
-export interface MessageInterval {
-  messageNumber: 1 | 2 | 3;
-  dayOfWeek: number; // 0-6 (0=Dom, 1=Seg, ..., 6=Sáb)
-  timeWindow: string; // "HH:MM-HH:MM" (ex: "09:00-11:00")
-  daysAfterPrevious: number; // Dias após a mensagem anterior (mensagem 1 = dia 1, após extração)
-}
+// Re-export para compatibilidade
+export type { MessageInterval };
 
 interface MessageIntervalsProps {
   intervals: MessageInterval[];
@@ -27,17 +28,7 @@ export function MessageIntervals({
   showMessage3 = true
 }: MessageIntervalsProps) {
   const Icon = messageType === "email" ? Mail : MessageCircle;
-  const colorClasses = messageType === "email"
-    ? {
-        bg: "bg-blue-100 dark:bg-blue-900/20",
-        text: "text-blue-600 dark:text-blue-400",
-        icon: "text-blue-600 dark:text-blue-400"
-      }
-    : {
-        bg: "bg-green-100 dark:bg-green-900/20",
-        text: "text-green-600 dark:text-green-400",
-        icon: "text-green-600 dark:text-green-400"
-      };
+  const colorClasses = getChannelColors(messageType);
 
   const handleIntervalChange = (messageNumber: 1 | 2 | 3, days: number) => {
     const updated = intervals.map((interval) =>
@@ -71,26 +62,26 @@ export function MessageIntervals({
           <Calendar className={`w-5 h-5 ${colorClasses.icon}`} />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-white">
             Intervalo entre Mensagens
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-400">
             Defina quantos dias esperar entre cada envio
           </p>
         </div>
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <div className="flex gap-2">
-          <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-blue-700 dark:text-blue-300">
+          <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-blue-700">
             <p className="font-medium mb-1">Como funciona:</p>
             <ul className="space-y-1 list-disc list-inside">
               <li><strong>Mensagem 1:</strong> Escolha quantos dias após a extração enviar</li>
               <li><strong>Mensagem 2:</strong> Escolha quantos dias após a mensagem 1</li>
               {showMessage3 && <li><strong>Mensagem 3:</strong> Escolha quantos dias após a mensagem 2</li>}
-              <li className="text-blue-800 dark:text-blue-200">✨ Flexibilidade total para criar sua cadência!</li>
+              <li className="text-blue-800">✨ Flexibilidade total para criar sua cadência!</li>
             </ul>
           </div>
         </div>
@@ -118,10 +109,10 @@ export function MessageIntervals({
                   <div className="flex-1 space-y-3">
                     {/* Message Label */}
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white">
+                      <h4 className="font-semibold text-white">
                         Mensagem {messageNumber}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-400">
                         Será enviada no Dia {totalDays}
                       </p>
                     </div>
@@ -148,13 +139,12 @@ export function MessageIntervals({
                           }
                           className="w-24"
                         />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {interval === 1 && "📅 1 dia de intervalo"}
-                          {interval > 1 && `📅 ${interval} dias de intervalo`}
+                        <span className="text-sm text-gray-400">
+                          {formatInterval(interval)}
                         </span>
                       </div>
                       {isFirstMessage && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                        <p className="text-xs text-gray-400 italic">
                           💡 Exemplo: Extração na sexta → Dia 1 = sábado, Dia 3 = segunda
                         </p>
                       )}
@@ -162,8 +152,8 @@ export function MessageIntervals({
 
                     {/* Timeline indicator */}
                     {!isFirstMessage && (
-                      <div className="text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 rounded p-2">
-                        💡 Total: <strong className="text-gray-700 dark:text-gray-300">Dia {totalDays}</strong> desde a extração
+                      <div className="text-xs text-gray-500 bg-gray-100 rounded p-2">
+                        💡 Total: <strong className="text-gray-300">Dia {totalDays}</strong> desde a extração
                       </div>
                     )}
                   </div>
@@ -175,14 +165,14 @@ export function MessageIntervals({
       </div>
 
       {/* Summary */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-700">
+        <h4 className="text-sm font-semibold text-white mb-2">
           📊 Resumo da Cadência
         </h4>
-        <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+        <div className="space-y-1 text-sm text-gray-400">
           <div className="flex justify-between">
             <span>Mensagem 1:</span>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="font-medium text-white">
               Dia {getTotalDays(1)} ({getInterval(1)} {getInterval(1) === 1 ? 'dia' : 'dias'} após extração)
             </span>
           </div>
@@ -192,13 +182,13 @@ export function MessageIntervals({
             return (
               <div key={messageNumber} className="flex justify-between">
                 <span>Mensagem {messageNumber}:</span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-white">
                   Dia {totalDays} ({getInterval(messageNumber)} {getInterval(messageNumber) === 1 ? 'dia' : 'dias'} após msg {messageNumber - 1})
                 </span>
               </div>
             );
           })}
-          <div className="pt-2 mt-2 border-t border-gray-300 dark:border-gray-600 flex justify-between font-semibold">
+          <div className="pt-2 mt-2 border-t border-gray-600 flex justify-between font-semibold">
             <span>Duração total da campanha:</span>
             <span className={colorClasses.text}>
               {getTotalDays(showMessage3 ? 3 : 2)} {getTotalDays(showMessage3 ? 3 : 2) === 1 ? 'dia' : 'dias'}

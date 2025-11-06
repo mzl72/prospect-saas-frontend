@@ -121,6 +121,13 @@ export async function POST(request: NextRequest) {
           "WhatsApp Mensagem 1",
           "WhatsApp Mensagem 2"
         ];
+        missingFieldsByPage["/cadencia-hibrida"] = [
+          "Híbrido Email 1 (Título e Corpo)",
+          "Híbrido Email 2 (Corpo)",
+          "Híbrido Email 3 (Título e Corpo)",
+          "Híbrido WhatsApp Mensagem 1",
+          "Híbrido WhatsApp Mensagem 2"
+        ];
         missingFieldsByPage["/configuracoes#prompts"] = [
           "Template de Pesquisa",
           "Template de Análise de Empresa"
@@ -176,6 +183,23 @@ export async function POST(request: NextRequest) {
       }
       if (!userSettings.whatsappMessage2?.trim()) {
         addMissingField("/whatsapp", "WhatsApp Mensagem 2");
+      }
+
+      // Validar Híbrido (aba Cadência Híbrida)
+      if (!userSettings.hybridEmailTitulo1?.trim() || !userSettings.hybridEmailCorpo1?.trim()) {
+        addMissingField("/cadencia-hibrida", "Híbrido Email 1 (Título e Corpo)");
+      }
+      if (!userSettings.hybridEmailCorpo2?.trim()) {
+        addMissingField("/cadencia-hibrida", "Híbrido Email 2 (Corpo)");
+      }
+      if (!userSettings.hybridEmailTitulo3?.trim() || !userSettings.hybridEmailCorpo3?.trim()) {
+        addMissingField("/cadencia-hibrida", "Híbrido Email 3 (Título e Corpo)");
+      }
+      if (!userSettings.hybridWhatsappMessage1?.trim()) {
+        addMissingField("/cadencia-hibrida", "Híbrido WhatsApp Mensagem 1");
+      }
+      if (!userSettings.hybridWhatsappMessage2?.trim()) {
+        addMissingField("/cadencia-hibrida", "Híbrido WhatsApp Mensagem 2");
       }
 
       // Validar Emails Remetentes (OBRIGATÓRIO para envio de emails)
@@ -335,6 +359,25 @@ export async function POST(request: NextRequest) {
           userSettings.whatsappMessage1,
           userSettings.whatsappMessage2,
           userSettings.whatsappMessage3,
+        ],
+
+        // Hybrid templates (dedicados - separados de email/whatsapp)
+        hybridEmailTemplates: [
+          {
+            titulo: userSettings.hybridEmailTitulo1,
+            corpo: userSettings.hybridEmailCorpo1,
+          },
+          {
+            corpo: userSettings.hybridEmailCorpo2, // Email 2 não tem título (resposta na thread)
+          },
+          {
+            titulo: userSettings.hybridEmailTitulo3,
+            corpo: userSettings.hybridEmailCorpo3,
+          },
+        ],
+        hybridWhatsappMessages: [
+          userSettings.hybridWhatsappMessage1,
+          userSettings.hybridWhatsappMessage2,
         ],
 
         // Evolution API instances

@@ -46,6 +46,7 @@ export const CAMPAIGN_TIMEOUT = {
   BASICO_SECONDS_PER_LEAD: 20,  // apenas extração
   COMPLETO_SECONDS_PER_LEAD: 80, // extração (20s) + enriquecimento IA (60s)
   TIMEOUT_MULTIPLIER: 2, // dobro do tempo estimado
+  COMPLETO_SENDING_BUFFER: 1.3, // +30% para campanhas COMPLETO (tempo de envio de emails/WhatsApp)
 } as const;
 
 /**
@@ -62,13 +63,28 @@ export function calculateCampaignTimeout(
   timeoutSeconds: number;
   timeoutDate: Date;
 } {
+  // Validações
+  if (typeof quantidade !== 'number' || quantidade <= 0 || !Number.isFinite(quantidade)) {
+    throw new Error(`quantidade deve ser um número positivo, recebido: ${quantidade}`)
+  }
+
+  if (tipo !== "BASICO" && tipo !== "COMPLETO") {
+    throw new Error(`tipo deve ser "BASICO" ou "COMPLETO", recebido: ${tipo}`)
+  }
+
   const secondsPerLead =
     tipo === "BASICO"
       ? CAMPAIGN_TIMEOUT.BASICO_SECONDS_PER_LEAD
       : CAMPAIGN_TIMEOUT.COMPLETO_SECONDS_PER_LEAD;
 
   const estimatedSeconds = quantidade * secondsPerLead;
-  const timeoutSeconds = estimatedSeconds * CAMPAIGN_TIMEOUT.TIMEOUT_MULTIPLIER;
+  let timeoutSeconds = estimatedSeconds * CAMPAIGN_TIMEOUT.TIMEOUT_MULTIPLIER;
+
+  // Para campanhas COMPLETO, adicionar buffer de 30% para tempo de envio de emails/WhatsApp
+  if (tipo === "COMPLETO") {
+    timeoutSeconds = Math.ceil(timeoutSeconds * CAMPAIGN_TIMEOUT.COMPLETO_SENDING_BUFFER);
+  }
+
   const timeoutDate = new Date(Date.now() + timeoutSeconds * 1000);
 
   return {
@@ -119,17 +135,17 @@ export const LEAD_STATUS_LABELS = {
 
 // Cores de status de leads (Tailwind classes)
 export const LEAD_STATUS_COLORS = {
-  EXTRACTED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  ENRICHED: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  EMAIL_1_SENT: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
-  EMAIL_2_SENT: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
-  EMAIL_3_SENT: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300',
-  WHATSAPP_1_SENT: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  WHATSAPP_2_SENT: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
-  WHATSAPP_3_SENT: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
-  REPLIED: 'bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-300',
-  OPTED_OUT: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  BOUNCED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  EXTRACTED: 'bg-blue-100 text-blue-800',
+  ENRICHED: 'bg-purple-100 text-purple-800',
+  EMAIL_1_SENT: 'bg-cyan-100 text-cyan-800',
+  EMAIL_2_SENT: 'bg-indigo-100 text-indigo-800',
+  EMAIL_3_SENT: 'bg-violet-100 text-violet-800',
+  WHATSAPP_1_SENT: 'bg-green-100 text-green-800',
+  WHATSAPP_2_SENT: 'bg-teal-100 text-teal-800',
+  WHATSAPP_3_SENT: 'bg-emerald-100 text-emerald-800',
+  REPLIED: 'bg-lime-100 text-lime-800',
+  OPTED_OUT: 'bg-gray-100 text-gray-800',
+  BOUNCED: 'bg-red-100 text-red-800',
 } as const;
 
 // Status de emails
@@ -144,10 +160,10 @@ export const EMAIL_STATUS_LABELS = {
 
 // Cores de status de emails
 export const EMAIL_STATUS_COLORS = {
-  PENDING: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  SENT: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  OPENED: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300',
-  REPLIED: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  BOUNCED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  FAILED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  PENDING: 'bg-gray-100 text-gray-800',
+  SENT: 'bg-blue-100 text-blue-800',
+  OPENED: 'bg-cyan-100 text-cyan-800',
+  REPLIED: 'bg-green-100 text-green-800',
+  BOUNCED: 'bg-red-100 text-red-800',
+  FAILED: 'bg-red-100 text-red-800',
 } as const;

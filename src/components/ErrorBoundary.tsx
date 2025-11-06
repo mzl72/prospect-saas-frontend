@@ -29,20 +29,20 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-lg shadow-xl p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-gray-900 rounded-lg shadow-xl p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-2xl font-bold text-white mb-2">
               Algo deu errado
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-gray-300 mb-6">
               Ocorreu um erro inesperado. Tente recarregar a página.
             </p>
             {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-md text-left">
-                <p className="text-sm font-mono text-red-800 dark:text-red-200 break-all">
+              <div className="mb-6 p-4 bg-red-50 rounded-md text-left">
+                <p className="text-sm font-mono text-red-800 break-all">
                   {this.state.error.toString()}
                 </p>
               </div>

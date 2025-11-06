@@ -84,6 +84,15 @@ export default function ConfiguracoesPage() {
     whatsappMessage2: "",
     whatsappMessage3: "",
 
+    // Hybrid Templates
+    hybridEmailTitulo1: "",
+    hybridEmailCorpo1: "",
+    hybridEmailCorpo2: "",
+    hybridEmailTitulo3: "",
+    hybridEmailCorpo3: "",
+    hybridWhatsappMessage1: "",
+    hybridWhatsappMessage2: "",
+
     // Informações Críticas
     nomeEmpresa: "",
     assinatura: "",
@@ -218,11 +227,11 @@ export default function ConfiguracoesPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="py-8 bg-white dark:bg-gray-900 min-h-screen">
+        <div className="py-8 bg-gray-900 min-h-screen">
           <div className="max-w-6xl mx-auto px-4">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
-              <p className="mt-2 text-gray-600 dark:text-gray-300">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+              <p className="mt-2 text-gray-300">
                 Carregando configurações...
               </p>
             </div>
@@ -238,22 +247,22 @@ export default function ConfiguracoesPage() {
         <div className="max-w-6xl mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-white">
               Configurações
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-gray-300 mt-2">
               Configure as informações da sua empresa e personalize os prompts da IA
             </p>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <div className="flex gap-2 mb-6 border-b border-gray-700 overflow-x-auto">
             <button
               onClick={() => setActiveTab("company")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === "company"
-                  ? "border-b-2 border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-400 hover:text-white"
               }`}
             >
               <Building2 className="w-4 h-4" />
@@ -263,8 +272,8 @@ export default function ConfiguracoesPage() {
               onClick={() => setActiveTab("prompts")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === "prompts"
-                  ? "border-b-2 border-cyan-600 text-cyan-600 dark:text-cyan-400"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "border-b-2 border-cyan-600 text-cyan-600"
+                  : "text-gray-400 hover:text-white"
               }`}
             >
               <Sparkles className="w-4 h-4" />
@@ -276,13 +285,13 @@ export default function ConfiguracoesPage() {
             {/* Tab: Empresa */}
             {activeTab === "company" && (
               <div className="space-y-6">
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg mb-6">
-                  <p className="text-sm text-red-800 dark:text-red-300">
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+                  <p className="text-sm text-red-800">
                     <strong>⚠️ Importante:</strong> Configure as informações da sua empresa para personalizar os emails e mensagens.
                   </p>
                 </div>
 
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className="dark:bg-gray-800">
                   <CardHeader>
                     <CardTitle className="dark:text-white flex items-center gap-2">
                       <Building2 className="w-5 h-5 text-red-600" />
@@ -303,7 +312,7 @@ export default function ConfiguracoesPage() {
                           value={config.nomeEmpresa}
                           onChange={(e) => handleChange("nomeEmpresa", e.target.value)}
                           placeholder="Ex: TechCorp Solutions"
-                          className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          className="mt-1"
                         />
                       </div>
 
@@ -316,7 +325,7 @@ export default function ConfiguracoesPage() {
                           value={config.assinatura}
                           onChange={(e) => handleChange("assinatura", e.target.value)}
                           placeholder="Ex: João Silva"
-                          className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          className="mt-1"
                         />
                       </div>
 
@@ -329,7 +338,7 @@ export default function ConfiguracoesPage() {
                           value={config.telefoneContato}
                           onChange={(e) => handleChange("telefoneContato", e.target.value)}
                           placeholder="Ex: (11) 99999-9999"
-                          className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          className="mt-1"
                         />
                       </div>
 
@@ -342,14 +351,14 @@ export default function ConfiguracoesPage() {
                           value={config.websiteEmpresa}
                           onChange={(e) => handleChange("websiteEmpresa", e.target.value)}
                           placeholder="Ex: https://techcorp.com"
-                          className="mt-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          className="mt-1"
                         />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className="dark:bg-gray-800">
                   <CardHeader>
                     <CardTitle className="dark:text-white flex items-center gap-2">
                       <Info className="w-5 h-5 text-green-600" />
@@ -368,7 +377,7 @@ export default function ConfiguracoesPage() {
                       value={config.informacoesPropria}
                       onChange={(e) => handleChange("informacoesPropria", e.target.value)}
                       rows={10}
-                      className="w-full mt-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full mt-2 px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Descreva sua empresa, produtos/serviços, proposta de valor, diferenciais, clientes típicos, resultados alcançados, etc.&#10;&#10;Exemplo:&#10;Somos uma consultoria de tecnologia especializada em transformação digital..."
                     />
                   </CardContent>
@@ -379,13 +388,13 @@ export default function ConfiguracoesPage() {
             {/* Tab: Prompts IA */}
             {activeTab === "prompts" && (
               <div className="space-y-6">
-                <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 p-4 rounded-lg mb-6">
-                  <p className="text-sm text-cyan-800 dark:text-cyan-300">
+                <div className="bg-cyan-50 border border-cyan-200 p-4 rounded-lg mb-6">
+                  <p className="text-sm text-cyan-800">
                     <strong>🤖 Prompts Genéricos:</strong> Estes prompts são usados por todos os canais (Email, WhatsApp e Híbrido). Para personalizar prompts específicos de cada canal, configure nas páginas respectivas.
                   </p>
                 </div>
 
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className="dark:bg-gray-800">
                   <CardHeader>
                     <CardTitle className="dark:text-white flex items-center gap-2">
                       <FileText className="w-5 h-5 text-blue-600" />
@@ -400,13 +409,13 @@ export default function ConfiguracoesPage() {
                       value={config.templatePesquisa}
                       onChange={(e) => handleChange("templatePesquisa", e.target.value)}
                       rows={6}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
+                      className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                       placeholder="Ex: Pesquise informações sobre {nome_empresa}..."
                     />
                   </CardContent>
                 </Card>
 
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className="dark:bg-gray-800">
                   <CardHeader>
                     <CardTitle className="dark:text-white flex items-center gap-2">
                       <FileText className="w-5 h-5 text-green-600" />
@@ -421,7 +430,7 @@ export default function ConfiguracoesPage() {
                       value={config.templateAnaliseEmpresa}
                       onChange={(e) => handleChange("templateAnaliseEmpresa", e.target.value)}
                       rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
+                      className="w-full px-3 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                       placeholder="Ex: Identifique 2 oportunidades..."
                     />
                   </CardContent>
