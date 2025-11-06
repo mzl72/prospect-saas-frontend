@@ -4,6 +4,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { EmailStatus, WhatsAppStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma-db';
 import { DEMO_USER_ID } from '@/lib/demo-user';
 
@@ -46,7 +47,6 @@ export async function getSentTodayStats(
   today.setHours(0, 0, 0, 0);
 
   if (channel === 'email') {
-    const { EmailStatus } = await import('@prisma/client');
     const sentTodayBySeq = await prisma.email.groupBy({
       by: ['sequenceNumber'],
       where: {
@@ -62,7 +62,6 @@ export async function getSentTodayStats(
 
     return { seq1, seq2, seq3, total: seq1 + seq2 + seq3 };
   } else {
-    const { WhatsAppStatus } = await import('@prisma/client');
     const sentTodayBySeq = await prisma.whatsAppMessage.groupBy({
       by: ['sequenceNumber'],
       where: {
