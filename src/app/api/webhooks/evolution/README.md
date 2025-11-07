@@ -1,0 +1,3 @@
+# evolution - Webhook Evolution API (WhatsApp)
+
+**route.ts**: Webhook POST que recebe eventos de status de mensagens WhatsApp da Evolution API. Eventos suportados: message.sent, message.delivered, message.read, message.received (reply do lead). Validação: checa header 'apikey' contra EVOLUTION_API_KEY. Busca WhatsAppMessage por messageId, atualiza status (DELIVERED quando status=3, READ quando status=4), registra timestamps (deliveredAt, readAt), detecta replies (fromMe=false + message.received) e atualiza lead para REPLIED + registra repliedAt. Constantes: WHATSAPP_MESSAGE_STATUS com códigos 3 (delivered) e 4 (read). Interface: EvolutionWebhookEvent com event, instance, data.key (remoteJid, fromMe, id/messageId).

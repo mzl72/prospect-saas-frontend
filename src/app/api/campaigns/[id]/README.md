@@ -1,0 +1,3 @@
+# [id] - Operações em Campanha Específica
+
+**route.ts**: API para campanha específica. **GET**: Busca campanha por ID com paginação de leads (page, pageSize, default 50 leads por página), inclui emails e whatsappMessages de cada lead ordenados por sequenceNumber, busca TODOS leads separadamente apenas para calcular stats precisas (via calculateCampaignStats), determina status correto via determineCampaignStatus (mas não sobrescreve COMPLETED/FAILED), atualiza status no banco se mudou, retorna campaign + stats + pagination. Stats incluem: totalLeads, totalExtracted, totalEnriched, totalEmailSent, totalWhatsAppSent, totalReplied, totalOptedOut, totalBounced. Previne N+1 queries com paginação inteligente.
