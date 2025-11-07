@@ -64,7 +64,9 @@ export default function WhatsAppPage() {
         whatsappOnlyCadence: JSON.parse(s.whatsappOnlyCadence || '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"10:00-12:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"15:00-17:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"10:00-12:00","daysAfterPrevious":2}]'),
         evolutionInstances: JSON.parse(s.evolutionInstances || "[]"),
         whatsappDailyLimit: s.whatsappDailyLimit || 50,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         whatsappBusinessHourStart: (s as any).whatsappBusinessHourStart || 9,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         whatsappBusinessHourEnd: (s as any).whatsappBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
         whatsappPromptOverview: s.whatsappPromptOverview || "",
@@ -75,6 +77,7 @@ export default function WhatsAppPage() {
   }, [settingsData]);
 
   const saveMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
@@ -102,6 +105,7 @@ export default function WhatsAppPage() {
       }
       toast.success("Configurações salvas!");
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.error("Erro ao salvar configurações:", error);
       toast.error(error.message || "Erro ao salvar");
@@ -150,17 +154,17 @@ export default function WhatsAppPage() {
         <div className="max-w-7xl mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <MessageCircle className="w-8 h-8 text-green-600" />
               WhatsApp
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-gray-300 mt-2">
               Configure templates, cadência e configurações de envio via WhatsApp
             </p>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex gap-2 mb-6 border-b border-gray-700">
             <button
               onClick={() => setActiveTab("templates")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${
@@ -358,11 +362,11 @@ export default function WhatsAppPage() {
                       {config.evolutionInstances.map((instance, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700"
+                          className="flex items-center justify-between p-3 border border-gray-600 rounded-lg bg-gray-50"
                         >
                           <div className="flex items-center gap-3">
-                            <Send className="w-4 h-4 text-green-600 dark:text-green-400" />
-                            <span className="font-mono text-sm dark:text-white">{instance}</span>
+                            <Send className="w-4 h-4 text-green-600" />
+                            <span className="font-mono text-sm">{instance}</span>
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -378,7 +382,7 @@ export default function WhatsAppPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeInstance(index)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -462,11 +466,11 @@ export default function WhatsAppPage() {
                     </div>
 
                     {/* Mostrar cálculo automático */}
-                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                      <p className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <p className="text-xs text-green-700 font-medium mb-1">
                         ⏱️ Delay calculado automaticamente
                       </p>
-                      <p className="text-xs text-green-600 dark:text-green-400">
+                      <p className="text-xs text-green-600">
                         {(() => {
                           const hours = config.whatsappBusinessHourEnd - config.whatsappBusinessHourStart;
                           const avgMinutes = (hours * 60) / config.whatsappDailyLimit;

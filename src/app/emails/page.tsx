@@ -65,7 +65,9 @@ export default function EmailsPage() {
         emailOnlyCadence: JSON.parse(s.emailOnlyCadence || '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"14:00-16:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
         senderEmails: JSON.parse(s.senderEmails || "[]"),
         dailyEmailLimit: s.dailyEmailLimit || 100,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         emailBusinessHourStart: (s as any).emailBusinessHourStart || 9,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         emailBusinessHourEnd: (s as any).emailBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
         emailPromptOverview: s.emailPromptOverview || "",
@@ -76,6 +78,7 @@ export default function EmailsPage() {
   }, [settingsData]);
 
   const saveMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
@@ -108,6 +111,7 @@ export default function EmailsPage() {
       }
       toast.success("Configurações salvas!");
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.error("❌ Error saving settings:", error);
       toast.error(error.message || "Erro ao salvar");
@@ -164,23 +168,23 @@ export default function EmailsPage() {
         <div className="max-w-7xl mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <Mail className="w-8 h-8 text-blue-600" />
               Emails
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-gray-300 mt-2">
               Configure templates, cadência e configurações de envio de emails
             </p>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <div className="flex gap-2 mb-6 border-b border-gray-700 overflow-x-auto">
             <button
               onClick={() => setActiveTab("templates")}
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === "templates"
                   ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                  : "text-gray-400 hover:text-gray-900"
               }`}
             >
               <Mail className="w-4 h-4" />
@@ -191,7 +195,7 @@ export default function EmailsPage() {
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === "cadence"
                   ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                  : "text-gray-400 hover:text-gray-900"
               }`}
             >
               <Calendar className="w-4 h-4" />
@@ -202,7 +206,7 @@ export default function EmailsPage() {
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === "settings"
                   ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                  : "text-gray-400 hover:text-gray-900"
               }`}
             >
               <Settings className="w-4 h-4" />
@@ -213,7 +217,7 @@ export default function EmailsPage() {
               className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === "prompts"
                   ? "border-b-2 border-blue-600 text-blue-600"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                  : "text-gray-400 hover:text-gray-900"
               }`}
             >
               <Sparkles className="w-4 h-4" />
@@ -364,7 +368,7 @@ export default function EmailsPage() {
                       {config.senderEmails.map((email, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded"
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded"
                         >
                           <span className="dark:text-white">{email}</span>
                           <Button
@@ -408,11 +412,11 @@ export default function EmailsPage() {
                     </div>
 
                     {/* Mostrar cálculo automático */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-700 font-medium mb-1">
                         ⏱️ Delay calculado automaticamente
                       </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                      <p className="text-xs text-blue-600">
                         {(() => {
                           const hours = config.emailBusinessHourEnd - config.emailBusinessHourStart;
                           const avgMinutes = (hours * 60) / config.dailyEmailLimit;
@@ -494,8 +498,8 @@ export default function EmailsPage() {
             {/* Tab: Prompts IA */}
             {activeTab === "prompts" && (
               <div className="space-y-6">
-                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-4 rounded-lg">
-                  <p className="text-sm text-purple-800 dark:text-purple-300">
+                <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                  <p className="text-sm text-purple-800">
                     <strong>🤖 Prompts Personalizados:</strong> Configure como a IA deve gerar emails para este canal específico.
                   </p>
                 </div>

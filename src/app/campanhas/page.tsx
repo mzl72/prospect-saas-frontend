@@ -92,10 +92,10 @@ export default function CampanhasPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="py-8 bg-white dark:bg-gray-900 min-h-screen">
+        <div className="py-8 bg-gray-900 min-h-screen">
           <div className="max-w-4xl mx-auto px-4">
             <div className="text-center">
-              <div className="text-lg text-gray-900 dark:text-white">Carregando campanhas...</div>
+              <div className="text-lg text-white">Carregando campanhas...</div>
             </div>
           </div>
         </div>
@@ -108,8 +108,8 @@ export default function CampanhasPage() {
       <div className="py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Minhas Campanhas</h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <h1 className="text-3xl font-bold text-white">Minhas Campanhas</h1>
+            <p className="text-gray-300 mt-2">
               Acompanhe o status das suas campanhas
             </p>
           </div>
@@ -119,7 +119,7 @@ export default function CampanhasPage() {
             (campanha: {
               id: string;
               titulo: string;
-              status: "processando" | "extração concluída" | "concluido" | "falhou";
+              status: "processando" | "extração concluída" | "concluído" | "falhou";
               quantidade: number;
               tipo: "basico" | "completo";
               criadoEm: string;
@@ -129,24 +129,24 @@ export default function CampanhasPage() {
               leadsDuplicated?: number;
               creditsRefunded?: number;
             }) => (
-              <Card key={campanha.id} className="dark:bg-gray-800 dark:border-gray-700">
+              <Card key={campanha.id} className="dark:bg-gray-800">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg dark:text-white">
+                      <CardTitle className="text-lg">
                         {campanha.titulo}
                       </CardTitle>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      <p className="text-sm text-gray-300 mt-1">
                         {campanha.leadsCreated !== undefined && campanha.leadsRequested !== undefined ? (
                           <>
                             {campanha.leadsCreated} de {campanha.leadsRequested} leads criados
                             {(campanha.leadsDuplicated ?? 0) > 0 && (
-                              <span className="text-orange-600 dark:text-orange-400">
+                              <span className="text-orange-600">
                                 {" "}• {campanha.leadsDuplicated} duplicados
                               </span>
                             )}
                             {(campanha.creditsRefunded ?? 0) > 0 && (
-                              <span className="text-green-600 dark:text-green-400">
+                              <span className="text-green-600">
                                 {" "}• {campanha.creditsRefunded?.toFixed(2)} créditos reembolsados
                               </span>
                             )}
@@ -178,7 +178,7 @@ export default function CampanhasPage() {
                       </Badge>
                     )}
 
-                    {campanha.status === "concluido" && (
+                    {campanha.status === "concluído" && (
                       <Badge
                         variant="default"
                         className="flex items-center gap-1"
@@ -229,7 +229,7 @@ export default function CampanhasPage() {
                     </div>
                   )}
 
-                  {(campanha.status === "concluido" || campanha.status === "extração concluída") && (
+                  {(campanha.status === "concluído" || campanha.status === "extração concluída") && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -251,15 +251,15 @@ export default function CampanhasPage() {
                   )}
 
                   {campanha.status === "falhou" && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
-                      <p className="text-red-700 dark:text-red-400 text-sm font-medium">
+                    <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                      <p className="text-red-700 text-sm font-medium">
                         ⏱️ Campanha cancelada por timeout
                       </p>
-                      <p className="text-red-600 dark:text-red-300 text-xs mt-1">
+                      <p className="text-red-600 text-xs mt-1">
                         A campanha ultrapassou o tempo limite de processamento e foi cancelada automaticamente.
                         Os créditos foram devolvidos à sua conta.
                       </p>
-                      <p className="text-red-500 dark:text-red-400 text-xs mt-2">
+                      <p className="text-red-500 text-xs mt-2">
                         💡 Dica: Tente criar uma nova campanha ou entre em contato com o suporte.
                       </p>
                     </div>
@@ -270,10 +270,10 @@ export default function CampanhasPage() {
           )}
 
           {campanhas.length === 0 && !isLoading && (
-            <Card className="dark:bg-gray-800 dark:border-gray-700">
+            <Card className="dark:bg-gray-800">
               <CardContent className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">Nenhuma campanha encontrada</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-gray-400">Nenhuma campanha encontrada</p>
+                <p className="text-sm text-gray-500 mt-1">
                   Gere sua primeira campanha para ver o histórico aqui
                 </p>
               </CardContent>

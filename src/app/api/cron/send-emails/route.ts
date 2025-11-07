@@ -5,15 +5,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
-import { EmailStatus, LeadStatus, UserSettings } from '@prisma/client';
+import { EmailStatus, LeadStatus, CadenceType } from '@prisma/client';
 import { sendEmailViaResend } from '@/lib/email-service';
-import {
-  canSendEmail,
-  addUnsubscribeFooter,
-} from '@/lib/email-scheduler';
+import { canSendEmail, addUnsubscribeFooter } from '@/lib/email-scheduler';
 import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils';
-import { EMAIL_TIMING } from '@/lib/constants';
 import { DEMO_USER_ID } from '@/lib/demo-user';
+import {
+  validateCronAuth,
+  getSentTodayStats,
+  getSendLog,
+  updateSendLog,
+  buildLimitReachedResponse,
+  buildWaitingResponse,
+  buildNoPendingResponse,
+  buildNotReadyResponse,
+  buildSuccessResponse,
+} from '@/lib/cron-utils';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutos timeout
@@ -22,10 +29,7 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
   // Segurança: Só permite chamadas autenticadas (cron ou admin)
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!validateCronAuth(request)) {
     console.error('[Cron] Unauthorized access attempt');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -47,62 +51,23 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Verificar quantos emails já foram enviados hoje (por sequência)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const sentTodayBySeq = await prisma.email.groupBy({
-      by: ['sequenceNumber'],
-      where: {
-        status: EmailStatus.SENT,
-        sentAt: {
-          gte: today,
-        },
-      },
-      _count: {
-        id: true,
-      },
-    });
-
-    const sentSeq1 = sentTodayBySeq.find(s => s.sequenceNumber === 1)?._count.id || 0;
-    const sentSeq2 = sentTodayBySeq.find(s => s.sequenceNumber === 2)?._count.id || 0;
-    const sentSeq3 = sentTodayBySeq.find(s => s.sequenceNumber === 3)?._count.id || 0;
-    const sentToday = sentSeq1 + sentSeq2 + sentSeq3;
+    const { seq1: sentSeq1, seq2: sentSeq2, seq3: sentSeq3, total: sentToday } = await getSentTodayStats('email');
 
     console.log(`[Cron] 📊 Sent today: ${sentToday}/${userSettings.dailyEmailLimit} (Seq1: ${sentSeq1}, Seq2: ${sentSeq2}, Seq3: ${sentSeq3})`);
 
     if (!canSendMoreToday(sentToday, userSettings.dailyEmailLimit)) {
       console.log('[Cron] ⚠️ Daily limit reached, skipping');
-      return NextResponse.json({
-        success: true,
-        message: 'Daily limit reached',
-        stats: { sentToday, limit: userSettings.dailyEmailLimit },
-      });
+      return NextResponse.json(buildLimitReachedResponse(sentToday, userSettings.dailyEmailLimit));
     }
 
     // 3. Verificar se já pode enviar (baseado no delay automático)
-    const sendLog = await prisma.channelSendLog.findUnique({
-      where: {
-        userId_channel: {
-          userId: DEMO_USER_ID,
-          channel: 'email',
-        },
-      },
-    });
+    const sendLog = await getSendLog('email');
 
     if (sendLog && !canSendNow(sendLog.nextAllowedAt)) {
       const waitTimeMs = sendLog.nextAllowedAt.getTime() - Date.now();
       const waitMinutes = Math.ceil(waitTimeMs / 60000);
       console.log(`[Cron] ⏳ Too soon to send, waiting ${waitMinutes} minutes`);
-      return NextResponse.json({
-        success: true,
-        message: 'Waiting for next send window',
-        stats: {
-          sentToday,
-          limit: userSettings.dailyEmailLimit,
-          nextAllowedAt: sendLog.nextAllowedAt,
-          waitMinutes,
-        },
-      });
+      return NextResponse.json(buildWaitingResponse(sentToday, userSettings.dailyEmailLimit, sendLog.nextAllowedAt));
     }
 
     // 4. Determinar qual sequenceNumber deve ser enviado a seguir (distribuição equilibrada)
@@ -114,15 +79,22 @@ export async function GET(request: NextRequest) {
     console.log(`[Cron] 🎯 Next sequence to send: ${nextSeq} (balancing daily sends)`);
 
     // 5. Buscar apenas 1 email pendente da sequência escolhida
+    // Incluir leads EMAIL_ONLY e HYBRID
     const pendingEmails = await prisma.email.findMany({
       where: {
         status: EmailStatus.PENDING,
         sequenceNumber: nextSeq, // Buscar apenas da sequência equilibrada
+        lead: {
+          cadenceType: {
+            in: [CadenceType.EMAIL_ONLY, CadenceType.HYBRID],
+          },
+        },
       },
       include: {
         lead: {
           include: {
             emails: true, // Precisamos dos outros emails para verificar timing
+            whatsappMessages: true, // Necessário para HYBRID verificar sequência completa
           },
         },
       },
@@ -134,11 +106,7 @@ export async function GET(request: NextRequest) {
 
     if (pendingEmails.length === 0) {
       console.log('[Cron] ✅ No pending emails found');
-      return NextResponse.json({
-        success: true,
-        message: 'No pending emails',
-        stats: { sentToday, limit: userSettings.dailyEmailLimit },
-      });
+      return NextResponse.json(buildNoPendingResponse(sentToday, userSettings.dailyEmailLimit));
     }
 
     console.log(`[Cron] 📧 Found 1 pending email to process`);
@@ -146,7 +114,6 @@ export async function GET(request: NextRequest) {
     // 5. Processar o email único
     const email = pendingEmails[0];
     let sent = 0;
-    let skipped = 0;
     let failed = 0;
     const errors: string[] = [];
 
@@ -156,11 +123,7 @@ export async function GET(request: NextRequest) {
         console.log(
           `[Cron] ⏭️ Skipped email ${email.id} (seq ${email.sequenceNumber}) - timing not ready`
         );
-        return NextResponse.json({
-          success: true,
-          message: 'Email not ready to send yet',
-          stats: { sentToday, limit: userSettings.dailyEmailLimit, skipped: 1 },
-        });
+        return NextResponse.json(buildNotReadyResponse(sentToday, userSettings.dailyEmailLimit, 1));
       }
 
       // Validar que lead tem email
@@ -234,24 +197,7 @@ export async function GET(request: NextRequest) {
           userSettings.dailyEmailLimit
         );
 
-        await prisma.channelSendLog.upsert({
-          where: {
-            userId_channel: {
-              userId: DEMO_USER_ID,
-              channel: 'email',
-            },
-          },
-          create: {
-            userId: DEMO_USER_ID,
-            channel: 'email',
-            lastSentAt: new Date(),
-            nextAllowedAt: nextAllowed,
-          },
-          update: {
-            lastSentAt: new Date(),
-            nextAllowedAt: nextAllowed,
-          },
-        });
+        await updateSendLog('email', nextAllowed);
 
         console.log(
           `[Cron] ✅ Sent email ${email.id} (messageId: ${result.messageId}). Next send allowed at: ${nextAllowed.toLocaleString()}`
@@ -282,19 +228,20 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
 
     console.log(`[Cron] ✨ Job completed in ${duration}ms`);
-    console.log(`[Cron] 📊 Stats: ${sent} sent, ${skipped} skipped, ${failed} failed`);
+    console.log(`[Cron] 📊 Stats: ${sent} sent, 0 skipped, ${failed} failed`);
+
+    const response = buildSuccessResponse({
+      sent,
+      skipped: 0,
+      failed,
+      total: pendingEmails.length,
+      duration: `${duration}ms`,
+      sentToday: sentToday + sent,
+      dailyLimit: userSettings.dailyEmailLimit,
+    });
 
     return NextResponse.json({
-      success: true,
-      stats: {
-        sent,
-        skipped,
-        failed,
-        total: pendingEmails.length,
-        duration: `${duration}ms`,
-        sentToday: sentToday + sent,
-        dailyLimit: userSettings.dailyEmailLimit,
-      },
+      ...response,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {

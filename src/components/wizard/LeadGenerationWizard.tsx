@@ -22,7 +22,7 @@ export function LeadGenerationWizard() {
   const progress = (currentStep / 3) * 100;
 
   return (
-    <Card className="w-full dark:bg-gray-800 dark:border-gray-700">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="dark:text-white">Etapa {currentStep} de 3</CardTitle>
@@ -51,10 +51,10 @@ function CreditosDisplay() {
   });
 
   if (isLoading) {
-    return <div className="text-sm text-gray-600 dark:text-gray-300">Créditos: ...</div>;
+    return <div className="text-sm text-gray-300">Créditos: ...</div>;
   }
 
-  return <div className="text-sm text-gray-600 dark:text-gray-300">Créditos: {creditos}</div>;
+  return <div className="text-sm text-gray-300">Créditos: {creditos}</div>;
 }
 
 function EtapaConfiguracao() {
@@ -98,14 +98,14 @@ function EtapaConfiguracao() {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+        <label className="block text-sm font-medium mb-2 text-gray-100">
           Que tipo de empresa você quer encontrar?
         </label>
         <input
           type="text"
           placeholder="ex: restaurante, academia, dentista"
-          className={`w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${
-            errors.tipoNegocio ? "border-red-500 dark:border-red-500" : ""
+          className={`w-full p-3 border rounded-md bg-gray-800 text-gray-100 border-gray-600 placeholder:text-gray-500 ${
+            errors.tipoNegocio ? "border-red-500" : ""
           }`}
           value={tipoNegocio}
           onChange={(e) => {
@@ -114,19 +114,19 @@ function EtapaConfiguracao() {
           }}
         />
         {errors.tipoNegocio && (
-          <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.tipoNegocio}</p>
+          <p className="text-red-500 text-sm mt-1">{errors.tipoNegocio}</p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+        <label className="block text-sm font-medium mb-2 text-gray-100">
           Em qual região?
         </label>
         <input
           type="text"
           placeholder="ex: São Paulo, Pinheiros, Jundiaí"
-          className={`w-full p-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${
-            errors.localizacao ? "border-red-500 dark:border-red-500" : ""
+          className={`w-full p-3 border rounded-md bg-gray-800 text-gray-100 border-gray-600 placeholder:text-gray-500 ${
+            errors.localizacao ? "border-red-500" : ""
           }`}
           value={localizacao}
           onChange={(e) => {
@@ -135,12 +135,12 @@ function EtapaConfiguracao() {
           }}
         />
         {errors.localizacao && (
-          <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.localizacao}</p>
+          <p className="text-red-500 text-sm mt-1">{errors.localizacao}</p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Quantos leads?</label>
+        <label className="block text-sm font-medium mb-2 text-gray-100">Quantos leads?</label>
         <div className="flex gap-2">
           {[4, 20, 40, 100, 200].map((qty) => (
             <Button
@@ -174,7 +174,7 @@ function EtapaNivelServico() {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="text-lg font-semibold text-gray-100">
           Encontraremos de 0 à {quantidade} leads. Escolha o nível de serviço:
         </h3>
       </div>
@@ -183,18 +183,18 @@ function EtapaNivelServico() {
         <div
           className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
             nivelServico === "basico"
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-700 hover:border-gray-300"
           }`}
           onClick={() => setNivelServico("basico")}
         >
           <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">BÁSICO</h4>
-            <span className="text-lg font-bold text-green-600 dark:text-green-400">
+            <h4 className="font-semibold text-lg text-gray-100">BÁSICO</h4>
+            <span className="text-lg font-bold text-green-600">
               {custoBasico} créditos
             </span>
           </div>
-          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
+          <ul className="space-y-1 text-sm text-gray-300">
             <li>✓ Lista com dados do Google Maps</li>
             <li>✓ Nome, telefone, endereço, avaliações</li>
             <li>✓ Planilha para download</li>
@@ -204,18 +204,18 @@ function EtapaNivelServico() {
         <div
           className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
             nivelServico === "completo"
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-700 hover:border-gray-300"
           }`}
           onClick={() => setNivelServico("completo")}
         >
           <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">COMPLETO</h4>
-            <span className="text-lg font-bold text-green-600 dark:text-green-400">
+            <h4 className="font-semibold text-lg text-gray-100">COMPLETO</h4>
+            <span className="text-lg font-bold text-green-600">
               {custoCompleto} créditos
             </span>
           </div>
-          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
+          <ul className="space-y-1 text-sm text-gray-300">
             <li>✓ Tudo do Básico</li>
             <li>✓ Pesquisa detalhada da empresa</li>
             <li>✓ E-mails personalizados prontos</li>
@@ -286,6 +286,7 @@ function EtapaConfirmacao() {
       if (!result.success) {
         // Se houver campos faltando, passar o objeto completo
         if (result.missingFieldsByPage) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const error: any = new Error(result.error || "Erro ao criar campanha");
           error.missingFieldsByPage = result.missingFieldsByPage;
           throw error;
@@ -334,45 +335,45 @@ function EtapaConfirmacao() {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Confirme sua configuração</h3>
+        <h3 className="text-xl font-semibold text-gray-100">Confirme sua configuração</h3>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3 border border-gray-200 dark:border-gray-700">
+      <div className="bg-gray-50 p-4 rounded-lg space-y-3 border border-gray-700">
         <div>
-          <span className="font-medium text-gray-900 dark:text-gray-100">Tipo de negócio:</span>
-          <span className="ml-2 text-gray-700 dark:text-gray-300">{tipoNegocio}</span>
+          <span className="font-medium text-gray-100">Tipo de negócio:</span>
+          <span className="ml-2 text-gray-300">{tipoNegocio}</span>
         </div>
         <div>
-          <span className="font-medium text-gray-900 dark:text-gray-100">Localização:</span>
-          <span className="ml-2 text-gray-700 dark:text-gray-300">{localizacao}</span>
+          <span className="font-medium text-gray-100">Localização:</span>
+          <span className="ml-2 text-gray-300">{localizacao}</span>
         </div>
         <div>
-          <span className="font-medium text-gray-900 dark:text-gray-100">Quantidade:</span>
-          <span className="ml-2 text-gray-700 dark:text-gray-300">{quantidade} leads</span>
+          <span className="font-medium text-gray-100">Quantidade:</span>
+          <span className="ml-2 text-gray-300">{quantidade} leads</span>
         </div>
         <div>
-          <span className="font-medium text-gray-900 dark:text-gray-100">Nível:</span>
-          <span className="ml-2 capitalize text-gray-700 dark:text-gray-300">{nivelServico}</span>
+          <span className="font-medium text-gray-100">Nível:</span>
+          <span className="ml-2 capitalize text-gray-300">{nivelServico}</span>
         </div>
-        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
-          <span className="font-medium text-gray-900 dark:text-gray-100">Custo total:</span>
-          <span className="ml-2 text-lg font-bold text-green-600 dark:text-green-400">
+        <div className="border-t border-gray-600 pt-3">
+          <span className="font-medium text-gray-100">Custo total:</span>
+          <span className="ml-2 text-lg font-bold text-green-600">
             {custo} créditos
           </span>
         </div>
         <div>
-          <span className="font-medium text-gray-900 dark:text-gray-100">Saldo atual:</span>
-          <span className="ml-2 text-gray-700 dark:text-gray-300">{creditos} créditos</span>
+          <span className="font-medium text-gray-100">Saldo atual:</span>
+          <span className="ml-2 text-gray-300">{creditos} créditos</span>
         </div>
         <div>
-          <span className="font-medium text-gray-900 dark:text-gray-100">Saldo após:</span>
-          <span className="ml-2 text-gray-700 dark:text-gray-300">{creditos - custo} créditos</span>
+          <span className="font-medium text-gray-100">Saldo após:</span>
+          <span className="ml-2 text-gray-300">{creditos - custo} créditos</span>
         </div>
       </div>
 
       {!creditosSuficientes && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-lg">
-          <p className="text-red-700 dark:text-red-400 text-sm">
+        <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+          <p className="text-red-700 text-sm">
             Créditos insuficientes. Você tem {creditos} créditos, mas precisa de{" "}
             {custo}.
           </p>
@@ -381,6 +382,7 @@ function EtapaConfirmacao() {
 
       {createCampaign.isError && (() => {
         // Acessar missingFieldsByPage diretamente do objeto de erro
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const missingFieldsByPage = (createCampaign.error as any)?.missingFieldsByPage;
 
         if (missingFieldsByPage && Object.keys(missingFieldsByPage).length > 0) {
@@ -394,17 +396,18 @@ function EtapaConfirmacao() {
           };
 
           return (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg space-y-4">
-              <p className="text-red-700 dark:text-red-400 font-semibold text-sm">
+            <div className="bg-red-50 border border-red-200 p-4 rounded-lg space-y-4">
+              <p className="text-red-700 font-semibold text-sm">
                 Campos obrigatórios não preenchidos:
               </p>
 
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {Object.entries(missingFieldsByPage).map(([page, fields]: [string, any]) => (
-                <div key={page} className="bg-white dark:bg-gray-800 p-3 rounded border border-red-200 dark:border-red-700 space-y-2">
-                  <p className="text-red-600 dark:text-red-300 text-sm font-medium">
+                <div key={page} className="bg-gray-800 p-3 rounded border border-red-200 space-y-2">
+                  <p className="text-red-600 text-sm font-medium">
                     {pageNames[page] || page}:
                   </p>
-                  <ul className="list-disc list-inside text-red-600 dark:text-red-300 text-sm space-y-1">
+                  <ul className="list-disc list-inside text-red-600 text-sm space-y-1">
                     {(fields as string[]).map((field, idx) => (
                       <li key={idx}>{field}</li>
                     ))}
@@ -423,8 +426,8 @@ function EtapaConfirmacao() {
 
         // Fallback para erros não estruturados
         return (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg">
-            <p className="text-red-700 dark:text-red-400 text-sm">
+          <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+            <p className="text-red-700 text-sm">
               {createCampaign.error?.message || "Erro ao criar campanha"}
             </p>
           </div>
@@ -460,29 +463,29 @@ function EtapaConfirmacao() {
 
           <div className="space-y-3 py-4">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Tipo de negócio:</span>
-              <span className="font-medium dark:text-white">{tipoNegocio}</span>
+              <span className="text-gray-400">Tipo de negócio:</span>
+              <span className="font-medium">{tipoNegocio}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Localização:</span>
-              <span className="font-medium dark:text-white">{localizacao}</span>
+              <span className="text-gray-400">Localização:</span>
+              <span className="font-medium">{localizacao}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Quantidade:</span>
-              <span className="font-medium dark:text-white">{quantidade} leads</span>
+              <span className="text-gray-400">Quantidade:</span>
+              <span className="font-medium">{quantidade} leads</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Nível:</span>
-              <span className="font-medium dark:text-white capitalize">{nivelServico}</span>
+              <span className="text-gray-400">Nível:</span>
+              <span className="font-medium capitalize">{nivelServico}</span>
             </div>
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+            <div className="border-t border-gray-700 pt-3 mt-3">
               <div className="flex justify-between text-sm font-semibold">
-                <span className="text-gray-900 dark:text-white">Custo total:</span>
-                <span className="text-blue-600 dark:text-blue-400">{custo} créditos</span>
+                <span className="text-white">Custo total:</span>
+                <span className="text-blue-600">{custo} créditos</span>
               </div>
               <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-600 dark:text-gray-400">Saldo após:</span>
-                <span className="text-gray-900 dark:text-white">{creditos - custo} créditos</span>
+                <span className="text-gray-400">Saldo após:</span>
+                <span className="text-white">{creditos - custo} créditos</span>
               </div>
             </div>
           </div>

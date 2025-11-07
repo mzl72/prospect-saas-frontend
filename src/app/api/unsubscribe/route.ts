@@ -6,21 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
 import { LeadStatus } from '@prisma/client';
+import { escapeHtml } from '@/lib/sanitization';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Sanitiza string para prevenir XSS quando inserida em HTML
- * Escapa caracteres especiais que podem executar scripts
- */
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');

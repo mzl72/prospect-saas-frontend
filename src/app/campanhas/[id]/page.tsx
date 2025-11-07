@@ -83,14 +83,14 @@ interface Campaign {
 }
 
 const statusColors: Record<LeadStatus, string> = {
-  EXTRACTED: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-  ENRICHED: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-  EMAIL_1_SENT: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
-  EMAIL_2_SENT: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300",
-  EMAIL_3_SENT: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300",
-  REPLIED: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-  OPTED_OUT: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
-  BOUNCED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  EXTRACTED: "bg-blue-100 text-blue-800",
+  ENRICHED: "bg-purple-100 text-purple-800",
+  EMAIL_1_SENT: "bg-cyan-100 text-cyan-800",
+  EMAIL_2_SENT: "bg-indigo-100 text-indigo-800",
+  EMAIL_3_SENT: "bg-violet-100 text-violet-800",
+  REPLIED: "bg-green-100 text-green-800",
+  OPTED_OUT: "bg-gray-100 text-gray-800",
+  BOUNCED: "bg-red-100 text-red-800",
 };
 
 const statusLabels: Record<LeadStatus, string> = {
@@ -143,10 +143,10 @@ export default function CampaignDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600 dark:text-blue-400" />
-          <p className="text-gray-600 dark:text-gray-400">Carregando campanha...</p>
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-400">Carregando campanha...</p>
         </div>
       </div>
     );
@@ -154,9 +154,9 @@ export default function CampaignDetailPage() {
 
   if (!campaign) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400">Campanha não encontrada</p>
+          <p className="text-gray-400">Campanha não encontrada</p>
           <Button onClick={() => router.push("/campanhas")} className="mt-4">
             Voltar para Campanhas
           </Button>
@@ -182,10 +182,10 @@ export default function CampaignDetailPage() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-white mb-2">
               {campaign.title}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-400">
               Criada em {new Date(campaign.createdAt).toLocaleDateString("pt-BR")}
             </p>
           </div>
@@ -227,16 +227,16 @@ export default function CampaignDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Total de Leads
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-3xl font-bold text-white">
               {campaign.stats.extracted}/{campaign.stats.total}
             </div>
             <Progress value={progressPercentage} className="mt-2" />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <p className="text-xs text-gray-400 mt-2">
               {progressPercentage.toFixed(1)}% extraído
             </p>
           </CardContent>
@@ -244,19 +244,19 @@ export default function CampaignDetailPage() {
 
         <Card className={campaign.tipo === "BASICO" ? "opacity-65" : ""}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Enriquecidos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+            <div className="text-3xl font-bold text-purple-600">
               {campaign.stats.enriched}
             </div>
             <p className="text-sm text-gray-500 mt-1">
               {campaign.tipo === "COMPLETO" ? "Com IA" : "Não aplicável (Básico)"}
             </p>
             {campaign.stats.extracted > 0 && campaign.tipo === "COMPLETO" && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 {((campaign.stats.enriched / campaign.stats.extracted) * 100).toFixed(1)}% do total
               </p>
             )}
@@ -265,15 +265,15 @@ export default function CampaignDetailPage() {
 
         <Card className={campaign.tipo === "BASICO" ? "opacity-65" : ""}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Emails Enviados
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+            <div className="text-3xl font-bold text-cyan-600">
               {campaign.tipo === "BASICO" ? 0 : campaign.stats.email1Sent + campaign.stats.email2Sent + campaign.stats.email3Sent}
             </div>
-            <div className="flex gap-2 mt-2 text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex gap-2 mt-2 text-xs text-gray-400">
               {campaign.tipo === "BASICO" ? (
                 <span>Não aplicável (Básico)</span>
               ) : (
@@ -289,12 +289,12 @@ export default function CampaignDetailPage() {
 
         <Card className={campaign.tipo === "BASICO" ? "opacity-50" : ""}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Respostas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-3xl font-bold text-green-600">
               {campaign.tipo === "BASICO" ? 0 : campaign.stats.replied}
             </div>
             <p className="text-sm text-gray-500 mt-1">
@@ -312,21 +312,21 @@ export default function CampaignDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Card className={campaign.tipo === "BASICO" ? "opacity-65" : ""}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Opt-outs
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+            <div className="text-2xl font-bold text-gray-400">
               {campaign.tipo === "BASICO" ? 0 : campaign.stats.optedOut}
             </div>
             {campaign.tipo !== "BASICO" && campaign.stats.email1Sent > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 {((campaign.stats.optedOut / campaign.stats.email1Sent) * 100).toFixed(1)}% dos enviados
               </p>
             )}
             {campaign.tipo === "BASICO" && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Não aplicável (Básico)
               </p>
             )}
@@ -335,21 +335,21 @@ export default function CampaignDetailPage() {
 
         <Card className={campaign.tipo === "BASICO" ? "opacity-65" : ""}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Bounces
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+            <div className="text-2xl font-bold text-red-600">
               {campaign.tipo === "BASICO" ? 0 : campaign.stats.bounced}
             </div>
             {campaign.tipo !== "BASICO" && campaign.stats.email1Sent > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 {((campaign.stats.bounced / campaign.stats.email1Sent) * 100).toFixed(1)}% dos enviados
               </p>
             )}
             {campaign.tipo === "BASICO" && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Não aplicável (Básico)
               </p>
             )}
@@ -358,19 +358,19 @@ export default function CampaignDetailPage() {
 
         <Card className={campaign.tipo === "BASICO" ? "opacity-65" : ""}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <CardTitle className="text-sm font-medium text-gray-400">
               Taxa de Entrega
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-2xl font-bold text-blue-600">
               {campaign.tipo === "BASICO"
                 ? "0%"
                 : campaign.stats.email1Sent > 0
                 ? `${(((campaign.stats.email1Sent - campaign.stats.bounced) / campaign.stats.email1Sent) * 100).toFixed(1)}%`
                 : "0%"}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               {campaign.tipo === "BASICO" ? "Não aplicável (Básico)" : "Emails entregues com sucesso"}
             </p>
           </CardContent>
@@ -403,35 +403,35 @@ export default function CampaignDetailPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-3 px-4 font-medium text-gray-400">
                     Empresa
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-400">
                     Contato
                   </th>
                   {campaign.tipo === "COMPLETO" && (
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">
                       Email
                     </th>
                   )}
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-400">
                     Categoria
                   </th>
                   {campaign.tipo === "COMPLETO" && (
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">
                       Avaliação
                     </th>
                   )}
                   {campaign.tipo === "COMPLETO" && (
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                    <th className="text-left py-3 px-4 font-medium text-gray-400">
                       Redes Sociais
                     </th>
                   )}
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-400">
                     Status
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-400">
                     Ações
                   </th>
                 </tr>
@@ -440,11 +440,11 @@ export default function CampaignDetailPage() {
                 {campaign.leads.map((lead) => (
                   <tr
                     key={lead.id}
-                    className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="border-b border-gray-800 hover:bg-gray-800/50"
                   >
                     <td className="py-3 px-4">
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className="font-medium text-white">
                           {lead.nomeEmpresa}
                         </div>
                         {lead.website && (
@@ -462,23 +462,23 @@ export default function CampaignDetailPage() {
                     <td className="py-3 px-4">
                       <div className="text-sm">
                         {lead.telefone ? (
-                          <div className="text-gray-900 dark:text-white">{lead.telefone}</div>
+                          <div className="text-white">{lead.telefone}</div>
                         ) : (
-                          <div className="text-gray-400 dark:text-gray-600">Telefone não informado</div>
+                          <div className="text-gray-600">Telefone não informado</div>
                         )}
                         {lead.endereco && (
-                          <div className="text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                          <div className="text-gray-400 truncate max-w-xs">
                             {lead.endereco}
                           </div>
                         )}
                       </div>
                     </td>
                     {campaign.tipo === "COMPLETO" && (
-                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="py-3 px-4 text-sm text-gray-400">
                         {lead.email || <span className="text-gray-400">-</span>}
                       </td>
                     )}
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                    <td className="py-3 px-4 text-sm text-gray-400">
                       {lead.categoria || "-"}
                     </td>
                     {campaign.tipo === "COMPLETO" && (
@@ -486,7 +486,7 @@ export default function CampaignDetailPage() {
                         {lead.notaMedia && lead.totalReviews ? (
                           <div className="text-sm">
                             <span className="font-medium text-yellow-600">★ {lead.notaMedia}</span>
-                            <span className="text-gray-500 dark:text-gray-400 ml-1">
+                            <span className="text-gray-400 ml-1">
                               ({lead.totalReviews})
                             </span>
                           </div>
@@ -545,7 +545,19 @@ export default function CampaignDetailPage() {
                           <Info className="w-4 h-4 mr-1" />
                           Mais Informações
                         </Button>
-                        {lead.emails && lead.emails.length > 0 && (
+                        {lead.cadenceType === 'HYBRID' && ((lead.emails?.length ?? 0) > 0 || (lead.whatsappMessages?.length ?? 0) > 0) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/campanhas/${campaignId}/leads/${lead.id}`)}
+                            className="text-purple-600 hover:text-purple-700"
+                          >
+                            <Mail className="w-4 h-4 mr-1" />
+                            <MessageSquare className="w-4 h-4 mr-1" />
+                            Ver Híbrido
+                          </Button>
+                        )}
+                        {lead.cadenceType === 'EMAIL_ONLY' && lead.emails && lead.emails.length > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -556,7 +568,7 @@ export default function CampaignDetailPage() {
                             Ver Emails
                           </Button>
                         )}
-                        {lead.whatsappMessages && lead.whatsappMessages.length > 0 && (
+                        {lead.cadenceType === 'WHATSAPP_ONLY' && lead.whatsappMessages && lead.whatsappMessages.length > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -576,7 +588,7 @@ export default function CampaignDetailPage() {
 
             {campaign.leads.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-gray-400">
                   Nenhum lead extraído ainda. Aguarde o processamento...
                 </p>
               </div>
@@ -601,20 +613,20 @@ export default function CampaignDetailPage() {
           {selectedLead && (
             <div className="space-y-6 mt-4">
               {/* Status Section */}
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Status</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-white">Status</h3>
                 <div className="flex items-center gap-4">
                   <Badge className={statusColors[selectedLead.status]}>
                     {statusLabels[selectedLead.status]}
                   </Badge>
                   {selectedLead.extractedAt && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Calendar className="w-4 h-4" />
                       Extraído em: {new Date(selectedLead.extractedAt).toLocaleString('pt-BR')}
                     </div>
                   )}
                   {selectedLead.enrichedAt && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Calendar className="w-4 h-4" />
                       Enriquecido em: {new Date(selectedLead.enrichedAt).toLocaleString('pt-BR')}
                     </div>
@@ -623,19 +635,19 @@ export default function CampaignDetailPage() {
               </div>
 
               {/* Contact Information */}
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Informações de Contato</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-white">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                      <p className="text-sm text-gray-400">Email</p>
                       {selectedLead.email ? (
                         <a href={`mailto:${selectedLead.email}`} className="text-blue-600 hover:underline">
                           {selectedLead.email}
                         </a>
                       ) : (
-                        <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                        <p className="text-gray-500">Não Informado</p>
                       )}
                     </div>
                   </div>
@@ -643,13 +655,13 @@ export default function CampaignDetailPage() {
                   <div className="flex items-start gap-3">
                     <Phone className="w-5 h-5 text-green-600 mt-0.5" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Telefone</p>
+                      <p className="text-sm text-gray-400">Telefone</p>
                       {selectedLead.telefone ? (
-                        <a href={`tel:${selectedLead.telefone}`} className="text-gray-900 dark:text-white hover:text-green-600">
+                        <a href={`tel:${selectedLead.telefone}`} className="text-white hover:text-green-600">
                           {selectedLead.telefone}
                         </a>
                       ) : (
-                        <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                        <p className="text-gray-500">Não Informado</p>
                       )}
                     </div>
                   </div>
@@ -657,14 +669,14 @@ export default function CampaignDetailPage() {
                   <div className="flex items-start gap-3">
                     <Globe className="w-5 h-5 text-purple-600 mt-0.5" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Website</p>
+                      <p className="text-sm text-gray-400">Website</p>
                       {selectedLead.website ? (
                         <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
                           {selectedLead.website}
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                        <p className="text-gray-500">Não Informado</p>
                       )}
                     </div>
                   </div>
@@ -672,11 +684,11 @@ export default function CampaignDetailPage() {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-red-600 mt-0.5" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Endereço</p>
+                      <p className="text-sm text-gray-400">Endereço</p>
                       {selectedLead.endereco ? (
-                        <p className="text-gray-900 dark:text-white">{selectedLead.endereco}</p>
+                        <p className="text-white">{selectedLead.endereco}</p>
                       ) : (
-                        <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                        <p className="text-gray-500">Não Informado</p>
                       )}
                     </div>
                   </div>
@@ -684,107 +696,107 @@ export default function CampaignDetailPage() {
               </div>
 
               {/* Business Information */}
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Informações do Negócio</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-white">Informações do Negócio</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Categoria</p>
+                    <p className="text-sm text-gray-400 mb-1">Categoria</p>
                     {selectedLead.categoria ? (
                       <Badge variant="secondary">{selectedLead.categoria}</Badge>
                     ) : (
-                      <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                      <p className="text-gray-500">Não Informado</p>
                     )}
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Avaliação</p>
+                    <p className="text-sm text-gray-400 mb-1">Avaliação</p>
                     {selectedLead.notaMedia && selectedLead.totalReviews ? (
                       <div className="flex items-center gap-2">
                         <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                         <span className="font-semibold text-lg">{selectedLead.notaMedia}</span>
-                        <span className="text-gray-500 dark:text-gray-400">({selectedLead.totalReviews} avaliações)</span>
+                        <span className="text-gray-400">({selectedLead.totalReviews} avaliações)</span>
                       </div>
                     ) : (
-                      <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                      <p className="text-gray-500">Não Informado</p>
                     )}
                   </div>
 
                   <div className="md:col-span-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Google Maps</p>
+                    <p className="text-sm text-gray-400 mb-1">Google Maps</p>
                     {selectedLead.linkGoogleMaps ? (
                       <a href={selectedLead.linkGoogleMaps} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
                         Ver no Google Maps
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     ) : (
-                      <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                      <p className="text-gray-500">Não Informado</p>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Social Media */}
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Redes Sociais</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-3 text-white">Redes Sociais</h3>
                 {(selectedLead.linkedinUrl || selectedLead.twitterUrl || selectedLead.instagramUrl ||
                   selectedLead.facebookUrl || selectedLead.youtubeUrl || selectedLead.tiktokUrl ||
                   selectedLead.pinterestUrl) ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {selectedLead.linkedinUrl && (
-                      <a href={selectedLead.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                         <span className="text-sm">LinkedIn</span>
                       </a>
                     )}
                     {selectedLead.instagramUrl && (
-                      <a href={selectedLead.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.instagramUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5 text-pink-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                         <span className="text-sm">Instagram</span>
                       </a>
                     )}
                     {selectedLead.facebookUrl && (
-                      <a href={selectedLead.facebookUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.facebookUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg>
                         <span className="text-sm">Facebook</span>
                       </a>
                     )}
                     {selectedLead.twitterUrl && (
-                      <a href={selectedLead.twitterUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.twitterUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5 text-sky-500" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
                         <span className="text-sm">Twitter/X</span>
                       </a>
                     )}
                     {selectedLead.youtubeUrl && (
-                      <a href={selectedLead.youtubeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.youtubeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
                         <span className="text-sm">YouTube</span>
                       </a>
                     )}
                     {selectedLead.tiktokUrl && (
-                      <a href={selectedLead.tiktokUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.tiktokUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
                         <span className="text-sm">TikTok</span>
                       </a>
                     )}
                     {selectedLead.pinterestUrl && (
-                      <a href={selectedLead.pinterestUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                      <a href={selectedLead.pinterestUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 border rounded-lg hover:bg-white transition-colors">
                         <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.372-12 12 0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146 1.124.347 2.317.535 3.554.535 6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
                         <span className="text-sm">Pinterest</span>
                       </a>
                     )}
                   </div>
                 ) : (
-                  <p className="text-gray-400 dark:text-gray-500">Não Informado</p>
+                  <p className="text-gray-500">Não Informado</p>
                 )}
               </div>
 
               {/* Email History */}
               {selectedLead.emails && selectedLead.emails.length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Histórico de Emails</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-3 text-white">Histórico de Emails</h3>
                   <div className="space-y-2">
                     {selectedLead.emails.map((email) => (
-                      <div key={email.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">
+                      <div key={email.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Mail className="w-4 h-4 text-gray-500" />
@@ -793,9 +805,9 @@ export default function CampaignDetailPage() {
                               {email.status}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{email.subject}</p>
+                          <p className="text-sm text-gray-400 mt-1">{email.subject}</p>
                           {email.sentAt && (
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                               Enviado: {new Date(email.sentAt).toLocaleString('pt-BR')}
                             </p>
                           )}

@@ -3,6 +3,61 @@ import { prisma } from '@/lib/prisma-db'
 import { LeadStatus, EmailStatus, WhatsAppStatus, CadenceType } from '@prisma/client'
 import { handleLeadsExtracted } from './handleLeadsExtracted'
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { normalizeToNull } from '@/lib/sanitization'
+import { z } from 'zod'
+
+// ==================== Schemas de Validação Zod ====================
+
+// Schema para validar dados de lead enriquecido (Email)
+const LeadEnrichedEmailSchema = z.object({
+  leadId: z.string().min(1, 'leadId é obrigatório'),
+  email1Subject: z.string().min(1, 'email1Subject não pode estar vazio'),
+  email1Body: z.string().min(1, 'email1Body não pode estar vazio'),
+  email2Body: z.string().min(1, 'email2Body não pode estar vazio'),
+  email3Subject: z.string().min(1, 'email3Subject não pode estar vazio'),
+  email3Body: z.string().min(1, 'email3Body não pode estar vazio'),
+  companyResearch: z.string().optional(),
+  strategicAnalysis: z.string().optional(),
+  personalization: z.string().optional(),
+  analysisLink: z.string().url().optional().or(z.literal('')),
+  senderAccount: z.string().email('senderAccount deve ser um email válido'),
+})
+
+// Schema para validar dados de lead enriquecido (WhatsApp)
+const LeadEnrichedWhatsAppSchema = z.object({
+  leadId: z.string().min(1, 'leadId é obrigatório'),
+  whatsappMessage1: z.string().min(1, 'whatsappMessage1 não pode estar vazio'),
+  whatsappMessage2: z.string().min(1, 'whatsappMessage2 não pode estar vazio'),
+  whatsappMessage3: z.string().min(1, 'whatsappMessage3 não pode estar vazio'),
+  companyResearch: z.string().optional(),
+  strategicAnalysis: z.string().optional(),
+  personalization: z.string().optional(),
+  analysisLink: z.string().url().optional().or(z.literal('')),
+  senderInstance: z.string().min(1, 'senderInstance é obrigatório'),
+})
+
+// Schema para validar dados de lead enriquecido (Híbrido)
+const LeadEnrichedHybridSchema = z.object({
+  leadId: z.string().min(1, 'leadId é obrigatório'),
+  // Emails
+  email1Subject: z.string().min(1, 'email1Subject não pode estar vazio'),
+  email1Body: z.string().min(1, 'email1Body não pode estar vazio'),
+  email2Subject: z.string().min(1, 'email2Subject não pode estar vazio'),
+  email2Body: z.string().min(1, 'email2Body não pode estar vazio'),
+  email3Subject: z.string().min(1, 'email3Subject não pode estar vazio'),
+  email3Body: z.string().min(1, 'email3Body não pode estar vazio'),
+  // WhatsApp
+  whatsappMessage1: z.string().min(1, 'whatsappMessage1 não pode estar vazio'),
+  whatsappMessage2: z.string().min(1, 'whatsappMessage2 não pode estar vazio'),
+  // Análise
+  companyResearch: z.string().optional(),
+  strategicAnalysis: z.string().optional(),
+  personalization: z.string().optional(),
+  analysisLink: z.string().url().optional().or(z.literal('')),
+  // Contas
+  senderAccount: z.string().email('senderAccount deve ser um email válido'),
+  senderInstance: z.string().min(1, 'senderInstance é obrigatório'),
+})
 
 // Validação de segurança do webhook
 function validateWebhookSecret(request: NextRequest): boolean {
@@ -16,9 +71,12 @@ function validateWebhookSecret(request: NextRequest): boolean {
   return secret === expectedSecret
 }
 
+// Função de normalização movida para @/lib/sanitization
+
 // Tipo dos payloads esperados do N8N
 type WebhookPayload = {
   event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'lead-enriched-hybrid' | 'campaign-completed' | 'email-sent' | 'email-replied' | 'opted-out'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 }
 
@@ -169,33 +227,32 @@ async function handleCampaignCompleted(data: {
 }
 
 // Handler: Lead enriquecido com IA (Fluxo 2)
-async function handleLeadEnriched(data: {
-  leadId?: string
-  apifyId?: string
-  companyName?: string
-  email?: string // OPCIONAL - Email do lead (quando disponível)
-  companyResearch?: string
-  strategicAnalysis?: string
-  personalization?: string
-  analysisLink?: string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleLeadEnriched(data: any) {
+  // Validar dados críticos com Zod
+  try {
+    const validatedData = LeadEnrichedEmailSchema.parse({
+      leadId: data.leadId,
+      email1Subject: data.email1Subject,
+      email1Body: data.email1Body,
+      email2Body: data.email2Body,
+      email3Subject: data.email3Subject,
+      email3Body: data.email3Body,
+      companyResearch: data.companyResearch,
+      strategicAnalysis: data.strategicAnalysis,
+      personalization: data.personalization,
+      analysisLink: data.analysisLink || '',
+      senderAccount: data.assignedSender,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error('[Lead Enriched] Validation error:', error.issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error(`Dados inválidos: ${error.issues.map((e: any) => e.message).join(', ')}`)
+    }
+    throw error
+  }
 
-  // Redes sociais (opcionais - do actor lukaskrivka/google-maps-with-contact-details)
-  linkedinUrl?: string
-  twitterUrl?: string
-  instagramUrl?: string
-  facebookUrl?: string
-  youtubeUrl?: string
-  tiktokUrl?: string
-  pinterestUrl?: string
-
-  email1Subject: string
-  email1Body: string
-  email2Body: string
-  email3Subject: string
-  email3Body: string
-  assignedSender: string
-  optOutToken: string
-}) {
   const {
     leadId,
     apifyId,
@@ -239,16 +296,20 @@ async function handleLeadEnriched(data: {
   }
 
   // Buscar lead por ID, apifyId ou nome da empresa
+  // Se buscar por nome, pegar o mais recente com status EXTRACTED (evita pegar de campanhas antigas)
   const whereClause = leadId
     ? { id: leadId }
     : apifyId
     ? { apifyLeadId: apifyId }
-    : { nomeEmpresa: companyName }
+    : { nomeEmpresa: companyName, status: LeadStatus.EXTRACTED }
 
-  const lead = await prisma.lead.findFirst({ where: whereClause })
+  const lead = await prisma.lead.findFirst({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' } // Pegar o mais recente
+  })
 
   if (!lead) {
-    console.error(`[Lead Enriched] Lead não encontrado: ${leadId || apifyId}`)
+    console.error(`[Lead Enriched] Lead não encontrado para: ${JSON.stringify({ leadId, apifyId, companyName })}`)
     return
   }
 
@@ -272,24 +333,36 @@ async function handleLeadEnriched(data: {
     cadenceType = CadenceType.WHATSAPP_ONLY
   }
 
+  // Normalizar campos antes de salvar (converter "Não Informado" para null)
+  const normalizedEmail = normalizeToNull(email)
+  const normalizedLinkedin = normalizeToNull(linkedinUrl)
+  const normalizedTwitter = normalizeToNull(twitterUrl)
+  const normalizedInstagram = normalizeToNull(instagramUrl)
+  const normalizedFacebook = normalizeToNull(facebookUrl)
+  const normalizedYoutube = normalizeToNull(youtubeUrl)
+  const normalizedTiktok = normalizeToNull(tiktokUrl)
+  const normalizedPinterest = normalizeToNull(pinterestUrl)
+
   // Atualizar lead com dados enriquecidos + EMAIL + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      email: email || null, // Salvar email se N8N conseguiu obter
+      // Só atualizar email se veio com valor válido (não sobrescrever existente)
+      ...(normalizedEmail && { email: normalizedEmail }),
+
       companyResearch: companyResearch || null,
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
       // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
-      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
-      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
-      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
-      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
-      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
-      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
-      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+      ...(normalizedLinkedin && { linkedinUrl: normalizedLinkedin }),
+      ...(normalizedTwitter && { twitterUrl: normalizedTwitter }),
+      ...(normalizedInstagram && { instagramUrl: normalizedInstagram }),
+      ...(normalizedFacebook && { facebookUrl: normalizedFacebook }),
+      ...(normalizedYoutube && { youtubeUrl: normalizedYoutube }),
+      ...(normalizedTiktok && { tiktokUrl: normalizedTiktok }),
+      ...(normalizedPinterest && { pinterestUrl: normalizedPinterest }),
 
       assignedSender,
       optOutToken,
@@ -333,32 +406,42 @@ async function handleLeadEnriched(data: {
 }
 
 // Handler: Lead enriquecido para WhatsApp (nova automação N8N)
-async function handleLeadEnrichedWhatsApp(data: {
-  leadId?: string
-  apifyId?: string
-  companyName?: string
-  telefone?: string
-  companyResearch?: string
-  strategicAnalysis?: string
-  personalization?: string
-  analysisLink?: string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleLeadEnrichedWhatsApp(data: any) {
+  // Extrair mensagens WhatsApp (podem vir como string ou objeto)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extractWhatsAppMessage = (msg: any): string => {
+    if (typeof msg === 'string') return msg
+    if (typeof msg === 'object' && msg.mensagem) return msg.mensagem
+    return ''
+  }
 
-  // Redes sociais (opcionais)
-  linkedinUrl?: string
-  twitterUrl?: string
-  instagramUrl?: string
-  facebookUrl?: string
-  youtubeUrl?: string
-  tiktokUrl?: string
-  pinterestUrl?: string
+  const whatsappMessage1 = extractWhatsAppMessage(data.whatsapp1)
+  const whatsappMessage2 = extractWhatsAppMessage(data.whatsapp2)
+  const whatsappMessage3 = extractWhatsAppMessage(data.whatsapp3)
 
-  // WhatsApp messages (podem vir como JSON string ou objeto)
-  whatsapp1?: string | { mensagem: string }
-  whatsapp2?: string | { mensagem: string }
-  whatsapp3?: string | { mensagem: string }
-  sender_whatsapp?: string
-  optOutToken: string
-}) {
+  // Validar dados críticos com Zod
+  try {
+    const validatedData = LeadEnrichedWhatsAppSchema.parse({
+      leadId: data.leadId,
+      whatsappMessage1,
+      whatsappMessage2,
+      whatsappMessage3,
+      companyResearch: data.companyResearch,
+      strategicAnalysis: data.strategicAnalysis,
+      personalization: data.personalization,
+      analysisLink: data.analysisLink || '',
+      senderInstance: data.sender_whatsapp,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error('[Lead Enriched WhatsApp] Validation error:', error.issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error(`Dados inválidos: ${error.issues.map((e: any) => e.message).join(', ')}`)
+    }
+    throw error
+  }
+
   const {
     leadId,
     apifyId,
@@ -429,16 +512,20 @@ async function handleLeadEnrichedWhatsApp(data: {
   }
 
   // Buscar lead por ID, apifyId ou nome da empresa
+  // Se buscar por nome, pegar o mais recente com status EXTRACTED (evita pegar de campanhas antigas)
   const whereClause = leadId
     ? { id: leadId }
     : apifyId
     ? { apifyLeadId: apifyId }
-    : { nomeEmpresa: companyName }
+    : { nomeEmpresa: companyName, status: LeadStatus.EXTRACTED }
 
-  const lead = await prisma.lead.findFirst({ where: whereClause })
+  const lead = await prisma.lead.findFirst({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' } // Pegar o mais recente
+  })
 
   if (!lead) {
-    console.error(`[Lead Enriched WhatsApp] Lead não encontrado`)
+    console.error(`[Lead Enriched WhatsApp] Lead não encontrado para: ${JSON.stringify({ leadId, apifyId, companyName })}`)
     return
   }
 
@@ -456,37 +543,43 @@ async function handleLeadEnrichedWhatsApp(data: {
     throw new Error('Configurações do usuário não encontradas')
   }
 
-  // Parse Evolution instances com validação robusta
-  let evolutionInstances: Array<{ url: string; apiKey: string; name: string }> = []
+  // Parse Evolution instances com suporte para AMBOS formatos (string[] ou objeto[])
+  let evolutionInstances: Array<{ url: string }> = []
   try {
     const parsed = JSON.parse(userSettings.evolutionInstances || '[]')
-    if (Array.isArray(parsed)) {
-      evolutionInstances = parsed
-    } else {
+
+    if (!Array.isArray(parsed)) {
       console.error(`[Lead Enriched WhatsApp] evolutionInstances não é um array:`, parsed)
       throw new Error('Evolution instances tem formato inválido')
     }
+
+    // Normalizar: aceitar strings simples OU objetos com campo 'url'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    evolutionInstances = parsed.map((instance: any) => {
+      if (typeof instance === 'string') {
+        // Formato antigo: array de strings (URLs diretas)
+        return { url: instance }
+      } else if (typeof instance === 'object' && instance.url) {
+        // Formato novo: array de objetos com campo 'url'
+        return { url: instance.url }
+      } else {
+        console.error(`[Lead Enriched WhatsApp] Instância inválida:`, instance)
+        return null
+      }
+    }).filter((i): i is { url: string } => i !== null)
+
   } catch (error) {
     console.error(`[Lead Enriched WhatsApp] Erro ao parsear evolutionInstances:`, error)
     throw new Error('Evolution instances inválidas')
   }
 
   console.log(`[Lead Enriched WhatsApp] Instâncias Evolution disponíveis: ${evolutionInstances.length}`)
-  console.log(`[Lead Enriched WhatsApp] Instâncias completas:`, JSON.stringify(evolutionInstances, null, 2))
+  console.log(`[Lead Enriched WhatsApp] URLs normalizadas:`, evolutionInstances.map(i => i.url))
 
   if (evolutionInstances.length === 0) {
     console.error(`[Lead Enriched WhatsApp] Nenhuma instância Evolution configurada`)
-    throw new Error('Nenhuma instância Evolution API configurada')
+    throw new Error('Nenhuma instância Evolution API configurada. Vá em /whatsapp > Instâncias para configurar.')
   }
-
-  // Validar que todas as instâncias têm campo 'url'
-  const instancesWithoutUrl = evolutionInstances.filter(i => !i.url)
-  if (instancesWithoutUrl.length > 0) {
-    console.error(`[Lead Enriched WhatsApp] ⚠️ ${instancesWithoutUrl.length} instância(s) sem campo 'url':`, instancesWithoutUrl)
-    throw new Error(`Evolution instances inválidas: ${instancesWithoutUrl.length} instância(s) sem campo 'url'. Configure corretamente em Settings.`)
-  }
-
-  console.log(`[Lead Enriched WhatsApp] ✅ Todas as instâncias têm URL válida`)
 
   // Determinar instância usando round-robin ou valor fornecido pelo N8N
   let assignedInstance: string
@@ -533,24 +626,36 @@ async function handleLeadEnrichedWhatsApp(data: {
     cadenceType = CadenceType.WHATSAPP_ONLY
   }
 
+  // Normalizar campos antes de salvar (converter "Não Informado" para null)
+  const normalizedTelefone = normalizeToNull(telefone)
+  const normalizedLinkedin = normalizeToNull(linkedinUrl)
+  const normalizedTwitter = normalizeToNull(twitterUrl)
+  const normalizedInstagram = normalizeToNull(instagramUrl)
+  const normalizedFacebook = normalizeToNull(facebookUrl)
+  const normalizedYoutube = normalizeToNull(youtubeUrl)
+  const normalizedTiktok = normalizeToNull(tiktokUrl)
+  const normalizedPinterest = normalizeToNull(pinterestUrl)
+
   // Atualizar lead com dados enriquecidos + REDES SOCIAIS (se disponíveis)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      telefone: phoneNumber, // Atualizar telefone se veio do payload
+      // Só atualizar telefone se veio com valor válido (não sobrescrever existente)
+      ...(normalizedTelefone && { telefone: normalizedTelefone }),
+
       companyResearch: companyResearch || null,
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
       // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
-      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
-      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
-      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
-      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
-      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
-      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
-      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+      ...(normalizedLinkedin && { linkedinUrl: normalizedLinkedin }),
+      ...(normalizedTwitter && { twitterUrl: normalizedTwitter }),
+      ...(normalizedInstagram && { instagramUrl: normalizedInstagram }),
+      ...(normalizedFacebook && { facebookUrl: normalizedFacebook }),
+      ...(normalizedYoutube && { youtubeUrl: normalizedYoutube }),
+      ...(normalizedTiktok && { tiktokUrl: normalizedTiktok }),
+      ...(normalizedPinterest && { pinterestUrl: normalizedPinterest }),
 
       assignedSender: assignedInstance,
       optOutToken,
@@ -568,6 +673,7 @@ async function handleLeadEnrichedWhatsApp(data: {
         sequenceNumber: 1,
         phoneNumber,
         message: whatsapp1Message,
+        senderInstance: assignedInstance,
         status: WhatsAppStatus.PENDING,
       },
       {
@@ -575,6 +681,7 @@ async function handleLeadEnrichedWhatsApp(data: {
         sequenceNumber: 2,
         phoneNumber,
         message: whatsapp2Message,
+        senderInstance: assignedInstance,
         status: WhatsAppStatus.PENDING,
       },
       {
@@ -582,6 +689,7 @@ async function handleLeadEnrichedWhatsApp(data: {
         sequenceNumber: 3,
         phoneNumber,
         message: whatsapp3Message,
+        senderInstance: assignedInstance,
         status: WhatsAppStatus.PENDING,
       },
     ],
@@ -591,43 +699,47 @@ async function handleLeadEnrichedWhatsApp(data: {
 }
 
 // Handler: Lead enriquecido para Híbrido (Email + WhatsApp)
-async function handleLeadEnrichedHybrid(data: {
-  leadId?: string
-  apifyId?: string
-  companyName?: string
-  email?: string
-  telefone?: string
-  companyResearch?: string
-  strategicAnalysis?: string
-  personalization?: string
-  analysisLink?: string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleLeadEnrichedHybrid(data: any) {
+  // Extrair mensagens WhatsApp (podem vir como string ou objeto)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extractWhatsAppMessage = (msg: any): string => {
+    if (typeof msg === 'string') return msg
+    if (typeof msg === 'object' && msg.mensagem) return msg.mensagem
+    return ''
+  }
 
-  // Redes sociais (opcionais)
-  linkedinUrl?: string
-  twitterUrl?: string
-  instagramUrl?: string
-  facebookUrl?: string
-  youtubeUrl?: string
-  tiktokUrl?: string
-  pinterestUrl?: string
+  const whatsappMessage1 = extractWhatsAppMessage(data.whatsapp1)
+  const whatsappMessage2 = extractWhatsAppMessage(data.whatsapp2)
 
-  // Email messages
-  email1Subject?: string
-  email1Body?: string
-  email2Body?: string
-  email3Subject?: string
-  email3Body?: string
+  // Validar dados críticos com Zod
+  try {
+    const validatedData = LeadEnrichedHybridSchema.parse({
+      leadId: data.leadId,
+      email1Subject: data.email1Subject,
+      email1Body: data.email1Body,
+      email2Subject: data.email2Subject,
+      email2Body: data.email2Body,
+      email3Subject: data.email3Subject,
+      email3Body: data.email3Body,
+      whatsappMessage1,
+      whatsappMessage2,
+      companyResearch: data.companyResearch,
+      strategicAnalysis: data.strategicAnalysis,
+      personalization: data.personalization,
+      analysisLink: data.analysisLink || '',
+      senderAccount: data.assignedSender,
+      senderInstance: data.sender_whatsapp,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error('[Lead Enriched Hybrid] Validation error:', error.issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throw new Error(`Dados inválidos: ${error.issues.map((e: any) => e.message).join(', ')}`)
+    }
+    throw error
+  }
 
-  // WhatsApp messages (podem vir como JSON string ou objeto)
-  whatsapp1?: string | { mensagem: string }
-  whatsapp2?: string | { mensagem: string }
-  whatsapp3?: string | { mensagem: string }
-
-  // Senders
-  sender_email?: string
-  sender_whatsapp?: string
-  optOutToken: string
-}) {
   const {
     leadId,
     apifyId,
@@ -685,17 +797,21 @@ async function handleLeadEnrichedHybrid(data: {
   const whatsapp2Message = parseWhatsAppMessage(whatsapp2)
   const whatsapp3Message = parseWhatsAppMessage(whatsapp3)
 
-  // Buscar lead
+  // Buscar lead por ID, apifyId ou nome da empresa
+  // Se buscar por nome, pegar o mais recente com status EXTRACTED (evita pegar de campanhas antigas)
   const whereClause = leadId
     ? { id: leadId }
     : apifyId
     ? { apifyLeadId: apifyId }
-    : { nomeEmpresa: companyName }
+    : { nomeEmpresa: companyName, status: LeadStatus.EXTRACTED }
 
-  const lead = await prisma.lead.findFirst({ where: whereClause })
+  const lead = await prisma.lead.findFirst({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' } // Pegar o mais recente
+  })
 
   if (!lead) {
-    console.error(`[Lead Enriched Hybrid] Lead não encontrado`)
+    console.error(`[Lead Enriched Hybrid] Lead não encontrado para: ${JSON.stringify({ leadId, apifyId, companyName })}`)
     return
   }
 
@@ -725,7 +841,7 @@ async function handleLeadEnrichedHybrid(data: {
     throw new Error('Campos de email obrigatórios ausentes no payload')
   }
 
-  if (needsWhatsApp && (!whatsapp1Message || !whatsapp2Message || !whatsapp3Message)) {
+  if (needsWhatsApp && (!whatsapp1Message || !whatsapp2Message)) {
     console.error(`[Lead Enriched Hybrid] Cadência requer WhatsApp mas dados ausentes`)
     throw new Error('Campos de WhatsApp obrigatórios ausentes no payload')
   }
@@ -776,25 +892,38 @@ async function handleLeadEnrichedHybrid(data: {
     }
   }
 
+  // Normalizar campos antes de salvar (converter "Não Informado" para null)
+  const normalizedEmail = normalizeToNull(email)
+  const normalizedTelefone = normalizeToNull(telefone)
+  const normalizedLinkedin = normalizeToNull(linkedinUrl)
+  const normalizedTwitter = normalizeToNull(twitterUrl)
+  const normalizedInstagram = normalizeToNull(instagramUrl)
+  const normalizedFacebook = normalizeToNull(facebookUrl)
+  const normalizedYoutube = normalizeToNull(youtubeUrl)
+  const normalizedTiktok = normalizeToNull(tiktokUrl)
+  const normalizedPinterest = normalizeToNull(pinterestUrl)
+
   // Atualizar lead
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
-      email: email || null,
-      telefone: telefone || null,
+      // Só atualizar email e telefone se vieram com valor válido (não sobrescrever existentes)
+      ...(normalizedEmail && { email: normalizedEmail }),
+      ...(normalizedTelefone && { telefone: normalizedTelefone }),
+
       companyResearch: companyResearch || null,
       strategicAnalysis: strategicAnalysis || null,
       personalization: personalization || null,
       analysisLink: analysisLink || null,
 
       // Redes sociais (só atualizar se vieram com valor válido - não sobrescrever existentes)
-      ...(linkedinUrl && linkedinUrl !== 'Não informado' && { linkedinUrl }),
-      ...(twitterUrl && twitterUrl !== 'Não informado' && { twitterUrl }),
-      ...(instagramUrl && instagramUrl !== 'Não informado' && { instagramUrl }),
-      ...(facebookUrl && facebookUrl !== 'Não informado' && { facebookUrl }),
-      ...(youtubeUrl && youtubeUrl !== 'Não informado' && { youtubeUrl }),
-      ...(tiktokUrl && tiktokUrl !== 'Não informado' && { tiktokUrl }),
-      ...(pinterestUrl && pinterestUrl !== 'Não informado' && { pinterestUrl }),
+      ...(normalizedLinkedin && { linkedinUrl: normalizedLinkedin }),
+      ...(normalizedTwitter && { twitterUrl: normalizedTwitter }),
+      ...(normalizedInstagram && { instagramUrl: normalizedInstagram }),
+      ...(normalizedFacebook && { facebookUrl: normalizedFacebook }),
+      ...(normalizedYoutube && { youtubeUrl: normalizedYoutube }),
+      ...(normalizedTiktok && { tiktokUrl: normalizedTiktok }),
+      ...(normalizedPinterest && { pinterestUrl: normalizedPinterest }),
 
       assignedSender: assignedEmailSender || assignedWhatsAppSender || null,
       optOutToken,
@@ -837,7 +966,7 @@ async function handleLeadEnrichedHybrid(data: {
     console.log(`[Lead Enriched Hybrid] 3 emails criados para lead ${lead.id}`)
   }
 
-  if (needsWhatsApp && whatsapp1Message && whatsapp2Message && whatsapp3Message && (telefone || lead.telefone)) {
+  if (needsWhatsApp && whatsapp1Message && whatsapp2Message && (telefone || lead.telefone)) {
     const phoneNumber = telefone || lead.telefone!
     await prisma.whatsAppMessage.createMany({
       data: [
@@ -846,6 +975,7 @@ async function handleLeadEnrichedHybrid(data: {
           sequenceNumber: 1,
           phoneNumber,
           message: whatsapp1Message,
+          senderInstance: assignedWhatsAppSender,
           status: WhatsAppStatus.PENDING,
         },
         {
@@ -853,18 +983,12 @@ async function handleLeadEnrichedHybrid(data: {
           sequenceNumber: 2,
           phoneNumber,
           message: whatsapp2Message,
-          status: WhatsAppStatus.PENDING,
-        },
-        {
-          leadId: lead.id,
-          sequenceNumber: 3,
-          phoneNumber,
-          message: whatsapp3Message,
+          senderInstance: assignedWhatsAppSender,
           status: WhatsAppStatus.PENDING,
         },
       ],
     })
-    console.log(`[Lead Enriched Hybrid] 3 mensagens WhatsApp criadas para lead ${lead.id}`)
+    console.log(`[Lead Enriched Hybrid] 2 mensagens WhatsApp criadas para lead ${lead.id}`)
   }
 
   console.log(`[Lead Enriched Hybrid] Lead ${lead.id} enriquecido com cadência híbrida`)

@@ -4,21 +4,10 @@
  */
 
 import { CampaignStatus, CampaignType, LeadStatus } from '@prisma/client';
+import type { CampaignStats } from '@/types';
 
-export interface CampaignStats {
-  total: number;
-  extracted: number;
-  enriched: number;
-  email1Sent: number;
-  email2Sent: number;
-  email3Sent: number;
-  whatsapp1Sent: number;
-  whatsapp2Sent: number;
-  whatsapp3Sent: number;
-  replied: number;
-  optedOut: number;
-  bounced: number;
-}
+// Re-export para compatibilidade com imports existentes
+export type { CampaignStats };
 
 export interface Lead {
   status: LeadStatus;

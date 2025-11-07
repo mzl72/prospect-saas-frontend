@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma-db";
 import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
+import { sanitizeInput, containsXSS } from "@/lib/sanitization";
 
 // Templates padrão
 const DEFAULT_SETTINGS = {
@@ -451,6 +452,50 @@ Entendo que pode estar ocupado(a). Se não for o momento certo, sem problemas!
 Qualquer coisa, é só chamar. Boa sorte com {nome_empresa}! 🚀`,
   evolutionInstances: "[]",
 
+  // Templates Híbridos (3 Emails + 2 WhatsApp dedicados para cadência híbrida)
+  hybridEmailTitulo1: "Parceria Estratégica: {nome_empresa} + {nomeEmpresa}",
+  hybridEmailCorpo1: `Olá, equipe {nome_empresa}!
+
+Sou {assinatura} da {nomeEmpresa} e identifiquei uma sinergia interessante entre nossas empresas.
+
+Atuando no setor de {setor}, percebi que vocês têm {dor_identificada}.
+
+{informacoes_propria}
+
+Podemos agendar 15 minutos esta semana para conversar?
+
+Atenciosamente,
+{assinatura}
+{nomeEmpresa}
+{telefoneContato}`,
+  hybridEmailCorpo2: `Olá novamente!
+
+Retomando nosso contato anterior sobre {solucao} para {nome_empresa}.
+
+Preparei uma análise específica do setor de {setor} com cases reais de empresas que alcançaram {beneficio_principal}.
+
+Deixo aqui meu calendário para agendarmos: [link]
+
+Abraços,
+{assinatura}`,
+  hybridEmailTitulo3: "Última tentativa: Oportunidade para {nome_empresa}",
+  hybridEmailCorpo3: `Oi, equipe {nome_empresa}!
+
+Este é meu último contato sobre a oportunidade que identifiquei.
+
+Entendo que o timing pode não ser ideal agora. Se houver interesse no futuro, estarei à disposição.
+
+{informacoes_propria}
+
+Sucesso para vocês!
+{assinatura}`,
+  hybridWhatsappMessage1: `Oi! 👋 Acabei de enviar um email sobre uma oportunidade para {nome_empresa}.
+
+Você conseguiu dar uma olhada? Acho que faz muito sentido pra vocês!`,
+  hybridWhatsappMessage2: `E aí! Conseguiu pensar na proposta que mandei?
+
+Tenho uma ideia específica pra {nome_empresa} que pode trazer {beneficio_principal}. 15min essa semana?`,
+
   // Cadências (JSON) - NOMES SINCRONIZADOS COM PRISMA
   emailOnlyCadence: '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"14:00-16:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]',
   whatsappOnlyCadence: '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"10:00-12:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"15:00-17:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"10:00-12:00","daysAfterPrevious":2}]',
@@ -476,66 +521,7 @@ Qualquer coisa, é só chamar. Boa sorte com {nome_empresa}! 🚀`,
   sendOnlyBusinessHours: true,
 };
 
-// Função para sanitizar HTML/scripts e prevenir XSS
-// NOTA: Permite variáveis de template no formato {variavel}
-function sanitizeInput(text: string): string {
-  // Temporariamente substitui variáveis de template para preservá-las
-  const templateVars: string[] = [];
-  let sanitized = text.replace(/\{[^}]+\}/g, (match) => {
-    templateVars.push(match);
-    return `__TEMPLATE_VAR_${templateVars.length - 1}__`;
-  });
-
-  // Aplica sanitização
-  sanitized = sanitized
-    // Remove tags script completas
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    // Remove apenas tags HTML perigosas (preserva formatação básica se necessário)
-    .replace(/<script[^>]*>.*?<\/script>/gi, "")
-    .replace(/<iframe[^>]*>.*?<\/iframe>/gi, "")
-    .replace(/<embed[^>]*>/gi, "")
-    .replace(/<object[^>]*>.*?<\/object>/gi, "")
-    // Remove event handlers inline (onclick, onerror, etc.)
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
-    // Remove javascript: protocol
-    .replace(/javascript:/gi, "")
-    // Remove data: protocol (pode ser usado para XSS)
-    .replace(/data:text\/html/gi, "")
-    // Remove null bytes
-    .replace(/\0/g, "")
-    .trim();
-
-  // Restaura variáveis de template
-  templateVars.forEach((varName, index) => {
-    sanitized = sanitized.replace(`__TEMPLATE_VAR_${index}__`, varName);
-  });
-
-  return sanitized;
-}
-
-// Validação adicional contra padrões XSS comuns
-function containsXSS(text: string): boolean {
-  // Remove variáveis de template temporariamente para validação
-  const withoutTemplateVars = text.replace(/\{[^}]+\}/g, '');
-
-  const xssPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /onerror\s*=/i,
-    /onclick\s*=/i,
-    /onload\s*=/i,
-    /onmouseover\s*=/i,
-    /<iframe/i,
-    /<embed/i,
-    /<object/i,
-    /eval\s*\(/i,
-    /expression\s*\(/i,
-    /vbscript:/i,
-    /data:text\/html/i,
-  ];
-
-  return xssPatterns.some(pattern => pattern.test(withoutTemplateVars));
-}
+// Funções de sanitização movidas para @/lib/sanitization
 
 // Esquema de validação com Zod + proteção XSS
 const settingsSchema = z.object({
@@ -776,6 +762,71 @@ const settingsSchema = z.object({
     .optional()
     .default(""),
 
+  // Hybrid Templates (3 Emails + 2 WhatsApp)
+  hybridEmailTitulo1: z
+    .string()
+    .max(200, "Título muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridEmailCorpo1: z
+    .string()
+    .max(5000, "Corpo muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridEmailCorpo2: z
+    .string()
+    .max(5000, "Corpo muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridEmailTitulo3: z
+    .string()
+    .max(200, "Título muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridEmailCorpo3: z
+    .string()
+    .max(5000, "Corpo muito longo")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridWhatsappMessage1: z
+    .string()
+    .max(5000, "Mensagem muito longa")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+  hybridWhatsappMessage2: z
+    .string()
+    .max(5000, "Mensagem muito longa")
+    .refine((val) => !containsXSS(val), {
+      message: "Conteúdo potencialmente malicioso detectado",
+    })
+    .transform(sanitizeInput)
+    .optional()
+    .default(""),
+
   // Evolution API Instances
   evolutionInstances: z
     .string()
@@ -901,7 +952,7 @@ const settingsSchema = z.object({
 });
 
 // GET - Buscar configurações do usuário
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log("[API /settings GET] 🔍 Starting GET request");
 
@@ -1010,6 +1061,13 @@ export async function POST(request: NextRequest) {
       'emailCorpo2',
       'emailTitulo3',
       'emailCorpo3',
+      'hybridEmailTitulo1',
+      'hybridEmailCorpo1',
+      'hybridEmailCorpo2',
+      'hybridEmailTitulo3',
+      'hybridEmailCorpo3',
+      'hybridWhatsappMessage1',
+      'hybridWhatsappMessage2',
       // Dados da Empresa (>1 char mínimo)
       'nomeEmpresa',
       'assinatura',
@@ -1029,7 +1087,7 @@ export async function POST(request: NextRequest) {
         // Definir tipo de campo
         const isCompanyField = ['nomeEmpresa', 'assinatura', 'telefoneContato', 'websiteEmpresa'].includes(field);
         const isArrayField = ['senderEmails', 'evolutionInstances'].includes(field);
-        const isEmailSubject = ['emailTitulo1', 'emailTitulo3'].includes(field);
+        const isEmailSubject = ['emailTitulo1', 'emailTitulo3', 'hybridEmailTitulo1', 'hybridEmailTitulo3'].includes(field);
 
         // Helper: Verificar se valor de array está realmente preenchido
         const isArrayFilled = (value: string | undefined | null): boolean => {
@@ -1060,6 +1118,7 @@ export async function POST(request: NextRequest) {
         // Se o existente está preenchido e o novo NÃO está, PRESERVA o existente
         if (isFilled(existingValue) && !isFilled(newValue)) {
           console.log(`⚠️ [API] Preserving existing ${field} (${existingValue?.length || 0} chars) - new value is empty or invalid (${newValue?.length || 0} chars)`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (dataToSave as any)[field] = existingValue;
         }
       });

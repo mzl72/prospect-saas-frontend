@@ -15,10 +15,10 @@ export default function HomePage() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 dark:from-blue-900 dark:via-indigo-900 dark:to-gray-950 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 dark:from-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="text-center">
@@ -85,84 +85,84 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
+      <section className="py-24 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
-            <div className="inline-block bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+            <div className="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
               SIMPLES E RÁPIDO
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
               Como Funciona
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Da extração ao envio automatizado em 3 etapas simples
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-2 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-2xl dark:bg-gray-800 dark:border-gray-700 transition-all duration-300 group relative overflow-hidden">
+            <Card className="border-2 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
               <CardHeader>
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Target className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-4xl font-bold text-blue-600">
                     01
                   </span>
-                  <CardTitle className="text-xl dark:text-white">
+                  <CardTitle className="text-xl">
                     Configure sua Busca
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-300 leading-relaxed">
                   Escolha nicho, localização e quantidade. Extraímos dados completos do
                   Google Maps: nome, telefone, website, endereço e redes sociais.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-2xl dark:bg-gray-800 dark:border-gray-700 transition-all duration-300 group relative overflow-hidden md:mt-8">
+            <Card className="border-2 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden md:mt-8">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-indigo-500" />
               <CardHeader>
                 <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Zap className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-4xl font-bold text-cyan-600 dark:text-cyan-400">
+                  <span className="text-4xl font-bold text-cyan-600">
                     02
                   </span>
-                  <CardTitle className="text-xl dark:text-white">
+                  <CardTitle className="text-xl">
                     IA Personaliza Mensagens
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-300 leading-relaxed">
                   Nossa IA pesquisa cada empresa, analisa o negócio e gera emails
                   e mensagens de WhatsApp 100% personalizadas para cada lead.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-2xl dark:bg-gray-800 dark:border-gray-700 transition-all duration-300 group relative overflow-hidden md:mt-16">
+            <Card className="border-2 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 group relative overflow-hidden md:mt-16">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
               <CardHeader>
                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <BarChart3 className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="text-4xl font-bold text-indigo-600">
                     03
                   </span>
-                  <CardTitle className="text-xl dark:text-white">
+                  <CardTitle className="text-xl">
                     Envio Automatizado
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-300 leading-relaxed">
                   Configure cadências inteligentes e envie campanhas por Email,
                   WhatsApp ou híbrido. Acompanhe respostas, aberturas e conversões em tempo real.
                 </p>
@@ -173,72 +173,72 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-24 bg-gray-50 dark:bg-gray-900">
+      <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
-            <div className="inline-block bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+            <div className="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
               PREÇOS TRANSPARENTES
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
               Preços Simples
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300">
+            <p className="text-xl text-gray-300">
               Pague apenas pelos leads que usar. Sem mensalidades, sem taxas
               escondidas.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <Card className="hover:shadow-2xl dark:bg-gray-800 dark:border-gray-700 transition-all duration-300 relative border-2">
+            <Card className="hover:shadow-2xl transition-all duration-300 relative border-2">
               <CardHeader className="pb-8">
-                <CardTitle className="text-3xl mb-2 dark:text-white">
+                <CardTitle className="text-3xl mb-2">
                   Básico
                 </CardTitle>
-                <p className="text-gray-600 dark:text-gray-300 text-lg">
+                <p className="text-gray-300 text-lg">
                   Extração de dados do Google Maps
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-extrabold text-gray-900 dark:text-white">
+                    <span className="text-5xl font-extrabold text-white">
                       0,25
                     </span>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-gray-400">
                       créditos por lead
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-gray-300">
                       Extração completa do Google Maps
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-gray-300">
                       Dados: nome, telefone, website, endereço
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-gray-300">
                       Redes sociais e avaliações
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className="text-gray-300">
                       Exportação em planilha
                     </span>
                   </li>
@@ -246,67 +246,67 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-blue-500 dark:border-blue-400 border-3 shadow-xl hover:shadow-2xl dark:bg-gray-800 transition-all duration-300 relative overflow-hidden">
+            <Card className="border-blue-500 border-3 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-gradient-to-br from-blue-500 to-indigo-600 text-white px-4 py-1 text-sm font-bold">
                 RECOMENDADO
               </div>
               <CardHeader className="pb-8 pt-10">
-                <CardTitle className="text-3xl mb-2 text-blue-600 dark:text-blue-400">
+                <CardTitle className="text-3xl mb-2 text-blue-600">
                   Completo
                 </CardTitle>
-                <p className="text-gray-600 dark:text-gray-300 text-lg">
+                <p className="text-gray-300 text-lg">
                   Tudo do básico + IA personalizada
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                    <span className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                       1
                     </span>
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-gray-400">
                       crédito por lead
                     </span>
                   </div>
                 </div>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="text-gray-300 font-medium">
                       Tudo do plano Básico
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="text-gray-300 font-medium">
                       Pesquisa e análise com IA
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="text-gray-300 font-medium">
                       Emails e WhatsApp personalizados
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="text-gray-300 font-medium">
                       Envio automatizado com cadências
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="text-gray-300 font-medium">
                       Dashboard CRM e métricas em tempo real
                     </span>
                   </li>
@@ -318,7 +318,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 dark:from-blue-900 dark:via-indigo-900 dark:to-gray-950 text-white py-24 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white py-24 overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
         <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">

@@ -24,6 +24,7 @@ interface EvolutionWebhookEvent {
       fromMe: boolean
       id: string // messageId
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     message?: any
     messageTimestamp?: number
   }
@@ -96,7 +97,8 @@ export async function POST(request: NextRequest) {
         }
         break
 
-      case 'messages.update': // Status atualizado (entregue, lido, etc)
+      case 'messages.update': { // Status atualizado (entregue, lido, etc)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData = body.data as any
 
         // Entregue (delivered)
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
           console.log('[Evolution Webhook] 👀 Message READ:', messageId)
         }
         break
+      }
 
       case 'messages.receive': // Resposta recebida
         // Se a mensagem foi enviada por nós E recebemos uma resposta

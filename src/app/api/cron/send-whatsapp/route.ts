@@ -5,15 +5,22 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { WhatsAppStatus, LeadStatus, UserSettings } from '@prisma/client'
+import { WhatsAppStatus, LeadStatus, CadenceType } from '@prisma/client'
 import { sendWhatsAppMessage } from '@/lib/whatsapp-service'
-import {
-  canSendWhatsApp,
-  addOptOutFooter,
-} from '@/lib/whatsapp-scheduler'
+import { canSendWhatsApp, addOptOutFooter } from '@/lib/whatsapp-scheduler'
 import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils'
-import { EMAIL_TIMING } from '@/lib/constants'
 import { DEMO_USER_ID } from '@/lib/demo-user'
+import {
+  validateCronAuth,
+  getSentTodayStats,
+  getSendLog,
+  updateSendLog,
+  buildLimitReachedResponse,
+  buildWaitingResponse,
+  buildNoPendingResponse,
+  buildNotReadyResponse,
+  buildSuccessResponse,
+} from '@/lib/cron-utils'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutos timeout
@@ -22,10 +29,7 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now()
 
   // Segurança: Só permite chamadas autenticadas (cron ou admin)
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!validateCronAuth(request)) {
     console.error('[WhatsApp Cron] Unauthorized access attempt')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -47,26 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Verificar quantas mensagens já foram enviadas hoje (por sequência)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const sentTodayBySeq = await prisma.whatsAppMessage.groupBy({
-      by: ['sequenceNumber'],
-      where: {
-        status: WhatsAppStatus.SENT,
-        sentAt: {
-          gte: today,
-        },
-      },
-      _count: {
-        id: true,
-      },
-    })
-
-    const sentSeq1 = sentTodayBySeq.find(s => s.sequenceNumber === 1)?._count.id || 0
-    const sentSeq2 = sentTodayBySeq.find(s => s.sequenceNumber === 2)?._count.id || 0
-    const sentSeq3 = sentTodayBySeq.find(s => s.sequenceNumber === 3)?._count.id || 0
-    const sentToday = sentSeq1 + sentSeq2 + sentSeq3
+    const { seq1: sentSeq1, seq2: sentSeq2, seq3: sentSeq3, total: sentToday } = await getSentTodayStats('whatsapp')
 
     // Usar limite específico de WhatsApp se disponível
     const whatsappLimit = userSettings.whatsappDailyLimit || userSettings.dailyEmailLimit
@@ -77,37 +62,17 @@ export async function GET(request: NextRequest) {
 
     if (!canSendMoreToday(sentToday, whatsappLimit)) {
       console.log('[WhatsApp Cron] ⚠️ Daily limit reached, skipping')
-      return NextResponse.json({
-        success: true,
-        message: 'Daily limit reached',
-        stats: { sentToday, limit: whatsappLimit },
-      })
+      return NextResponse.json(buildLimitReachedResponse(sentToday, whatsappLimit))
     }
 
     // 3. Verificar se já pode enviar (baseado no delay automático)
-    const sendLog = await prisma.channelSendLog.findUnique({
-      where: {
-        userId_channel: {
-          userId: DEMO_USER_ID,
-          channel: 'whatsapp',
-        },
-      },
-    })
+    const sendLog = await getSendLog('whatsapp')
 
     if (sendLog && !canSendNow(sendLog.nextAllowedAt)) {
       const waitTimeMs = sendLog.nextAllowedAt.getTime() - Date.now()
       const waitMinutes = Math.ceil(waitTimeMs / 60000)
       console.log(`[WhatsApp Cron] ⏳ Too soon to send, waiting ${waitMinutes} minutes`)
-      return NextResponse.json({
-        success: true,
-        message: 'Waiting for next send window',
-        stats: {
-          sentToday,
-          limit: whatsappLimit,
-          nextAllowedAt: sendLog.nextAllowedAt,
-          waitMinutes,
-        },
-      })
+      return NextResponse.json(buildWaitingResponse(sentToday, whatsappLimit, sendLog.nextAllowedAt))
     }
 
     // 4. Determinar qual sequenceNumber deve ser enviado a seguir (distribuição equilibrada)
@@ -119,10 +84,16 @@ export async function GET(request: NextRequest) {
     console.log(`[WhatsApp Cron] 🎯 Next sequence to send: ${nextSeq} (balancing daily sends)`)
 
     // 5. Buscar apenas 1 mensagem pendente da sequência escolhida
+    // Incluir leads WHATSAPP_ONLY e HYBRID
     const pendingMessages = await prisma.whatsAppMessage.findMany({
       where: {
         status: WhatsAppStatus.PENDING,
         sequenceNumber: nextSeq, // Buscar apenas da sequência equilibrada
+        lead: {
+          cadenceType: {
+            in: [CadenceType.WHATSAPP_ONLY, CadenceType.HYBRID],
+          },
+        },
       },
       include: {
         lead: {
@@ -140,11 +111,7 @@ export async function GET(request: NextRequest) {
 
     if (pendingMessages.length === 0) {
       console.log('[WhatsApp Cron] ✅ No pending messages found')
-      return NextResponse.json({
-        success: true,
-        message: 'No pending messages',
-        stats: { sentToday, limit: whatsappLimit },
-      })
+      return NextResponse.json(buildNoPendingResponse(sentToday, whatsappLimit))
     }
 
     console.log(`[WhatsApp Cron] 📨 Found 1 pending message to process`)
@@ -152,7 +119,6 @@ export async function GET(request: NextRequest) {
     // 5. Processar a mensagem única
     const message = pendingMessages[0]
     let sentCount = 0
-    let skippedCount = 0
     let failedCount = 0
 
     try {
@@ -161,11 +127,7 @@ export async function GET(request: NextRequest) {
         console.log(
           `[WhatsApp Cron] ⏭️ Skipped message ${message.id} (seq ${message.sequenceNumber}) - not ready`
         )
-        return NextResponse.json({
-          success: true,
-          message: 'Message not ready to send yet',
-          stats: { sentToday, limit: whatsappLimit, skipped: 1 },
-        })
+        return NextResponse.json(buildNotReadyResponse(sentToday, whatsappLimit, 1))
       }
 
       // Adicionar rodapé de opt-out
@@ -217,24 +179,7 @@ export async function GET(request: NextRequest) {
           whatsappLimit
         )
 
-        await prisma.channelSendLog.upsert({
-          where: {
-            userId_channel: {
-              userId: DEMO_USER_ID,
-              channel: 'whatsapp',
-            },
-          },
-          create: {
-            userId: DEMO_USER_ID,
-            channel: 'whatsapp',
-            lastSentAt: new Date(),
-            nextAllowedAt: nextAllowed,
-          },
-          update: {
-            lastSentAt: new Date(),
-            nextAllowedAt: nextAllowed,
-          },
-        })
+        await updateSendLog('whatsapp', nextAllowed)
 
         console.log(
           `[WhatsApp Cron] ✅ Sent message ${message.id} (messageId: ${result.messageId}). Next send allowed at: ${nextAllowed.toLocaleString()}`
@@ -266,21 +211,18 @@ export async function GET(request: NextRequest) {
     console.log('[WhatsApp Cron] ✅ Job completed:', {
       duration: `${duration}ms`,
       sent: sentCount,
-      skipped: skippedCount,
+      skipped: 0,
       failed: failedCount,
     })
 
-    return NextResponse.json({
-      success: true,
-      stats: {
-        duration,
-        sent: sentCount,
-        skipped: skippedCount,
-        failed: failedCount,
-        sentToday: sentToday + sentCount,
-        dailyLimit: whatsappLimit,
-      },
-    })
+    return NextResponse.json(buildSuccessResponse({
+      sent: sentCount,
+      skipped: 0,
+      failed: failedCount,
+      duration: `${duration}ms`,
+      sentToday: sentToday + sentCount,
+      dailyLimit: whatsappLimit,
+    }))
   } catch (error) {
     console.error('[WhatsApp Cron] ❌ Unexpected error:', error)
 
