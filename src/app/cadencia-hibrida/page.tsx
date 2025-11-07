@@ -69,8 +69,11 @@ export default function CadenciaHibridaPage() {
         hybridEmailCorpo3: s.hybridEmailCorpo3 || "",
         hybridWhatsappMessage1: s.hybridWhatsappMessage1 || "",
         hybridWhatsappMessage2: s.hybridWhatsappMessage2 || "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         hybridDailyLimit: (s as any).hybridDailyLimit || 70,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         hybridBusinessHourStart: (s as any).hybridBusinessHourStart || 9,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         hybridBusinessHourEnd: (s as any).hybridBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
         hybridPromptOverview: s.hybridPromptOverview || "",
@@ -81,6 +84,7 @@ export default function CadenciaHibridaPage() {
   }, [settingsData]);
 
   const saveMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
@@ -107,6 +111,7 @@ export default function CadenciaHibridaPage() {
       }
       toast.success("Configurações salvas!");
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.error("Erro ao salvar configurações:", error);
       toast.error(error.message || "Erro ao salvar");

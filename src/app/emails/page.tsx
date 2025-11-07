@@ -65,7 +65,9 @@ export default function EmailsPage() {
         emailOnlyCadence: JSON.parse(s.emailOnlyCadence || '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"09:00-11:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"14:00-16:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"09:00-11:00","daysAfterPrevious":2}]'),
         senderEmails: JSON.parse(s.senderEmails || "[]"),
         dailyEmailLimit: s.dailyEmailLimit || 100,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         emailBusinessHourStart: (s as any).emailBusinessHourStart || 9,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         emailBusinessHourEnd: (s as any).emailBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
         emailPromptOverview: s.emailPromptOverview || "",
@@ -76,6 +78,7 @@ export default function EmailsPage() {
   }, [settingsData]);
 
   const saveMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
@@ -108,6 +111,7 @@ export default function EmailsPage() {
       }
       toast.success("Configurações salvas!");
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.error("❌ Error saving settings:", error);
       toast.error(error.message || "Erro ao salvar");

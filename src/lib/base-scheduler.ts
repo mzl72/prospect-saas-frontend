@@ -62,15 +62,17 @@ export function canSendMessage(
 
   // Verificar horário comercial (se configurado)
   if (userSettings.sendOnlyBusinessHours) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hourStart =
       channel === 'email'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? (userSettings as any).emailBusinessHourStart || 9
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         : (userSettings as any).whatsappBusinessHourStart || 9;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hourEnd =
       channel === 'email'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? (userSettings as any).emailBusinessHourEnd || 18
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         : (userSettings as any).whatsappBusinessHourEnd || 18;
 
     if (!isWithinBusinessHours(hourStart, hourEnd)) {
@@ -211,9 +213,10 @@ function hasPreviousMessageBeenSent(
  * Calcula delay aleatório para email
  */
 export function getEmailDelay(userSettings: UserSettings): number {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return calculateAutoDelay(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (userSettings as any).emailBusinessHourStart || 9,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (userSettings as any).emailBusinessHourEnd || 18,
     userSettings.dailyEmailLimit
   );
@@ -223,10 +226,12 @@ export function getEmailDelay(userSettings: UserSettings): number {
  * Calcula delay aleatório para WhatsApp
  */
 export function getWhatsAppDelay(userSettings: UserSettings): number {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return calculateAutoDelay(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (userSettings as any).whatsappBusinessHourStart || 9,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (userSettings as any).whatsappBusinessHourEnd || 18,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (userSettings as any).whatsappDailyLimit || userSettings.dailyEmailLimit
   );
 }

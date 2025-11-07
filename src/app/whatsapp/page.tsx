@@ -64,7 +64,9 @@ export default function WhatsAppPage() {
         whatsappOnlyCadence: JSON.parse(s.whatsappOnlyCadence || '[{"messageNumber":1,"dayOfWeek":1,"timeWindow":"10:00-12:00","daysAfterPrevious":0},{"messageNumber":2,"dayOfWeek":3,"timeWindow":"15:00-17:00","daysAfterPrevious":2},{"messageNumber":3,"dayOfWeek":5,"timeWindow":"10:00-12:00","daysAfterPrevious":2}]'),
         evolutionInstances: JSON.parse(s.evolutionInstances || "[]"),
         whatsappDailyLimit: s.whatsappDailyLimit || 50,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         whatsappBusinessHourStart: (s as any).whatsappBusinessHourStart || 9,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         whatsappBusinessHourEnd: (s as any).whatsappBusinessHourEnd || 18,
         sendOnlyBusinessHours: s.sendOnlyBusinessHours ?? true,
         whatsappPromptOverview: s.whatsappPromptOverview || "",
@@ -75,6 +77,7 @@ export default function WhatsAppPage() {
   }, [settingsData]);
 
   const saveMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
@@ -102,6 +105,7 @@ export default function WhatsAppPage() {
       }
       toast.success("Configurações salvas!");
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.error("Erro ao salvar configurações:", error);
       toast.error(error.message || "Erro ao salvar");

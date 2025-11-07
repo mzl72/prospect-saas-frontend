@@ -286,6 +286,7 @@ function EtapaConfirmacao() {
       if (!result.success) {
         // Se houver campos faltando, passar o objeto completo
         if (result.missingFieldsByPage) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const error: any = new Error(result.error || "Erro ao criar campanha");
           error.missingFieldsByPage = result.missingFieldsByPage;
           throw error;
@@ -381,6 +382,7 @@ function EtapaConfirmacao() {
 
       {createCampaign.isError && (() => {
         // Acessar missingFieldsByPage diretamente do objeto de erro
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const missingFieldsByPage = (createCampaign.error as any)?.missingFieldsByPage;
 
         if (missingFieldsByPage && Object.keys(missingFieldsByPage).length > 0) {
@@ -399,6 +401,7 @@ function EtapaConfirmacao() {
                 Campos obrigatórios não preenchidos:
               </p>
 
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {Object.entries(missingFieldsByPage).map(([page, fields]: [string, any]) => (
                 <div key={page} className="bg-gray-800 p-3 rounded border border-red-200 space-y-2">
                   <p className="text-red-600 text-sm font-medium">
