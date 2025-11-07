@@ -10,7 +10,14 @@ import axios from 'axios';
 // CONFIGURAÇÃO E CLIENTES
 // ========================================
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization para evitar erro durante build
+let resendInstance: Resend | null = null;
+const getResend = () => {
+  if (!resendInstance) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendInstance;
+};
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY;
@@ -68,7 +75,7 @@ export async function sendEmailViaResend(
     });
 
     // Enviar via Resend
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: params.from,
       to: params.to,
       subject: params.subject,
