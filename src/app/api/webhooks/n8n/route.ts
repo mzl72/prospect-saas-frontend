@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma-db'
 import { LeadStatus, EmailStatus, WhatsAppStatus, CadenceType } from '@prisma/client'
 import { handleLeadsExtracted } from './handleLeadsExtracted'
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
+import { normalizeToNull } from '@/lib/sanitization'
 import { z } from 'zod'
 
 // ==================== Schemas de Validação Zod ====================
