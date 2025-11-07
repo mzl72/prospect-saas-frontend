@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { LeadStatus } from '@prisma/client'
 import { calculateCampaignStats, determineCampaignStatus } from '@/lib/campaign-status-service'
 
 export const dynamic = 'force-dynamic'

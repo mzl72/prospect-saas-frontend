@@ -1,5 +1,5 @@
 // src/app/api/users/credits/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { ensureDemoUser } from "@/lib/demo-user";
 
 export const dynamic = "force-dynamic";

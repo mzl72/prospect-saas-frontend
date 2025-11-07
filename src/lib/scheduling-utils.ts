@@ -3,7 +3,6 @@
  * Centraliza lógica comum para evitar duplicação
  */
 
-import { UserSettings } from '@prisma/client'
 import type { CadenceItem } from './base-scheduler'
 
 // Constantes para cálculo de delay automático

@@ -75,6 +75,7 @@ function validateWebhookSecret(request: NextRequest): boolean {
 // Tipo dos payloads esperados do N8N
 type WebhookPayload = {
   event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'lead-enriched-hybrid' | 'campaign-completed' | 'email-sent' | 'email-replied' | 'opted-out'
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 }
 
@@ -225,6 +226,7 @@ async function handleCampaignCompleted(data: {
 }
 
 // Handler: Lead enriquecido com IA (Fluxo 2)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleLeadEnriched(data: any) {
   // Validar dados críticos com Zod
   try {
@@ -244,6 +246,7 @@ async function handleLeadEnriched(data: any) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('[Lead Enriched] Validation error:', error.issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Dados inválidos: ${error.issues.map((e: any) => e.message).join(', ')}`)
     }
     throw error
@@ -402,8 +405,10 @@ async function handleLeadEnriched(data: any) {
 }
 
 // Handler: Lead enriquecido para WhatsApp (nova automação N8N)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleLeadEnrichedWhatsApp(data: any) {
   // Extrair mensagens WhatsApp (podem vir como string ou objeto)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const extractWhatsAppMessage = (msg: any): string => {
     if (typeof msg === 'string') return msg
     if (typeof msg === 'object' && msg.mensagem) return msg.mensagem
@@ -430,6 +435,7 @@ async function handleLeadEnrichedWhatsApp(data: any) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('[Lead Enriched WhatsApp] Validation error:', error.issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Dados inválidos: ${error.issues.map((e: any) => e.message).join(', ')}`)
     }
     throw error
@@ -547,6 +553,7 @@ async function handleLeadEnrichedWhatsApp(data: any) {
     }
 
     // Normalizar: aceitar strings simples OU objetos com campo 'url'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     evolutionInstances = parsed.map((instance: any) => {
       if (typeof instance === 'string') {
         // Formato antigo: array de strings (URLs diretas)
@@ -691,8 +698,10 @@ async function handleLeadEnrichedWhatsApp(data: any) {
 }
 
 // Handler: Lead enriquecido para Híbrido (Email + WhatsApp)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleLeadEnrichedHybrid(data: any) {
   // Extrair mensagens WhatsApp (podem vir como string ou objeto)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const extractWhatsAppMessage = (msg: any): string => {
     if (typeof msg === 'string') return msg
     if (typeof msg === 'object' && msg.mensagem) return msg.mensagem
@@ -724,6 +733,7 @@ async function handleLeadEnrichedHybrid(data: any) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('[Lead Enriched Hybrid] Validation error:', error.issues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       throw new Error(`Dados inválidos: ${error.issues.map((e: any) => e.message).join(', ')}`)
     }
     throw error

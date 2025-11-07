@@ -9,6 +9,7 @@ import { canSendMessage, getWhatsAppDelay, addFooter } from './base-scheduler';
 type WhatsAppMessageWithLead = WhatsAppMessage & {
   lead: Lead & {
     whatsappMessages: WhatsAppMessage[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     emails: any[];
   };
 };

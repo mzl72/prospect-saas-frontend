@@ -952,7 +952,7 @@ const settingsSchema = z.object({
 });
 
 // GET - Buscar configurações do usuário
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log("[API /settings GET] 🔍 Starting GET request");
 
@@ -1118,6 +1118,7 @@ export async function POST(request: NextRequest) {
         // Se o existente está preenchido e o novo NÃO está, PRESERVA o existente
         if (isFilled(existingValue) && !isFilled(newValue)) {
           console.log(`⚠️ [API] Preserving existing ${field} (${existingValue?.length || 0} chars) - new value is empty or invalid (${newValue?.length || 0} chars)`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (dataToSave as any)[field] = existingValue;
         }
       });

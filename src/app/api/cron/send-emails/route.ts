@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
-import { EmailStatus, LeadStatus, UserSettings, CadenceType } from '@prisma/client';
+import { EmailStatus, LeadStatus, CadenceType } from '@prisma/client';
 import { sendEmailViaResend } from '@/lib/email-service';
 import { canSendEmail, addUnsubscribeFooter } from '@/lib/email-scheduler';
 import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils';
@@ -114,7 +114,6 @@ export async function GET(request: NextRequest) {
     // 5. Processar o email único
     const email = pendingEmails[0];
     let sent = 0;
-    let skipped = 0;
     let failed = 0;
     const errors: string[] = [];
 
@@ -229,11 +228,11 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
 
     console.log(`[Cron] ✨ Job completed in ${duration}ms`);
-    console.log(`[Cron] 📊 Stats: ${sent} sent, ${skipped} skipped, ${failed} failed`);
+    console.log(`[Cron] 📊 Stats: ${sent} sent, 0 skipped, ${failed} failed`);
 
     const response = buildSuccessResponse({
       sent,
-      skipped,
+      skipped: 0,
       failed,
       total: pendingEmails.length,
       duration: `${duration}ms`,

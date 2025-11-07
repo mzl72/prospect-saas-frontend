@@ -9,6 +9,7 @@ import { normalizeToNull } from '@/lib/sanitization'
 const normalizeValue = normalizeToNull
 
 // Validação de dados do lead
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const validateLeadData = (lead: any): { valid: boolean; errors: string[] } => {
   const errors: string[] = []
 
@@ -30,6 +31,7 @@ const validateLeadData = (lead: any): { valid: boolean; errors: string[] } => {
 
 export async function handleLeadsExtracted(data: {
   campaignId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leads: any
 }) {
   const { campaignId, leads } = data
@@ -37,6 +39,7 @@ export async function handleLeadsExtracted(data: {
   console.log(`[Leads Extracted] Recebido:`, { campaignId, leadsType: typeof leads })
 
   // Normalizar formato dos leads
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let leadsArray: any[] = []
 
   if (Array.isArray(leads)) {
@@ -181,6 +184,7 @@ export async function handleLeadsExtracted(data: {
   }
 
   // Validar e preparar dados dos leads NOVOS
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const validLeadsData: any[] = []
   let invalidLeadsCount = 0
 

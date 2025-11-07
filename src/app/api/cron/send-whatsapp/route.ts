@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { WhatsAppStatus, LeadStatus, UserSettings, CadenceType } from '@prisma/client'
+import { WhatsAppStatus, LeadStatus, CadenceType } from '@prisma/client'
 import { sendWhatsAppMessage } from '@/lib/whatsapp-service'
 import { canSendWhatsApp, addOptOutFooter } from '@/lib/whatsapp-scheduler'
 import { canSendMoreToday, canSendNow, calculateNextAllowedSendTime, getNextSequenceToSend } from '@/lib/scheduling-utils'
@@ -119,7 +119,6 @@ export async function GET(request: NextRequest) {
     // 5. Processar a mensagem única
     const message = pendingMessages[0]
     let sentCount = 0
-    let skippedCount = 0
     let failedCount = 0
 
     try {
@@ -212,13 +211,13 @@ export async function GET(request: NextRequest) {
     console.log('[WhatsApp Cron] ✅ Job completed:', {
       duration: `${duration}ms`,
       sent: sentCount,
-      skipped: skippedCount,
+      skipped: 0,
       failed: failedCount,
     })
 
     return NextResponse.json(buildSuccessResponse({
       sent: sentCount,
-      skipped: skippedCount,
+      skipped: 0,
       failed: failedCount,
       duration: `${duration}ms`,
       sentToday: sentToday + sentCount,

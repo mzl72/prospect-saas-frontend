@@ -62,10 +62,12 @@ export function canSendMessage(
 
   // Verificar horário comercial (se configurado)
   if (userSettings.sendOnlyBusinessHours) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hourStart =
       channel === 'email'
         ? (userSettings as any).emailBusinessHourStart || 9
         : (userSettings as any).whatsappBusinessHourStart || 9;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hourEnd =
       channel === 'email'
         ? (userSettings as any).emailBusinessHourEnd || 18
@@ -209,6 +211,7 @@ function hasPreviousMessageBeenSent(
  * Calcula delay aleatório para email
  */
 export function getEmailDelay(userSettings: UserSettings): number {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return calculateAutoDelay(
     (userSettings as any).emailBusinessHourStart || 9,
     (userSettings as any).emailBusinessHourEnd || 18,
@@ -220,6 +223,7 @@ export function getEmailDelay(userSettings: UserSettings): number {
  * Calcula delay aleatório para WhatsApp
  */
 export function getWhatsAppDelay(userSettings: UserSettings): number {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return calculateAutoDelay(
     (userSettings as any).whatsappBusinessHourStart || 9,
     (userSettings as any).whatsappBusinessHourEnd || 18,

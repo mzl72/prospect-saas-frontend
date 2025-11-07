@@ -10,9 +10,6 @@ import { ZodError } from 'zod';
 
 export const dynamic = "force-dynamic";
 
-// Quantidades permitidas
-const ALLOWED_QUANTITIES = [4, 20, 40, 100, 200] as const;
-
 // GET - Listar campanhas
 export async function GET() {
   try {
