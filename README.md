@@ -148,68 +148,47 @@ prospect-saas-frontend/
 
 **📖 Mais detalhes**: Cada pasta tem seu próprio README explicando em detalhes.
 
-## 🔐 Segurança
+## 🔒 Segurança
 
-- ✅ Validação de input com Zod
-- ✅ Sanitização de dados de webhooks
-- ✅ Rate limiting nos endpoints críticos
-- ✅ Headers de segurança (CSP, HSTS)
-- ✅ Autenticação via Bearer tokens (webhooks, cron)
-- ✅ CORS configurado
-- ✅ SQL Injection protection (Prisma ORM)
+- Validação Zod em todos inputs
+- Sanitização XSS (sanitization.ts)
+- Rate limiting (10/hora campanhas, 100/min webhooks)
+- Bearer tokens (webhooks, cron)
+- Prisma ORM (SQL injection protection)
+- CORS configurado
 
-## 🧪 Testing
+## 🧪 Testar
 
 ```bash
-# Testar envio de email manual
-curl -X POST http://localhost:3000/api/cron/send-emails \
-  -H "Authorization: Bearer SEU_CRON_SECRET"
+# Envio manual de emails
+curl -H "Authorization: Bearer SEU_CRON_SECRET" \
+  http://localhost:3000/api/cron/send-emails
 
-# Testar webhook N8N
-curl -X POST http://localhost:3000/api/webhooks/n8n \
+# Webhook N8N
+curl -H "x-webhook-secret: SEU_SECRET" \
   -H "Content-Type: application/json" \
-  -H "x-webhook-secret: SEU_N8N_SECRET" \
-  -d '{"event": "lead.enriched", "data": {...}}'
+  -d '{"event":"leads-extracted","data":{...}}' \
+  http://localhost:3000/api/webhooks/n8n
 
-# Testar unsubscribe
+# Opt-out
 curl http://localhost:3000/api/unsubscribe?token=TOKEN_DO_LEAD
 ```
 
-## 📚 Documentação Adicional
+## 🚀 Deploy
 
-- [SETUP_EMAIL_SYSTEM.md](./SETUP_EMAIL_SYSTEM.md) - Guia completo de configuração do sistema de emails
-- [Prisma Docs](https://www.prisma.io/docs)
-- [Next.js 15 Docs](https://nextjs.org/docs)
-- [Resend Docs](https://resend.com/docs)
+**VPS (recomendado)**: `docker-compose up -d` + configure cron jobs
 
-## 🚀 Deploy em Produção
+**Vercel**: Não recomendado (cron jobs limitados)
 
-### Opção 1: VPS com Docker
+## 📚 Documentação
 
-1. Faça upload dos arquivos para VPS
-2. Configure `.env` com valores de produção
-3. Execute:
-```bash
-docker-compose up -d
-```
-
-### Opção 2: Vercel (não recomendado para cron jobs)
-
-```bash
-vercel deploy --prod
-```
-
-**Nota**: Sistema de emails requer cron jobs persistentes. Recomendamos VPS para uso em produção.
-
-## 📝 Licença
-
-Proprietary - Todos os direitos reservados
-
-## 👤 Autor
-
-Desenvolvido para EasyCheck por [Seu Nome]
+- [src/app/README.md](src/app/README.md) - Páginas frontend
+- [src/app/api/README.md](src/app/api/README.md) - API Routes
+- [src/lib/README.md](src/lib/README.md) - Core services
+- [fluxos-n8n/README.md](fluxos-n8n/README.md) - Workflows N8N
+- [prisma/README.md](prisma/README.md) - Schema do banco
 
 ---
 
-**Versão**: 2.0.0 (Sistema de Emails Automatizado)
+**Versão**: 3.0.0 (Multi-canal: Email + WhatsApp + Híbrido)
 **Última atualização**: Janeiro 2025
