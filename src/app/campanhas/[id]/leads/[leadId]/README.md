@@ -1,3 +1,0 @@
-# [leadId] - Detalhes do Lead
-
-**page.tsx**: Página de detalhes completos de um lead específico. Breadcrumb de navegação (campanha → lead). Seções: dados básicos (nome, endereço, website, telefone, categoria), análise IA (companyResearch, strategicAnalysis, personalization, analysisLink com link externo), histórico de emails com timeline (sequenceNumber, subject, body, senderAccount, status com cores: PENDING/SENT/OPENED/REPLIED/BOUNCED, timestamps sentAt/openedAt/repliedAt), histórico WhatsApp (sequenceNumber, message, phoneNumber, status), botão "Ver Mensagens WhatsApp" navega para subpágina whatsapp/.

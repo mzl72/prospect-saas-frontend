@@ -1,3 +1,0 @@
-# check-campaign-timeout - Detecção e Reembolso de Campanhas com Timeout
-
-**route.ts**: Cron job GET que verifica campanhas PROCESSING que ultrapassaram timeoutAt (campo timestamp). Busca campanhas com timeoutAt <= now, processa cada uma com Promise.allSettled para não bloquear em erros, executa transaction atômica: marca campanha como FAILED + reembolsa creditsCost ao usuário (increment credits). Logs detalhados com tipo, quantidade, timestamps (processStartedAt, timeoutAt), custo. Retorna summary com processedCount, successful, failed, results array. Previne double-refund com status check. Dynamic rendering, sem rate limiting (cron interno).

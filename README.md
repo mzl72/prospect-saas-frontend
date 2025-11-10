@@ -1,240 +1,152 @@
-# 🚀 Prospect SaaS - Lead Prospecting Platform
+# 🚀 Prospect SaaS
 
-Plataforma SaaS para prospecção de leads com integração N8N, sistema de enriquecimento via Apify e envio automatizado de emails através do Resend.
+Plataforma de prospecção inteligente que automatiza a geração, enriquecimento e contato com leads através de múltiplos canais (Email + WhatsApp).
 
-## 📋 Stack Tecnológico
+## 💡 O que faz?
 
-- **Framework**: Next.js 15.5.3 (App Router)
-- **Linguagem**: TypeScript
-- **Database**: PostgreSQL + Prisma ORM
-- **UI**: Tailwind CSS + shadcn/ui + Lucide Icons
-- **State Management**: Zustand
-- **Data Fetching**: TanStack Query (React Query)
-- **Email**: Resend API
-- **Automação**: N8N Workflows
-- **Scraping**: Apify (Google Maps)
+Você informa o tipo de negócio e a localização. O sistema:
+1. **Busca** empresas no Google Maps (via Apify)
+2. **Enriquece** com dados de IA (pesquisa + análise estratégica)
+3. **Envia** sequências personalizadas por email e/ou WhatsApp
+4. **Rastreia** opens, clicks, respostas automaticamente
+5. **Para** quando o lead responder
+
+Tudo configurável: horários, intervalos, templates e prompts de IA.
+
+## 🛠️ Stack
+
+- **Next.js 15** (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+- **PostgreSQL** + Prisma ORM
+- **Zustand** (estado) + **React Query** (cache)
+- **Resend** (emails) + **Evolution API** (WhatsApp)
+- **N8N** (workflows) + **Apify** (scraping)
 
 ## ⚡ Features
 
-### ✅ Implementado
+### ✅ Pronto para usar
+- 🎯 Criação de campanhas com wizard de 3 etapas
+- 📊 Dashboard com métricas em tempo real
+- 📧 Sequências de 3 emails (First touch → Bump → Breakup)
+- 💬 Sequências de 3 WhatsApp com Evolution API
+- 🔄 Modo híbrido (intercala email + WhatsApp)
+- 🤖 Enriquecimento com IA (GPT-4 + Perplexity)
+- 📈 Tracking completo (opens, clicks, bounces, replies)
+- 🚫 Opt-out automático (LGPD/CAN-SPAM)
+- ⏰ Horário comercial + rate limiting
+- 🌓 Dark mode
+- 🔒 Validação Zod + sanitização XSS
 
-- 🎯 **Gestão de Campanhas**: Criação, edição e tracking de campanhas de prospecção
-- 👥 **Gestão de Leads**: Pipeline completo (New → Enriched → Contacted → Replied)
-- 🔗 **Integração N8N**: Webhook bidirecional para enriquecimento de leads
-- 🕵️ **Enriquecimento via Apify**: Dados de empresas do Google Maps
-- 📊 **Dashboard**: Estatísticas em tempo real com caching inteligente
-- ⚙️ **Configurações**: Personalização de prompts para IA e timing de emails
-- 🌓 **Dark Mode**: Interface completa com tema dark/light
-- 📧 **Sistema de Emails Automatizado**:
-  - Envio de sequências de 3 emails com delays configuráveis
-  - Tracking de opens, clicks, bounces
-  - Unsubscribe automático (LGPD/CAN-SPAM)
-  - Rate limiting e humanização (delays aleatórios)
-  - Horário comercial configurável
-  - Limite diário de envios
-
-### 🔄 Workflow Completo
+### 🔄 Como funciona
 
 ```
-1. Usuário cria campanha → Frontend envia para N8N
-2. N8N dispara Apify → Scraping Google Maps
-3. Apify retorna dados → N8N enriquece com IA
-4. N8N envia para webhook → Cria lead enriquecido
-5. Cron job envia email #1 → Imediato após enrichment
-6. Aguarda X dias → Envia email #2 (configurável)
-7. Aguarda Y dias → Envia email #3 (configurável)
-8. Tracking via webhooks → Opens/Clicks/Bounces
-9. Lead responde → Para sequência automaticamente
+Wizard → N8N → Apify (scraping) → IA (enriquecimento) → Webhook
+         ↓
+  Cron jobs (a cada 5min) → Envia emails/WhatsApp → Tracking
+         ↓
+  Lead responde? → Para sequência automaticamente
 ```
 
-## 🛠️ Instalação
-
-### 1. Clone o repositório
+## 🚀 Quick Start
 
 ```bash
+# Clone e instale
 git clone <seu-repositorio>
 cd prospect-saas-frontend
-```
-
-### 2. Instale as dependências
-
-```bash
 npm install
-```
 
-### 3. Configure o ambiente
-
-```bash
+# Configure .env
 cp .env.example .env
+# Edite com suas credenciais (DATABASE_URL, RESEND_API_KEY, N8N_WEBHOOK_URL, etc)
+
+# Setup banco
+npx prisma db push
+npx prisma generate
+
+# Rode
+npm run dev
+# Acesse http://localhost:3000
 ```
 
-Edite o `.env` com suas credenciais:
+### Variáveis essenciais (.env)
 
 ```bash
-# Database (porta 5432 local ou 5433 se usar Docker)
 DATABASE_URL="postgresql://postgres:password@localhost:5432/app_prospect_db"
-
-# N8N Webhooks
-N8N_WEBHOOK_URL="https://n8n-prospect.easycheck.site/webhook/interface"
-N8N_WEBHOOK_SECRET="seu-token-secreto-aqui"
-
-# Resend (Email)
-RESEND_API_KEY="re_SuaAPIKeyAqui"
-CRON_SECRET="token-aleatorio-seguro-para-cron"
+RESEND_API_KEY="re_..."              # resend.com
+N8N_WEBHOOK_URL="https://..."        # Sua instância N8N
+N8N_WEBHOOK_SECRET="..."
+EVOLUTION_API_KEY="..."              # Evolution API (WhatsApp)
+CRON_SECRET="..."                     # Token para cron jobs
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### 4. Configure o banco de dados
+### Docker (Produção)
 
 ```bash
-# Criar/atualizar schema
-npx prisma db push
-
-# Gerar Prisma Client
-npx prisma generate
-
-# (Opcional) Abrir Prisma Studio
-npx prisma studio
+docker-compose up -d  # App + PostgreSQL
 ```
 
-### 5. Rode o servidor de desenvolvimento
+## ⚙️ Configuração
 
+### 1. Resend (Emails)
+1. Crie conta em [resend.com](https://resend.com)
+2. Adicione e verifique seu domínio (DNS: SPF, DKIM, DMARC)
+3. Crie API Key → adicione no `.env`
+4. Configure webhook: `https://seu-dominio.com/api/webhooks/resend`
+   - Eventos: `email.sent`, `email.opened`, `email.clicked`, `email.bounced`
+
+### 2. Evolution API (WhatsApp)
+1. Tenha uma instância Evolution API rodando
+2. Adicione `EVOLUTION_API_KEY` no `.env`
+3. Configure instâncias na página `/whatsapp` do app
+
+### 3. N8N (Workflows)
+1. Importe workflows da pasta `fluxos-n8n/`
+2. Configure credenciais (Apify, OpenAI, Perplexity)
+3. Atualize URLs hardcoded para seu domínio
+4. Adicione `N8N_WEBHOOK_URL` e `N8N_WEBHOOK_SECRET` no `.env`
+
+### 4. Cron Jobs (Produção)
 ```bash
-npm run dev
+# Adicione ao crontab (executa a cada 5min)
+*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" https://seu-dominio.com/api/cron/send-emails
+*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" https://seu-dominio.com/api/cron/send-whatsapp
 ```
 
-Acesse: [http://localhost:3000](http://localhost:3000)
-
-## 🐳 Docker (Produção)
-
-### Build e Run
-
-```bash
-# Build da imagem
-docker build -t prospect-app .
-
-# Ou com Docker Compose (inclui PostgreSQL)
-docker-compose up -d
-```
-
-### Variáveis de Ambiente (Docker)
-
-Certifique-se de ter um arquivo `.env` configurado antes de rodar `docker-compose up`.
-
-## 📧 Configuração do Sistema de Emails
-
-### 1. Criar conta no Resend
-
-1. Acesse [resend.com](https://resend.com)
-2. Crie uma conta
-3. Adicione seu domínio (ex: `easycheck.site`)
-4. Verifique o domínio
-
-### 2. Configurar DNS (GoDaddy/Cloudflare)
-
-Adicione os registros SPF, DKIM e DMARC fornecidos pelo Resend:
-
-```
-TXT  @               v=spf1 include:_spf.resend.com ~all
-TXT  resend._domainkey   [valor fornecido pelo Resend]
-TXT  _dmarc         v=DMARC1; p=none; rua=mailto:seu@email.com
-```
-
-### 3. Criar API Key
-
-No dashboard do Resend:
-- Settings → API Keys → Create API Key
-- Copie a chave e adicione no `.env` como `RESEND_API_KEY`
-
-### 4. Configurar Webhook no Resend
-
-- Webhooks → Add Endpoint
-- URL: `https://seu-dominio.com/api/webhooks/resend`
-- Eventos: `email.sent`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`
-
-### 5. Configurar Cron Job
-
-#### Desenvolvimento (opcional)
-```bash
-# Executar manualmente
-curl -H "Authorization: Bearer seu-cron-secret" http://localhost:3000/api/cron/send-emails
-```
-
-#### Produção (Linux/VPS)
-```bash
-crontab -e
-
-# Adicionar linha (executa a cada 5 minutos):
-*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" http://localhost:3000/api/cron/send-emails
-```
-
-## 🗂️ Estrutura do Projeto
+## 📁 Estrutura
 
 ```
 prospect-saas-frontend/
 ├── prisma/
-│   └── schema.prisma          # Schema do banco (modelos, relações)
+│   ├── schema.prisma              # 8 modelos (User, Campaign, Lead, Email, WhatsApp, etc)
+│   └── README.md
 ├── src/
 │   ├── app/
-│   │   ├── api/
-│   │   │   ├── campaigns/     # CRUD de campanhas
-│   │   │   ├── leads/         # CRUD de leads
-│   │   │   ├── settings/      # Configurações do usuário
-│   │   │   ├── cron/
-│   │   │   │   └── send-emails/  # Job de envio de emails
-│   │   │   └── webhooks/
-│   │   │       ├── n8n/       # Webhook para receber dados do N8N
-│   │   │       └── resend/    # Webhook para tracking de emails
-│   │   ├── campanhas/         # Página de listagem de campanhas
-│   │   │   └── [id]/          # Detalhes da campanha
-│   │   │       └── leads/     # Listagem de leads da campanha
-│   │   │           └── [leadId]/  # Detalhes do lead
-│   │   ├── configuracoes/     # Página de settings
-│   │   └── layout.tsx         # Layout global (dark mode)
+│   │   ├── api/                   # API Routes (ver api/README.md)
+│   │   │   ├── campaigns/         # CRUD campanhas + leads
+│   │   │   ├── cron/              # send-emails, send-whatsapp, check-timeout
+│   │   │   ├── webhooks/          # n8n, resend, evolution
+│   │   │   └── settings/
+│   │   ├── campanhas/             # Páginas frontend (ver app/README.md)
+│   │   ├── emails/                # Config emails
+│   │   ├── whatsapp/              # Config WhatsApp
+│   │   ├── cadencia-hibrida/      # Config híbrida
+│   │   └── gerar/                 # Wizard de criação
 │   ├── components/
-│   │   ├── ui/                # Componentes shadcn/ui
-│   │   └── [feature]/         # Componentes específicos por feature
-│   ├── lib/
-│   │   ├── prisma.ts          # Cliente Prisma (singleton)
-│   │   ├── cache.ts           # Sistema de caching com Zustand
-│   │   ├── react-query.tsx    # Configuração TanStack Query
-│   │   ├── email-service.ts   # Wrapper Resend API
-│   │   ├── email-scheduler.ts # Lógica de scheduling de emails
-│   │   └── constants.ts       # Constantes (timing, status, etc)
-│   └── types/                 # TypeScript types
-├── Dockerfile                 # Multi-stage build para produção
-├── docker-compose.yml         # Orquestração (App + PostgreSQL)
-├── SETUP_EMAIL_SYSTEM.md      # Documentação completa do sistema de emails
-└── README.md                  # Este arquivo
+│   │   ├── wizard/                # LeadGenerationWizard
+│   │   ├── cadence/               # HybridCadence, WeekCalendar, MessageIntervals
+│   │   └── ui/                    # shadcn/ui
+│   └── lib/
+│       ├── base-scheduler.ts      # Lógica unificada de scheduling
+│       ├── email-service.ts       # Resend wrapper
+│       ├── whatsapp-service.ts    # Evolution API wrapper
+│       ├── pricing-service.ts     # Single source of truth (cálculos)
+│       ├── sanitization.ts        # XSS prevention
+│       └── validation-schemas.ts  # Zod schemas
+├── fluxos-n8n/                    # Workflows N8N (extração + enriquecimento)
+└── docker-compose.yml             # App + PostgreSQL
 ```
 
-## 📊 Modelos de Dados (Prisma)
-
-### Campaign (Campanha)
-- Informações da campanha (nome, cidade, estado, nicho)
-- Prompt personalizado para IA
-- Relacionamento 1:N com Leads
-
-### Lead (Lead)
-- Dados básicos (nome empresa, telefone, website, email)
-- Dados enriquecidos (research, pitch, persona)
-- Status: NEW → ENRICHED → CONTACTED → REPLIED → BOUNCED → OPTED_OUT
-- Relacionamento N:1 com Campaign
-- Relacionamento 1:N com Emails
-
-### Email (Email)
-- Sequência (1, 2 ou 3)
-- Status: PENDING → SENT → OPENED → CLICKED → BOUNCED
-- Tracking (sentAt, openedAt, clickedAt, bouncedAt)
-- messageId do Resend para rastreamento
-
-### UserSettings (Configurações)
-- Prompts customizados para IA (research, pitch, persona)
-- Configurações de timing:
-  - Delay entre emails (dias)
-  - Random delays para humanização (ms)
-  - Limite diário de envios
-  - Horário comercial (start/end)
+**📖 Mais detalhes**: Cada pasta tem seu próprio README explicando em detalhes.
 
 ## 🔐 Segurança
 

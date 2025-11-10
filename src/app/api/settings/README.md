@@ -1,3 +1,0 @@
-# settings - Gerenciamento de Configurações (UserSettings)
-
-**route.ts**: API para GET/POST de UserSettings. GET busca configurações do DEMO_USER_ID (cria se não existe com DEFAULT_SETTINGS que contém prompts padrão gigantes de templatePesquisa e templateAnaliseEmpresa). POST valida com Zod, sanitiza inputs (containsXSS check), normaliza evolutionInstances (suporta string[] ou object[] e converte para JSON), salva via upsert. Usa ensureDemoUser. Campos: templates de email/whatsapp/híbrido, cadências (JSON), prompts IA por canal, evolutionInstances, senderEmails, limites diários, horários comerciais, informações da empresa (nomeEmpresa, assinatura, telefone, website, informacoesPropria).
