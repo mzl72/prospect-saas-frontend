@@ -8,9 +8,7 @@ export const dynamic = 'force-dynamic'
 
 // Schema de validação para PATCH
 const UpdateCampaignSchema = z.object({
-  status: z.enum(['PROCESSING', 'COMPLETED', 'FAILED'], {
-    errorMap: () => ({ message: 'Status deve ser PROCESSING, COMPLETED ou FAILED' }),
-  }),
+  status: z.enum(['PROCESSING', 'COMPLETED', 'FAILED']),
 })
 
 // GET - Buscar campanha específica com leads e calcular status
