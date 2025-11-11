@@ -17,7 +17,7 @@ export async function GET() {
   } catch (error) {
     console.error("[API /users/credits GET] Erro ao consultar créditos:", {
       error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(

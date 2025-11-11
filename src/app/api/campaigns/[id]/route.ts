@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
 import { calculateCampaignStats, determineCampaignStatus } from '@/lib/campaign-status-service'
+import { validateCampaignOwnership, ownershipErrorResponse } from '@/lib/auth-middleware'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
+
+// Schema de validação para PATCH
+const UpdateCampaignSchema = z.object({
+  status: z.enum(['PROCESSING', 'COMPLETED', 'FAILED'], {
+    errorMap: () => ({ message: 'Status deve ser PROCESSING, COMPLETED ou FAILED' }),
+  }),
+})
 
 // GET - Buscar campanha específica com leads e calcular status
 export async function GET(
@@ -11,6 +20,12 @@ export async function GET(
 ) {
   try {
     const { id: campaignId } = await params
+
+    // Validar ownership
+    const isOwner = await validateCampaignOwnership(campaignId)
+    if (!isOwner) {
+      return ownershipErrorResponse()
+    }
     const url = new URL(request.url)
 
     // Paginação para evitar N+1 queries em campanhas grandes
@@ -101,16 +116,25 @@ export async function PATCH(
 ) {
   try {
     const { id: campaignId } = await params
+
+    // Validar ownership
+    const isOwner = await validateCampaignOwnership(campaignId)
+    if (!isOwner) {
+      return ownershipErrorResponse()
+    }
+
     const body = await request.json()
 
-    const { status } = body
-
-    if (!status || !['PROCESSING', 'COMPLETED', 'FAILED'].includes(status)) {
+    // Validar com Zod
+    const validation = UpdateCampaignSchema.safeParse(body)
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Status inválido' },
+        { error: 'Dados inválidos', details: validation.error.flatten() },
         { status: 400 }
       )
     }
+
+    const { status } = validation.data
 
     const campaign = await prisma.campaign.update({
       where: { id: campaignId },

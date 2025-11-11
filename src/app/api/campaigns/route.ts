@@ -33,7 +33,7 @@ export async function GET() {
   } catch (error) {
     console.error("[API /campaigns GET] Erro ao buscar campanhas:", {
       error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(
@@ -486,13 +486,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[API /campaigns POST] Erro ao criar campanha:", {
       error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       body: request.body,
       timestamp: new Date().toISOString(),
     });
-    const message = error instanceof Error ? error.message : "Erro ao criar campanha";
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: "Erro ao criar campanha" },
       { status: 500 }
     );
   }

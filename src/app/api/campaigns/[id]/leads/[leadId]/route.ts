@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
+import { validateLeadOwnership, ownershipErrorResponse } from '@/lib/auth-middleware'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,12 @@ export async function GET(
         { error: 'ID de lead inválido' },
         { status: 400 }
       )
+    }
+
+    // Validar ownership
+    const isOwner = await validateLeadOwnership(leadId)
+    if (!isOwner) {
+      return ownershipErrorResponse()
     }
 
     const lead = await prisma.lead.findUnique({

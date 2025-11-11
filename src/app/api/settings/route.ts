@@ -997,7 +997,7 @@ export async function GET() {
   } catch (error) {
     console.error("[API /settings GET] ❌ Erro ao buscar configurações:", {
       error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(
@@ -1141,14 +1141,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[API /settings POST] ❌ Erro ao salvar configurações:", {
       error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(
       {
         success: false,
         error: "Erro ao salvar configurações",
-        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     );
