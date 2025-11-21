@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { HybridCadence, HybridCadenceItem } from "@/components/cadence/HybridCadence";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, Zap, Info, Mail, MessageCircle, Calendar, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import { Save, Loader2, Zap, Info, Mail, Calendar, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

@@ -108,8 +108,7 @@ docker-compose up -d  # App + PostgreSQL
 ### 4. Cron Jobs (Produção)
 ```bash
 # Adicione ao crontab (executa a cada 5min)
-*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" https://seu-dominio.com/api/cron/send-emails
-*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" https://seu-dominio.com/api/cron/send-whatsapp
+*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" https://seu-dominio.com/api/cron/send-messages
 ```
 
 ## 📁 Estrutura
@@ -123,7 +122,7 @@ prospect-saas-frontend/
 │   ├── app/
 │   │   ├── api/                   # API Routes (ver api/README.md)
 │   │   │   ├── campaigns/         # CRUD campanhas + leads
-│   │   │   ├── cron/              # send-emails, send-whatsapp, check-timeout
+│   │   │   ├── cron/              # send-messages (unificado), check-timeout
 │   │   │   ├── webhooks/          # n8n, resend, evolution
 │   │   │   └── settings/
 │   │   ├── campanhas/             # Páginas frontend (ver app/README.md)
@@ -162,7 +161,7 @@ prospect-saas-frontend/
 ```bash
 # Envio manual de emails
 curl -H "Authorization: Bearer SEU_CRON_SECRET" \
-  http://localhost:3000/api/cron/send-emails
+  http://localhost:3000/api/cron/send-messages
 
 # Webhook N8N
 curl -H "x-webhook-secret: SEU_SECRET" \

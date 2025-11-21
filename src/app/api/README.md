@@ -13,8 +13,7 @@ api/
 │       └── leads/[leadId]/
 │           └── route.ts    # GET (lead individual com emails/whatsapp)
 ├── cron/               # Jobs agendados (executam a cada 5min)
-│   ├── send-emails/route.ts        # Envio automático de emails
-│   ├── send-whatsapp/route.ts      # Envio automático de WhatsApp
+│   ├── send-messages/route.ts      # Envio automático unificado (email + WhatsApp)
 │   └── check-campaign-timeout/route.ts  # Timeout + reembolso
 ├── webhooks/           # Integrações externas
 │   ├── n8n/
@@ -79,29 +78,28 @@ api/
 
 ## ⏰ Cron Jobs
 
-### `GET /api/cron/send-emails`
-**Envio automático de emails** (executa a cada 5min)
+### `GET /api/cron/send-messages`
+**Envio automático unificado de emails + WhatsApp** (executa a cada 5min)
 - Auth: validateCronAuth (header Authorization)
 - maxDuration: 300s
 - **Fluxo:**
   1. Busca UserSettings
-  2. Verifica limite diário (`dailyEmailLimit`)
+  2. Verifica limite diário por canal (`dailyEmailLimit`, `whatsappDailyLimit`, `hybridDailyLimit`)
   3. Distribui sequências equilibradas (seq1/seq2/seq3)
-  4. Busca 1 email PENDING (cadenceType: EMAIL_ONLY ou HYBRID)
-  5. Valida timing (horário comercial, delays entre emails)
-  6. Envia via `sendEmailViaResend`
-  7. Adiciona unsubscribe footer
-  8. Atualiza status SENT + registra ChannelSendLog
-  9. Calcula `nextAllowedSendTime`
+  4. Processa ambos canais em paralelo:
+     - **Email**: Busca 1 email PENDING (cadenceType: EMAIL_ONLY ou HYBRID)
+       - Valida timing com cadências JSON (dia da semana + janela de tempo)
+       - Envia via `sendEmailViaResend`
+       - Adiciona unsubscribe footer
+     - **WhatsApp**: Busca 1 WhatsAppMessage PENDING (cadenceType: WHATSAPP_ONLY ou HYBRID)
+       - Valida timing com cadências JSON
+       - Round-robin de `evolutionInstances`
+       - Envia via `sendWhatsAppMessage`
+       - Adiciona opt-out footer
+  5. Atualiza status + registra ChannelSendLog
+  6. Calcula `nextAllowedSendTime` dinamicamente
+- Usa wrappers: `canSendEmail`, `canSendWhatsApp` (de email/whatsapp-scheduler.ts)
 - Responses padronizados: buildLimitReachedResponse, buildWaitingResponse, buildSuccessResponse
-
-### `GET /api/cron/send-whatsapp`
-**Envio automático de WhatsApp** (executa a cada 5min)
-- Fluxo idêntico ao send-emails
-- Usa `whatsappDailyLimit`
-- Round-robin de `evolutionInstances`
-- Adiciona opt-out footer
-- Valida timing específico (whatsappBusinessHourStart/End)
 
 ### `GET /api/cron/check-campaign-timeout`
 **Detecta campanhas com timeout** (executa periodicamente)

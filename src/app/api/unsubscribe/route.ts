@@ -7,11 +7,88 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
 import { LeadStatus } from '@prisma/client';
 import { escapeHtml } from '@/lib/sanitization';
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit';
+import { validateStringLength } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  // 1. Rate limiting por IP (unsubscribe é público, não tem userId)
+  const clientIp = getClientIp(request);
+  const rateLimitResult = checkRateLimit({
+    identifier: `unsubscribe:${clientIp}`,
+    maxRequests: 20, // 20 unsubscribes por minuto (previne abuse)
+    windowMs: 60 * 1000,
+  });
+
+  if (!rateLimitResult.allowed) {
+    return new NextResponse(
+      `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limite Excedido</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+    .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+    h1 { color: #e74c3c; margin-bottom: 20px; }
+    p { color: #4a5568; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚠️ Muitas Requisições</h1>
+    <p>Você excedeu o limite de requisições. Por favor, aguarde alguns minutos antes de tentar novamente.</p>
+  </div>
+</body>
+</html>`,
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          ...getRateLimitHeaders(rateLimitResult),
+        },
+      }
+    );
+  }
+
+  // 2. Validar token do query param
   const token = request.nextUrl.searchParams.get('token');
+
+  // 3. Validar tamanho do token (previne DoS)
+  const tokenValidation = validateStringLength(token, 'token', 100);
+  if (!tokenValidation.valid) {
+    return new NextResponse(
+      `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Token Inválido</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+    .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+    h1 { color: #e53e3e; margin-bottom: 20px; }
+    p { color: #4a5568; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>❌ Token Inválido</h1>
+    <p>O token fornecido é muito longo ou inválido.</p>
+  </div>
+</body>
+</html>`,
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          ...getRateLimitHeaders(rateLimitResult),
+        },
+      }
+    );
+  }
 
   if (!token) {
     return new NextResponse(

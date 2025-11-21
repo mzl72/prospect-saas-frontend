@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MessageIntervals, MessageInterval } from "@/components/cadence/MessageIntervals";
+import { InstanceManager } from "@/components/evolution/InstanceManager";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, MessageCircle, Calendar, Settings, Send, Plus, Trash2, ExternalLink, Info, Sparkles } from "lucide-react";
+import { Save, Loader2, MessageCircle, Calendar, Settings, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
@@ -112,6 +113,8 @@ export default function WhatsAppPage() {
     },
   });
 
+  // Funções para gerenciar instâncias (não utilizadas - agora usa InstanceManager)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addInstance = () => {
     if (!newInstance.trim()) {
       toast.error("Digite a URL da instância");
@@ -125,6 +128,7 @@ export default function WhatsAppPage() {
     toast.success("Instância adicionada");
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeInstance = (index: number) => {
     setConfig((prev) => ({
       ...prev,
@@ -319,88 +323,7 @@ export default function WhatsAppPage() {
 
             {/* Tab: Instances */}
             {activeTab === "instances" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Instâncias da Evolution API</CardTitle>
-                  <CardDescription>
-                    Gerencie as instâncias conectadas da Evolution API para envio de mensagens WhatsApp
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Add new instance */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="https://evolution.example.com"
-                      value={newInstance}
-                      onChange={(e) => setNewInstance(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addInstance();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      onClick={addInstance}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar
-                    </Button>
-                  </div>
-
-                  {/* List instances */}
-                  {config.evolutionInstances.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Send className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p>Nenhuma instância configurada</p>
-                      <p className="text-sm mt-1">Adicione uma URL da Evolution API acima</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {config.evolutionInstances.map((instance, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 border border-gray-600 rounded-lg bg-gray-50"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Send className="w-4 h-4 text-green-600" />
-                            <span className="font-mono text-sm">{instance}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(instance, "_blank")}
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeInstance(index)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm text-blue-900">
-                    <p className="font-semibold mb-1">💡 Dica</p>
-                    <p>
-                      As instâncias serão usadas em round-robin (rotação) para distribuir o envio de mensagens
-                      e evitar bloqueios do WhatsApp.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <InstanceManager />
             )}
 
             {/* Tab: Settings */}

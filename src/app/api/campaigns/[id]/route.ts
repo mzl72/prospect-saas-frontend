@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
 import { calculateCampaignStats, determineCampaignStatus } from '@/lib/campaign-status-service'
 import { validateCampaignOwnership, ownershipErrorResponse } from '@/lib/auth-middleware'
+import { DEMO_USER_ID } from '@/lib/demo-user'
+import {
+  checkUserRateLimit,
+  getUserRateLimitHeaders,
+  isValidCUID,
+  validatePayloadSize,
+  sanitizeForDatabase,
+} from '@/lib/security'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
@@ -19,16 +27,43 @@ export async function GET(
   try {
     const { id: campaignId } = await params
 
-    // Validar ownership
+    // 1. Rate limiting: 200 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'campaigns:get',
+      maxRequests: 200,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 2. Validar formato CUID (previne injection)
+    if (!isValidCUID(campaignId)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de campanha inválido' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Validar ownership
     const isOwner = await validateCampaignOwnership(campaignId)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
+
     const url = new URL(request.url)
 
-    // Paginação para evitar N+1 queries em campanhas grandes
-    const page = parseInt(url.searchParams.get('page') || '1', 10)
-    const pageSize = parseInt(url.searchParams.get('pageSize') || '50', 10)
+    // 4. Validar paginação (previne DoS com valores absurdos)
+    const page = Math.max(1, Math.min(10000, parseInt(url.searchParams.get('page') || '1', 10)))
+    const pageSize = Math.max(1, Math.min(100, parseInt(url.searchParams.get('pageSize') || '50', 10)))
     const skip = (page - 1) * pageSize
 
     const campaign = await prisma.campaign.findUnique({
@@ -84,20 +119,25 @@ export async function GET(
       campaign.status = newStatus
     }
 
-    return NextResponse.json({
-      success: true,
-      campaign: {
-        ...campaign,
-        stats,
+    return NextResponse.json(
+      {
+        success: true,
+        campaign: {
+          ...campaign,
+          stats,
+        },
+        pagination: {
+          page,
+          pageSize,
+          total: campaign._count.leads,
+          totalPages: Math.ceil(campaign._count.leads / pageSize),
+          hasMore: skip + campaign.leads.length < campaign._count.leads,
+        },
       },
-      pagination: {
-        page,
-        pageSize,
-        total: campaign._count.leads,
-        totalPages: Math.ceil(campaign._count.leads / pageSize),
-        hasMore: skip + campaign.leads.length < campaign._count.leads,
-      },
-    })
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    )
   } catch (error) {
     console.error('[API /campaigns/[id] GET] Erro:', error)
     return NextResponse.json(
@@ -115,19 +155,59 @@ export async function PATCH(
   try {
     const { id: campaignId } = await params
 
-    // Validar ownership
+    // 1. Rate limiting: 30 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'campaigns:update',
+      maxRequests: 30,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 2. Validar formato CUID
+    if (!isValidCUID(campaignId)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de campanha inválido' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Validar ownership
     const isOwner = await validateCampaignOwnership(campaignId)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
 
-    const body = await request.json()
+    // 4. Validar payload size
+    const bodyText = await request.text();
+    const payloadValidation = validatePayloadSize(bodyText, 10 * 1024); // 10KB max
 
-    // Validar com Zod
-    const validation = UpdateCampaignSchema.safeParse(body)
+    if (!payloadValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: payloadValidation.error },
+        { status: 413 }
+      );
+    }
+
+    const body = JSON.parse(bodyText);
+
+    // 5. Sanitizar
+    const sanitizedBody = sanitizeForDatabase(body);
+
+    // 6. Validar com Zod
+    const validation = UpdateCampaignSchema.safeParse(sanitizedBody)
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Dados inválidos', details: validation.error.flatten() },
+        { success: false, error: 'Dados inválidos', details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -139,10 +219,15 @@ export async function PATCH(
       data: { status },
     })
 
-    return NextResponse.json({
-      success: true,
-      campaign,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        campaign,
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    )
   } catch (error) {
     console.error('[API /campaigns/[id] PATCH] Erro:', error)
     return NextResponse.json(

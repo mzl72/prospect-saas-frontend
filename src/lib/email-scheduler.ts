@@ -42,7 +42,7 @@ export function addUnsubscribeFooter(body: string, optOutToken: string): string 
  */
 export function getTimeUntilNextEmail(
   email: EmailWithLead,
-  userSettings: UserSettings
+  _userSettings: UserSettings
 ): number | null {
   const { sequenceNumber, lead } = email;
 

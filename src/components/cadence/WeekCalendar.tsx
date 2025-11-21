@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Mail, MessageCircle, Clock, GripVertical } from "lucide-react";
 import type { CadenceItem } from "@/lib/base-scheduler";
 import { getMessageLabel, getItemColorClasses } from "./cadence-utils";
@@ -12,7 +10,6 @@ export type { CadenceItem };
 interface WeekCalendarProps {
   items: CadenceItem[];
   onChange: (items: CadenceItem[]) => void;
-  mode: "email" | "whatsapp" | "hybrid";
 }
 
 const DAYS = [
@@ -25,7 +22,7 @@ const DAYS = [
   { value: 6, label: "Sábado", short: "Sáb" },
 ];
 
-export function WeekCalendar({ items, onChange, mode }: WeekCalendarProps) {
+export function WeekCalendar({ items, onChange }: WeekCalendarProps) {
   const [draggedItem, setDraggedItem] = useState<CadenceItem | null>(null);
 
   const handleDragStart = (item: CadenceItem) => {
@@ -98,7 +95,7 @@ export function WeekCalendar({ items, onChange, mode }: WeekCalendarProps) {
               className="min-h-[200px] p-2 bg-gray-50 rounded-lg border-2 border-dashed border-gray-700 hover:border-blue-400 transition-colors"
             >
               <div className="space-y-2">
-                {getItemsForDay(day.value).map((item, idx) => (
+                {getItemsForDay(day.value).map((item) => (
                   <div
                     key={`${item.type}-${item.messageNumber}`}
                     draggable

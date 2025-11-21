@@ -7,23 +7,33 @@ import { NextRequest } from 'next/server';
 import { EmailStatus, WhatsAppStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma-db';
 import { DEMO_USER_ID } from '@/lib/demo-user';
+import { constantTimeCompare } from '@/lib/security';
 
 // ========================================
 // AUTENTICAÇÃO
 // ========================================
 
 /**
- * Valida secret do cron job
+ * Valida secret do cron job (usando constant-time compare para prevenir timing attacks)
  */
 export function validateCronAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    console.error('[Cron] CRON_SECRET not configured in environment variables');
     return false;
   }
 
-  return true;
+  if (!authHeader) {
+    return false;
+  }
+
+  // Formato esperado: "Bearer <secret>"
+  const token = authHeader.replace('Bearer ', '');
+
+  // Usa constant-time compare para prevenir timing attacks
+  return constantTimeCompare(token, cronSecret);
 }
 
 // ========================================

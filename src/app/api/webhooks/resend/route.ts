@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
 import { EmailStatus, LeadStatus } from '@prisma/client';
 import { validateResendWebhookSignature } from '@/lib/webhook-validation';
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit';
+import { validatePayloadSize, validateStringLength } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +32,25 @@ interface ResendWebhookEvent {
 
 export async function POST(request: NextRequest) {
   try {
-    // Validar webhook signature (HMAC)
+    // 1. Rate limiting por IP: 200 requisições por minuto (webhooks podem ter bursts)
+    const clientIp = getClientIp(request);
+    const rateLimitResult = checkRateLimit({
+      identifier: `resend-webhook:${clientIp}`,
+      maxRequests: 200,
+      windowMs: 60000, // 1 minuto
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 2. Validar webhook signature (HMAC)
     const signature = request.headers.get('svix-signature') || request.headers.get('webhook-signature')
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
 
@@ -38,10 +58,21 @@ export async function POST(request: NextRequest) {
       throw new Error('RESEND_WEBHOOK_SECRET must be configured in environment variables')
     }
 
+    // 3. Validar payload size (previne JSON bombing) - 1MB max
     const rawBody = await request.text()
+    const payloadValidation = validatePayloadSize(rawBody, 1024 * 1024); // 1MB max
 
+    if (!payloadValidation.valid) {
+      console.error('[Resend Webhook] Payload too large:', payloadValidation.error);
+      return NextResponse.json(
+        { error: payloadValidation.error },
+        { status: 413 }
+      );
+    }
+
+    // 4. Validar signature
     if (!validateResendWebhookSignature(rawBody, signature, webhookSecret)) {
-      console.error('[Resend Webhook] Invalid signature - unauthorized access attempt')
+      console.error('[Resend Webhook] Invalid signature - unauthorized access attempt from IP:', clientIp)
       return NextResponse.json(
         { error: 'Unauthorized - Invalid webhook signature' },
         { status: 401 }
@@ -49,6 +80,33 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ResendWebhookEvent = JSON.parse(rawBody);
+
+    // 5. Validar estrutura do payload
+    if (!body.type || typeof body.type !== 'string') {
+      console.error('[Resend Webhook] Invalid payload: missing type');
+      return NextResponse.json(
+        { error: 'Invalid payload: type is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!body.data || !body.data.email_id) {
+      console.error('[Resend Webhook] Invalid payload: missing email_id');
+      return NextResponse.json(
+        { error: 'Invalid payload: email_id is required' },
+        { status: 400 }
+      );
+    }
+
+    // 6. Validar tamanho do emailId (previne DoS)
+    const emailIdValidation = validateStringLength(body.data.email_id, 'email_id', 200);
+    if (!emailIdValidation.valid) {
+      console.error('[Resend Webhook] email_id too long:', emailIdValidation.error);
+      return NextResponse.json(
+        { error: emailIdValidation.error },
+        { status: 400 }
+      );
+    }
 
     console.log('[Resend Webhook] 📨 Event received:', {
       type: body.type,

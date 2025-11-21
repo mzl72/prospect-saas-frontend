@@ -4,15 +4,42 @@ import { NextRequest, NextResponse } from "next/server";
 import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
 import { calculateCampaignTimeout } from "@/lib/constants";
 import { calculateCampaignCost } from "@/lib/pricing-service";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit';
+// Rate limiting imports removidos (usando checkUserRateLimit de security.ts)
 import { CreateCampaignSchema } from '@/lib/validation-schemas';
+import { parseJsonArray } from '@/lib/validation-helper';
 import { ZodError } from 'zod';
+import {
+  checkUserRateLimit,
+  getUserRateLimitHeaders,
+  validateStringLength,
+  validateArrayLength,
+  validatePayloadSize,
+  sanitizeForDatabase,
+} from '@/lib/security';
 
 export const dynamic = "force-dynamic";
 
 // GET - Listar campanhas
-export async function GET() {
+export async function GET(_request: NextRequest) {
   try {
+    // Rate limiting: 100 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'campaigns:list',
+      maxRequests: 100,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
     // Garante que usuário existe
     await ensureDemoUser();
 
@@ -26,10 +53,15 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      campaigns,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        campaigns,
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    );
   } catch (error) {
     console.error("[API /campaigns GET] Erro ao buscar campanhas:", {
       error: error instanceof Error ? error.message : error,
@@ -46,29 +78,43 @@ export async function GET() {
 // POST - Criar nova campanha + Chamar N8N
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting: 10 campanhas por hora por IP
-    const clientIp = getClientIp(request)
-    const rateLimitResult = checkRateLimit({
-      identifier: `create-campaign:${clientIp}`,
+    // 1. Rate limiting por usuário: 10 campanhas/hora
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'campaigns:create',
       maxRequests: 10,
-      windowMs: 60 * 60 * 1000, // 1 hora
-    })
+      windowMs: 60 * 60 * 1000,
+    });
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Você atingiu o limite de criação de campanhas. Tente novamente mais tarde.' },
+        { success: false, error: 'Limite de criação de campanhas excedido. Aguarde antes de criar outra.' },
         {
           status: 429,
-          headers: getRateLimitHeaders(rateLimitResult),
+          headers: getUserRateLimitHeaders(rateLimitResult),
         }
-      )
+      );
     }
 
-    const body = await request.json();
+    // 2. Validação de payload size (previne JSON bombing)
+    const bodyText = await request.text();
+    const payloadValidation = validatePayloadSize(bodyText, 100 * 1024); // 100KB max
 
-    // Validação com Zod - mais robusta e com mensagens de erro claras
+    if (!payloadValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: payloadValidation.error },
+        { status: 413 }
+      );
+    }
+
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
+
+    // 3. Sanitização contra NoSQL injection
+    const sanitizedBody = sanitizeForDatabase(body) as typeof body;
+
+    // 4. Validação com Zod
     try {
-      CreateCampaignSchema.parse(body);
+      CreateCampaignSchema.parse(sanitizedBody);
     } catch (error) {
       if (error instanceof ZodError) {
         const errorMessages = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
@@ -80,10 +126,28 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
+    // 5. Validações adicionais de tamanho (previne DoS)
+    const titleValidation = validateStringLength(sanitizedBody.titulo as string, 'título', 200);
+    if (!titleValidation.valid) {
+      return NextResponse.json({ success: false, error: titleValidation.error }, { status: 400 });
+    }
+
+    const arrayValidations = [
+      validateArrayLength(sanitizedBody.tipoNegocio as string[], 'tipoNegocio', 10),
+      validateArrayLength(sanitizedBody.localizacao as string[], 'localizacao', 10),
+    ];
+
+    for (const validation of arrayValidations) {
+      if (!validation.valid) {
+        return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
+      }
+    }
+
     // Calcular custo usando serviço centralizado
+    const validData = sanitizedBody as { quantidade: number; nivelServico: string; tipoNegocio: string[]; localizacao: string[]; titulo?: string };
     const custo = calculateCampaignCost(
-      body.quantidade,
-      body.nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO'
+      validData.quantidade,
+      validData.nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO'
     );
 
     // Garante que usuário existe antes da transação
@@ -95,7 +159,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Validação: modo completo requer configurações
-    if (body.nivelServico === "completo") {
+    if (validData.nivelServico === "completo") {
       const missingFieldsByPage: Record<string, string[]> = {};
 
       // Se não tem userSettings, todos os campos estão faltando
@@ -158,7 +222,13 @@ export async function POST(request: NextRequest) {
         addMissingField("/configuracoes#prompts", "Template de Análise de Empresa");
       }
 
-      // Validar Informações da Empresa (aba Empresa)
+      // Validar Informações da Empresa (aba Empresa) - CAMPOS CRÍTICOS
+      if (!userSettings.nomeEmpresa?.trim()) {
+        addMissingField("/configuracoes", "Nome da Empresa (campo obrigatório)");
+      }
+      if (!userSettings.assinatura?.trim()) {
+        addMissingField("/configuracoes", "Assinatura (campo obrigatório)");
+      }
       if (!userSettings.informacoesPropria?.trim()) {
         addMissingField("/configuracoes", "Informações da Sua Empresa");
       }
@@ -200,29 +270,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Validar Emails Remetentes (OBRIGATÓRIO para envio de emails)
-      const senderEmails = (() => {
-        try {
-          const parsed = JSON.parse(userSettings.senderEmails || "[]");
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      })();
-
+      const senderEmails = parseJsonArray(userSettings.senderEmails);
       if (senderEmails.length === 0) {
         addMissingField("/emails#settings", "Pelo menos 1 Email Remetente (aba Configurações)");
       }
 
       // Validar Evolution Instances (OBRIGATÓRIO para envio de WhatsApp)
-      const evolutionInstances = (() => {
-        try {
-          const parsed = JSON.parse(userSettings.evolutionInstances || "[]");
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      })();
-
+      const evolutionInstances = parseJsonArray(userSettings.evolutionInstances);
       if (evolutionInstances.length === 0) {
         addMissingField("/whatsapp#instances", "Pelo menos 1 Instância Evolution API (aba Instâncias)");
       }
@@ -259,9 +313,9 @@ export async function POST(request: NextRequest) {
       });
 
       // 3. Calcular timeout da campanha
-      const campaignType = body.nivelServico.toUpperCase() as "BASICO" | "COMPLETO";
+      const campaignType = validData.nivelServico.toUpperCase() as "BASICO" | "COMPLETO";
       const { estimatedSeconds, timeoutDate } = calculateCampaignTimeout(
-        body.quantidade,
+        validData.quantidade,
         campaignType
       );
 
@@ -269,17 +323,17 @@ export async function POST(request: NextRequest) {
       const campaign = await tx.campaign.create({
         data: {
           userId: DEMO_USER_ID,
-          title: body.titulo,
-          quantidade: body.quantidade,
+          title: validData.titulo || `${validData.tipoNegocio.join(", ")} em ${validData.localizacao.join(", ")}`,
+          quantidade: validData.quantidade,
           tipo: campaignType,
-          termos: body.tipoNegocio.join(","),
-          locais: body.localizacao.join(","),
+          termos: validData.tipoNegocio.join(","),
+          locais: validData.localizacao.join(","),
           status: "PROCESSING",
           processStartedAt: new Date(),
           estimatedCompletionTime: estimatedSeconds,
           timeoutAt: timeoutDate,
           creditsCost: custo,
-          leadsRequested: body.quantidade, // quantidade solicitada pelo usuário
+          leadsRequested: validData.quantidade, // quantidade solicitada pelo usuário
         },
       });
 
@@ -291,13 +345,13 @@ export async function POST(request: NextRequest) {
     const n8nPayload = {
       // Dados da campanha
       campaignId: result.id,
-      termos: body.tipoNegocio.join(","),
-      locais: body.localizacao.join(","),
-      quantidade: body.quantidade,
-      nivelServico: body.nivelServico,
-      consolidado: body.nivelServico === "completo" ? "true" : "false",
+      termos: validData.tipoNegocio.join(","),
+      locais: validData.localizacao.join(","),
+      quantidade: validData.quantidade,
+      nivelServico: validData.nivelServico,
+      consolidado: validData.nivelServico === "completo" ? "true" : "false",
       timestamp: new Date().toLocaleString("pt-BR"),
-      titulo: body.titulo,
+      titulo: validData.titulo || result.title,
 
       // Configurações do usuário (templates de IA)
       settings: userSettings ? {
@@ -306,15 +360,7 @@ export async function POST(request: NextRequest) {
         assinatura: userSettings.assinatura,
         telefoneContato: userSettings.telefoneContato,
         websiteEmpresa: userSettings.websiteEmpresa,
-        senderEmails: (() => {
-          try {
-            const parsed = JSON.parse(userSettings.senderEmails || "[]");
-            return Array.isArray(parsed) ? parsed : [];
-          } catch (error) {
-            console.error('[Campaigns] Invalid senderEmails JSON:', error);
-            return [];
-          }
-        })(),
+        senderEmails: parseJsonArray(userSettings.senderEmails),
 
         // Prompts específicos por canal - Email
         emailPromptOverview: userSettings.emailPromptOverview,
@@ -378,15 +424,7 @@ export async function POST(request: NextRequest) {
         ],
 
         // Evolution API instances
-        evolutionInstances: (() => {
-          try {
-            const parsed = JSON.parse(userSettings.evolutionInstances || "[]");
-            return Array.isArray(parsed) ? parsed : [];
-          } catch (error) {
-            console.error('[Campaigns] Invalid evolutionInstances JSON:', error);
-            return [];
-          }
-        })(),
+        evolutionInstances: parseJsonArray(userSettings.evolutionInstances),
 
         // Cadências (JSON)
         emailOnlyCadence: (() => {

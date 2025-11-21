@@ -1,6 +1,7 @@
 // src/app/api/cron/check-campaign-timeout/route.ts
 import { prisma } from "@/lib/prisma-db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { validateCronAuth } from '@/lib/cron-utils';
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,16 @@ export const dynamic = "force-dynamic";
  * Cron job que verifica campanhas em processamento que ultrapassaram o timeout
  * e as marca como FAILED, devolvendo os créditos ao usuário
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 1. Validar autenticação do cron (sem rate limiting - é chamado por scheduler confiável)
+  if (!validateCronAuth(request)) {
+    console.error('[Cron Check Timeout] Unauthorized access attempt');
+    return NextResponse.json(
+      { error: 'Unauthorized - Invalid CRON_SECRET' },
+      { status: 401 }
+    );
+  }
+
   try {
     console.log("[Cron Check Timeout] Iniciando verificação de campanhas com timeout...");
 

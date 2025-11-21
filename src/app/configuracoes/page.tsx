@@ -11,24 +11,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Save,
   Loader2,
   Sparkles,
-  Mail,
   FileText,
   Info,
   Building2,
-  X,
-  MessageCircle,
-  Send,
-  Clock,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UserSettings } from "@/types";
@@ -189,6 +180,8 @@ export default function ConfiguracoesPage() {
     }
   };
 
+  // Funções para gerenciar sender emails (não utilizadas no momento)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addSenderEmail = () => {
     const email = senderEmailInput.trim();
     if (!email) return;
@@ -214,6 +207,7 @@ export default function ConfiguracoesPage() {
     toast.success("Email adicionado");
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeSenderEmail = (emailToRemove: string) => {
     const currentEmails = getSenderEmailsArray();
     const updatedEmails = currentEmails.filter((e) => e !== emailToRemove);

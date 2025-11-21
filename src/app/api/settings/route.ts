@@ -3,6 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma-db";
 import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
 import { sanitizeInput, containsXSS } from "@/lib/sanitization";
+import {
+  checkUserRateLimit,
+  getUserRateLimitHeaders,
+  validatePayloadSize,
+  validateStringLength,
+  sanitizeForDatabase,
+} from '@/lib/security';
 
 // Templates padrão
 const DEFAULT_SETTINGS = {
@@ -952,11 +959,29 @@ const settingsSchema = z.object({
 });
 
 // GET - Buscar configurações do usuário
-export async function GET() {
+export async function GET(_request: NextRequest) {
   try {
     console.log("[API /settings GET] 🔍 Starting GET request");
 
-    // Garante que usuário existe
+    // 1. Rate limiting: 60 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'settings:get',
+      maxRequests: 60,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 2. Garante que usuário existe
     await ensureDemoUser();
     console.log("[API /settings GET] ✅ Demo user ensured");
 
@@ -990,10 +1015,15 @@ export async function GET() {
       console.log("  - whatsappMessage1 length:", settings.whatsappMessage1?.length || 0);
     }
 
-    return NextResponse.json({
-      success: true,
-      settings,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        settings,
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    );
   } catch (error) {
     console.error("[API /settings GET] ❌ Erro ao buscar configurações:", {
       error: error instanceof Error ? error.message : error,
@@ -1010,14 +1040,46 @@ export async function GET() {
 // POST - Salvar configurações do usuário
 export async function POST(request: NextRequest) {
   try {
-    // Garante que usuário existe
+    // 1. Rate limiting: 20 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'settings:update',
+      maxRequests: 20,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 2. Garante que usuário existe
     await ensureDemoUser();
 
-    const body = await request.json();
+    // 3. Validar payload size (settings podem ser grandes por causa dos prompts)
+    const bodyText = await request.text();
+    const payloadValidation = validatePayloadSize(bodyText, 500 * 1024); // 500KB max
+
+    if (!payloadValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: payloadValidation.error },
+        { status: 413 }
+      );
+    }
+
+    const body = JSON.parse(bodyText);
     console.log("📥 [API] Received body:", JSON.stringify(body, null, 2));
 
-    // Validação robusta com Zod (inclui sanitização)
-    const validatedBody = settingsSchema.safeParse(body);
+    // 4. Sanitizar contra NoSQL injection
+    const sanitizedBody = sanitizeForDatabase(body);
+
+    // 5. Validação robusta com Zod (inclui sanitização XSS)
+    const validatedBody = settingsSchema.safeParse(sanitizedBody);
     if (!validatedBody.success) {
       console.error("❌ [API] Validation failed:", validatedBody.error.flatten());
       return NextResponse.json(
@@ -1028,6 +1090,20 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // 6. Validações adicionais de tamanho
+    const stringValidations = [
+      validateStringLength(validatedBody.data.nomeEmpresa, 'nomeEmpresa', 200),
+      validateStringLength(validatedBody.data.assinatura, 'assinatura', 200),
+      validateStringLength(validatedBody.data.telefoneContato, 'telefoneContato', 50),
+      validateStringLength(validatedBody.data.websiteEmpresa, 'websiteEmpresa', 500),
+    ];
+
+    for (const validation of stringValidations) {
+      if (!validation.valid) {
+        return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
+      }
     }
 
     const dataToSave = validatedBody.data;
@@ -1133,11 +1209,16 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ [API] Settings saved successfully");
 
-    return NextResponse.json({
-      success: true,
-      message: "Configurações salvas com sucesso",
-      settings,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Configurações salvas com sucesso",
+        settings,
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    );
   } catch (error) {
     console.error("[API /settings POST] ❌ Erro ao salvar configurações:", {
       error: error instanceof Error ? error.message : error,

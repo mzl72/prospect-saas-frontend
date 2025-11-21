@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
 import { validateLeadOwnership, ownershipErrorResponse } from '@/lib/auth-middleware'
+import { DEMO_USER_ID } from '@/lib/demo-user'
+import { checkUserRateLimit, getUserRateLimitHeaders, isValidCUID } from '@/lib/security'
 
 export const dynamic = 'force-dynamic'
-
-// CUID validation regex (formato: c + 24 caracteres alfanuméricos)
-const CUID_REGEX = /^c[a-z0-9]{24}$/i;
 
 // GET - Buscar lead específico com emails
 export async function GET(
@@ -15,15 +14,33 @@ export async function GET(
   try {
     const { leadId } = await params
 
-    // Validate CUID format
-    if (!CUID_REGEX.test(leadId)) {
+    // 1. Rate limiting: 300 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId: DEMO_USER_ID,
+      endpoint: 'leads:get',
+      maxRequests: 300,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'ID de lead inválido' },
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 2. Validar formato CUID
+    if (!isValidCUID(leadId)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de lead inválido' },
         { status: 400 }
       )
     }
 
-    // Validar ownership
+    // 3. Validar ownership
     const isOwner = await validateLeadOwnership(leadId)
     if (!isOwner) {
       return ownershipErrorResponse()
@@ -54,10 +71,15 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      lead,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        lead,
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    )
   } catch (error) {
     console.error('[API /campaigns/[id]/leads/[leadId] GET] Erro:', error)
     return NextResponse.json(
