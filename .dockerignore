@@ -34,3 +34,9 @@ Thumbs.db
 # Misc
 *.log
 .cache
+README.md
+deploy.sh
+deploy.ps1
+.dockerignore
+docker-compose.yml
+Dockerfile

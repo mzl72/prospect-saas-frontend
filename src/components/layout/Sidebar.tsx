@@ -1,36 +1,27 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
+  LayoutDashboard,
   Target,
-  LayoutList,
   Coins,
 } from "lucide-react";
+import { useCredits } from "@/hooks/useCredits";
 
 export function Sidebar() {
   const pathname = usePathname();
-
-  const { data: credits = 0 } = useQuery({
-    queryKey: ["credits"],
-    queryFn: async () => {
-      const response = await fetch("/api/users/credits");
-      const data = await response.json();
-      return data.success ? data.credits : 0;
-    },
-  });
+  const { data: credits = 0 } = useCredits();
 
   const isActive = (path: string) => {
-    if (path === "/") return pathname === path;
-    return pathname.startsWith(path);
+    if (path === "/dashboard" && pathname === "/dashboard") return true;
+    if (path === "/dashboard/campanhas" && pathname.startsWith("/dashboard/campanhas")) return true;
+    return false;
   };
 
   const menuItems = [
-    { href: "/", label: "Início", icon: Home },
-    { href: "/gerar", label: "Gerar Leads", icon: Target },
-    { href: "/campanhas", label: "Campanhas", icon: LayoutList },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/campanhas", label: "Campanhas", icon: Target },
   ];
 
   return (

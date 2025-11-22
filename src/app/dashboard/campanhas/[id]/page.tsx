@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArrowLeft, Download, RefreshCw, Mail, Info, ExternalLink, MapPin, Phone, Globe, Calendar, Star, MessageSquare } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { useUIStore } from "@/lib/store";
 
 // Simple CSV export function
 interface LeadForExport {
@@ -144,11 +143,8 @@ export default function CampaignDetailPage() {
   const campaignId = params.id as string;
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  // Zustand: persistir auto-refresh entre reloads
-  const autoRefreshEnabled = useUIStore((s) => s.autoRefreshEnabled[campaignId] ?? true);
-  const setAutoRefresh = useUIStore((s) => s.setAutoRefresh);
-  const newDataAvailable = useUIStore((s) => s.newDataAvailable[campaignId] ?? false);
-  const markDataAsRead = useUIStore((s) => s.markDataAsRead);
+  // Auto-refresh state (useState local - sem persistência entre reloads)
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
 
   const { data: campaign, isLoading, refetch } = useQuery<Campaign>({
     queryKey: ["campaign", campaignId],
@@ -167,13 +163,6 @@ export default function CampaignDetailPage() {
       return autoRefreshEnabled ? 10000 : false;
     },
   });
-
-  // Marcar dados como lidos quando componente monta
-  useEffect(() => {
-    if (newDataAvailable) {
-      markDataAsRead(campaignId);
-    }
-  }, [newDataAvailable, campaignId, markDataAsRead]);
 
   if (isLoading) {
     return (
@@ -230,7 +219,7 @@ export default function CampaignDetailPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setAutoRefresh(campaignId, !autoRefreshEnabled);
+                  setAutoRefreshEnabled(!autoRefreshEnabled);
                   if (!autoRefreshEnabled) refetch();
                 }}
               >

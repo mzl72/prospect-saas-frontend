@@ -1,12 +1,11 @@
 "use client";
 
-import { useWizardStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calculateCampaignCost } from "@/lib/pricing-service";
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,27 +15,80 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Wizard state context
+interface WizardContextType {
+  currentStep: number;
+  tipoNegocio: string;
+  localizacao: string;
+  quantidade: 4 | 20 | 40 | 100 | 200;
+  nivelServico: "basico" | "completo";
+  setCurrentStep: (step: number) => void;
+  setTipoNegocio: (value: string) => void;
+  setLocalizacao: (value: string) => void;
+  setQuantidade: (qty: 4 | 20 | 40 | 100 | 200) => void;
+  setNivelServico: (nivel: "basico" | "completo") => void;
+  resetWizard: () => void;
+}
+
+const WizardContext = createContext<WizardContextType | undefined>(undefined);
+
+function useWizard() {
+  const context = useContext(WizardContext);
+  if (!context) {
+    throw new Error("useWizard must be used within LeadGenerationWizard");
+  }
+  return context;
+}
+
 export function LeadGenerationWizard() {
-  const { currentStep } = useWizardStore();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [tipoNegocio, setTipoNegocio] = useState("");
+  const [localizacao, setLocalizacao] = useState("");
+  const [quantidade, setQuantidade] = useState<4 | 20 | 40 | 100 | 200>(20);
+  const [nivelServico, setNivelServico] = useState<"basico" | "completo">("basico");
+
+  const resetWizard = () => {
+    setCurrentStep(1);
+    setTipoNegocio("");
+    setLocalizacao("");
+    setQuantidade(20);
+    setNivelServico("basico");
+  };
 
   const progress = (currentStep / 3) * 100;
 
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="dark:text-white">Etapa {currentStep} de 3</CardTitle>
-          <CreditosDisplay />
-        </div>
-        <Progress value={progress} className="w-full" />
-      </CardHeader>
+  const wizardValue: WizardContextType = {
+    currentStep,
+    tipoNegocio,
+    localizacao,
+    quantidade,
+    nivelServico,
+    setCurrentStep,
+    setTipoNegocio,
+    setLocalizacao,
+    setQuantidade,
+    setNivelServico,
+    resetWizard,
+  };
 
-      <CardContent>
-        {currentStep === 1 && <EtapaConfiguracao />}
-        {currentStep === 2 && <EtapaNivelServico />}
-        {currentStep === 3 && <EtapaConfirmacao />}
-      </CardContent>
-    </Card>
+  return (
+    <WizardContext.Provider value={wizardValue}>
+      <Card className="w-full">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="dark:text-white">Etapa {currentStep} de 3</CardTitle>
+            <CreditosDisplay />
+          </div>
+          <Progress value={progress} className="w-full" />
+        </CardHeader>
+
+        <CardContent>
+          {currentStep === 1 && <EtapaConfiguracao />}
+          {currentStep === 2 && <EtapaNivelServico />}
+          {currentStep === 3 && <EtapaConfirmacao />}
+        </CardContent>
+      </Card>
+    </WizardContext.Provider>
   );
 }
 
@@ -66,7 +118,7 @@ function EtapaConfiguracao() {
     setLocalizacao,
     setQuantidade,
     setCurrentStep,
-  } = useWizardStore();
+  } = useWizard();
 
   const [errors, setErrors] = useState({ tipoNegocio: "", localizacao: "" });
 
@@ -166,7 +218,7 @@ function EtapaConfiguracao() {
 
 function EtapaNivelServico() {
   const { quantidade, nivelServico, setNivelServico, setCurrentStep } =
-    useWizardStore();
+    useWizard();
 
   const custoBasico = calculateCampaignCost(quantidade, "BASICO");
   const custoCompleto = calculateCampaignCost(quantidade, "COMPLETO");
@@ -248,7 +300,7 @@ function EtapaConfirmacao() {
     nivelServico,
     setCurrentStep,
     resetWizard,
-  } = useWizardStore();
+  } = useWizard();
 
   const queryClient = useQueryClient();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);

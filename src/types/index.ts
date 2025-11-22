@@ -76,21 +76,3 @@ export type {
   CreateCampaignDto,
   LeadData
 } from '@/lib/validation-schemas';
-
-// ========================================
-// FRONTEND-ONLY TYPES
-// ========================================
-
-export interface WizardState {
-  currentStep: number;
-  tipoNegocio: string;
-  localizacao: string;
-  quantidade: 4 | 20 | 40 | 100 | 200;
-  nivelServico: "basico" | "completo";
-  setCurrentStep: (step: number) => void;
-  setTipoNegocio: (tipo: string) => void;
-  setLocalizacao: (local: string) => void;
-  setQuantidade: (qtd: 4 | 20 | 40 | 100 | 200) => void;
-  setNivelServico: (nivel: "basico" | "completo") => void;
-  resetWizard: () => void;
-}

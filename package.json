@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
-    "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.16.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
@@ -33,15 +32,14 @@
     "prisma": "^6.16.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-hook-form": "^7.63.0",
+    "react-hook-form": "^7.53.2",
     "react-qr-code": "^2.0.18",
     "resend": "^6.1.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "sonner": "^1.7.2",
     "tailwind-merge": "^3.3.1",
-    "zod": "^4.1.11",
-    "zustand": "^5.0.8"
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

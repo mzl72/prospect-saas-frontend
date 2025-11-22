@@ -3,8 +3,18 @@ import { prisma } from '@/lib/prisma-db'
 import { LeadStatus } from '@prisma/client'
 import { handleLeadsExtracted } from './handleLeadsExtracted'
 import { handleLeadEnrichment } from './handleLeadEnrichment'
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
-import { validatePayloadSize, constantTimeCompare } from '@/lib/security'
+import { checkUserRateLimit, getUserRateLimitHeaders, validatePayloadSize, constantTimeCompare } from '@/lib/security'
+
+// Helper para obter IP do cliente
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for')
+  if (forwarded) {
+    return forwarded.split(',')[0].trim()
+  }
+  const realIp = request.headers.get('x-real-ip')
+  if (realIp) return realIp
+  return 'unknown'
+}
 
 // Validação de segurança do webhook (usando constant-time compare para prevenir timing attacks)
 function validateWebhookSecret(request: NextRequest): boolean {
@@ -36,12 +46,13 @@ export async function POST(request: NextRequest) {
   let payload: WebhookPayload | undefined;
 
   try {
-    // 1. Rate limiting: 100 requisições por minuto por IP
+    // 1. Rate limiting: 100 requisições por minuto (endpoint dedicado para webhooks N8N)
     const clientIp = getClientIp(request)
-    const rateLimitResult = checkRateLimit({
-      identifier: `n8n-webhook:${clientIp}`,
+    const rateLimitResult = checkUserRateLimit({
+      userId: `webhook-n8n:${clientIp}`, // userId baseado em IP para webhooks
+      endpoint: 'webhooks:n8n',
       maxRequests: 100,
-      windowMs: 60000, // 1 minuto
+      windowMs: 60 * 1000, // 1 minuto
     })
 
     if (!rateLimitResult.allowed) {
@@ -49,7 +60,7 @@ export async function POST(request: NextRequest) {
         { error: 'Rate limit exceeded. Try again later.' },
         {
           status: 429,
-          headers: getRateLimitHeaders(rateLimitResult),
+          headers: getUserRateLimitHeaders(rateLimitResult),
         }
       )
     }

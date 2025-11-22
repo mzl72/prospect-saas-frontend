@@ -47,14 +47,14 @@ export default function HomePage() {
                 size="lg"
                 className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl hover:shadow-2xl transition-all duration-300 text-lg px-8 py-6 group"
               >
-                <Link href="/gerar" className="flex items-center gap-2">
-                  Gerar Leads Agora
+                <Link href="/dashboard/campanhas" className="flex items-center gap-2">
+                  Acessar Dashboard
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Link href="/campanhas">
+              <Link href="/dashboard">
                 <button className="inline-flex items-center justify-center gap-2 h-12 px-8 py-6 rounded-md border-2 border-white text-white bg-transparent hover:bg-white hover:text-blue-600 hover:shadow-xl active:scale-95 backdrop-blur-sm text-lg font-medium transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50">
-                  Ver Campanhas
+                  Ver Dashboard
                 </button>
               </Link>
             </div>
@@ -337,7 +337,7 @@ export default function HomePage() {
             size="lg"
             className="bg-white text-blue-600 hover:bg-blue-50 shadow-2xl hover:shadow-3xl transition-all duration-300 text-lg px-10 py-7 group"
           >
-            <Link href="/gerar" className="flex items-center gap-2">
+            <Link href="/dashboard/campanhas" className="flex items-center gap-2">
               Começar Agora
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>

@@ -10,13 +10,13 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
 
-  // Landing page (/) não tem sidebar
-  const isLandingPage = pathname === "/";
+  // Mostrar sidebar apenas em rotas /dashboard
+  const showSidebar = pathname.startsWith("/dashboard");
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {!isLandingPage && <Sidebar />}
-      <main className={!isLandingPage ? "ml-64" : ""}>{children}</main>
+      {showSidebar && <Sidebar />}
+      <main className={showSidebar ? "ml-64" : ""}>{children}</main>
     </div>
   );
 }
