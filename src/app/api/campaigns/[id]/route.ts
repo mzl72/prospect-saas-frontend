@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
 import { DEMO_USER_ID } from '@/lib/demo-user'
+import { CampaignStatus } from '@prisma/client'
 import {
   checkUserRateLimit,
   getUserRateLimitHeaders,
@@ -11,21 +12,36 @@ import {
 import { z } from 'zod'
 
 // Inline helper functions
-function calculateCampaignStats(campaign: any) {
-  const total = campaign.leadsRequested || 0;
-  const created = campaign.leadsCreated || 0;
-  const duplicated = campaign.leadsDuplicated || 0;
-  const progress = total > 0 ? Math.round((created / total) * 100) : 0;
-  return { total, created, duplicated, progress };
+interface LeadWithStatus {
+  status: string;
 }
 
-function determineCampaignStatus(campaign: any): string {
-  if (campaign.status === 'FAILED') return 'FAILED';
-  if (campaign.tipo === 'BASICO' && campaign.status === 'EXTRACTION_COMPLETED') return 'COMPLETED';
-  return campaign.status;
+interface CampaignStatsResult {
+  totalLeads: number;
+  totalExtracted: number;
+  totalEnriched: number;
 }
 
-async function validateCampaignOwnership(campaignId: string, userId: string) {
+function calculateCampaignStats(allLeads: LeadWithStatus[]): CampaignStatsResult {
+  const totalExtracted = allLeads.filter((l) => l.status === 'EXTRACTED').length;
+  const totalEnriched = allLeads.filter((l) => l.status === 'ENRICHED').length;
+
+  return {
+    totalLeads: allLeads.length,
+    totalExtracted,
+    totalEnriched,
+  };
+}
+
+function determineCampaignStatus(currentStatus: string, tipo: string, stats: CampaignStatsResult): CampaignStatus {
+  if (currentStatus === 'FAILED') return 'FAILED';
+  if (currentStatus === 'COMPLETED') return 'COMPLETED';
+  if (tipo === 'BASICO' && currentStatus === 'EXTRACTION_COMPLETED') return 'COMPLETED';
+  if (tipo === 'COMPLETO' && stats.totalEnriched > 0) return 'EXTRACTION_COMPLETED';
+  return currentStatus as CampaignStatus;
+}
+
+async function validateCampaignOwnership(campaignId: string, userId: string): Promise<boolean> {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
   return campaign?.userId === userId;
 }
@@ -76,7 +92,7 @@ export async function GET(
     }
 
     // 3. Validar ownership
-    const isOwner = await validateCampaignOwnership(campaignId)
+    const isOwner = await validateCampaignOwnership(campaignId, DEMO_USER_ID)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
@@ -92,14 +108,6 @@ export async function GET(
       where: { id: campaignId },
       include: {
         leads: {
-          include: {
-            emails: {
-              orderBy: { sequenceNumber: 'asc' },
-            },
-            whatsappMessages: {
-              orderBy: { sequenceNumber: 'asc' },
-            },
-          },
           orderBy: { createdAt: 'desc' },
           skip,
           take: pageSize,
@@ -118,16 +126,15 @@ export async function GET(
     }
 
     // Buscar TODOS os leads apenas para cálculo de stats (sem paginação)
-    // Necessário para estatísticas precisas
     const allLeads = await prisma.lead.findMany({
       where: { campaignId },
       select: { status: true },
     })
 
-    // Calcular estatísticas usando serviço centralizado com TODOS os leads
-    const stats = calculateCampaignStats(allLeads, campaign.quantidade)
+    // Calcular estatísticas
+    const stats = calculateCampaignStats(allLeads)
 
-    // Determinar status correto usando serviço centralizado
+    // Determinar status correto
     const newStatus = determineCampaignStatus(campaign.status, campaign.tipo, stats)
 
     // Atualizar no banco se mudou (mas não sobrescrever COMPLETED/FAILED)
@@ -204,7 +211,7 @@ export async function PATCH(
     }
 
     // 3. Validar ownership
-    const isOwner = await validateCampaignOwnership(campaignId)
+    const isOwner = await validateCampaignOwnership(campaignId, DEMO_USER_ID)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
@@ -238,7 +245,7 @@ export async function PATCH(
 
     const campaign = await prisma.campaign.update({
       where: { id: campaignId },
-      data: { status },
+      data: { status: status as CampaignStatus },
     })
 
     return NextResponse.json(

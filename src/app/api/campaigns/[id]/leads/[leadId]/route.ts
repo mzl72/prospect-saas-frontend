@@ -4,7 +4,7 @@ import { DEMO_USER_ID } from '@/lib/demo-user'
 import { checkUserRateLimit, getUserRateLimitHeaders, isValidCUID } from '@/lib/security'
 
 // Inline helper functions
-async function validateLeadOwnership(leadId: string, userId: string) {
+async function validateLeadOwnership(leadId: string, userId: string): Promise<boolean> {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: { campaign: true }
@@ -18,7 +18,7 @@ function ownershipErrorResponse() {
 
 export const dynamic = 'force-dynamic'
 
-// GET - Buscar lead específico com emails
+// GET - Buscar lead específico
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; leadId: string }> }
@@ -53,7 +53,7 @@ export async function GET(
     }
 
     // 3. Validar ownership
-    const isOwner = await validateLeadOwnership(leadId)
+    const isOwner = await validateLeadOwnership(leadId, DEMO_USER_ID)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
@@ -61,12 +61,6 @@ export async function GET(
     const lead = await prisma.lead.findUnique({
       where: { id: leadId },
       include: {
-        emails: {
-          orderBy: { sequenceNumber: 'asc' },
-        },
-        whatsappMessages: {
-          orderBy: { sequenceNumber: 'asc' },
-        },
         campaign: {
           select: {
             id: true,

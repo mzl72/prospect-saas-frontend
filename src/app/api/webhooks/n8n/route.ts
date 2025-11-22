@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { LeadStatus, EmailStatus } from '@prisma/client'
+import { LeadStatus } from '@prisma/client'
 import { handleLeadsExtracted } from './handleLeadsExtracted'
 import { handleLeadEnrichment } from './handleLeadEnrichment'
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from '@/lib/rate-limit'
@@ -25,9 +25,9 @@ function validateWebhookSecret(request: NextRequest): boolean {
 
 // Função de normalização movida para @/lib/sanitization
 
-// Tipo dos payloads esperados do N8N
+// Tipo dos payloads esperados do N8N (MVP: apenas extração e enriquecimento)
 type WebhookPayload = {
-  event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'lead-enriched-hybrid' | 'campaign-completed' | 'email-sent' | 'email-replied' | 'opted-out'
+  event: 'leads-extracted' | 'lead-enriched' | 'lead-enriched-whatsapp' | 'lead-enriched-hybrid' | 'campaign-completed'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 }
@@ -120,18 +120,6 @@ export async function POST(request: NextRequest) {
 
         case 'campaign-completed':
           await handleCampaignCompleted(data)
-          break
-
-        case 'email-sent':
-          await handleEmailSent(data)
-          break
-
-        case 'email-replied':
-          await handleEmailReplied(data)
-          break
-
-        case 'opted-out':
-          await handleOptedOut(data)
           break
 
         default:
@@ -233,132 +221,4 @@ async function handleCampaignCompleted(data: {
   } else {
     console.log(`[Campaign Completed] Campanha é BASICO, status já deve estar correto`)
   }
-}
-
-// Handlers de enriquecimento movidos para handleLeadEnrichment.ts (handler universal)
-
-// Handler: Email enviado (Fluxos 3, 4, 5)
-async function handleEmailSent(data: {
-  leadId?: string
-  apifyId?: string
-  optOutToken?: string
-  sequenceNumber: number
-  messageId: string
-  threadId?: string
-  sentAt: string
-}) {
-  const { leadId, apifyId, optOutToken, sequenceNumber, messageId, threadId, sentAt } = data
-
-  console.log(`[Email Sent] Lead ${leadId || apifyId}, Email #${sequenceNumber}`)
-
-  // Buscar lead
-  const whereClause = leadId
-    ? { id: leadId }
-    : apifyId
-    ? { apifyLeadId: apifyId }
-    : { optOutToken }
-
-  const lead = await prisma.lead.findFirst({ where: whereClause })
-
-  if (!lead) {
-    console.error(`[Email Sent] Lead não encontrado`)
-    return
-  }
-
-  // Atualizar email específico
-  const email = await prisma.email.findFirst({
-    where: {
-      leadId: lead.id,
-      sequenceNumber,
-    },
-  })
-
-  if (email) {
-    await prisma.email.update({
-      where: { id: email.id },
-      data: {
-        messageId,
-        threadId,
-        sentAt: new Date(sentAt),
-        status: EmailStatus.SENT,
-      },
-    })
-  }
-
-  // Atualizar status do lead
-  const newStatus =
-    sequenceNumber === 1 ? LeadStatus.EMAIL_1_SENT :
-    sequenceNumber === 2 ? LeadStatus.EMAIL_2_SENT :
-    LeadStatus.EMAIL_3_SENT
-
-  await prisma.lead.update({
-    where: { id: lead.id },
-    data: { status: newStatus },
-  })
-
-  console.log(`[Email Sent] Lead ${lead.id} atualizado para ${newStatus}`)
-}
-
-// Handler: Lead respondeu
-async function handleEmailReplied(data: {
-  leadId?: string
-  apifyId?: string
-  optOutToken?: string
-  repliedAt: string
-}) {
-  const { leadId, apifyId, optOutToken, repliedAt } = data
-
-  console.log(`[Email Replied] Lead ${leadId || apifyId}`)
-
-  const whereClause = leadId
-    ? { id: leadId }
-    : apifyId
-    ? { apifyLeadId: apifyId }
-    : { optOutToken }
-
-  const lead = await prisma.lead.findFirst({ where: whereClause })
-
-  if (!lead) {
-    console.error(`[Email Replied] Lead não encontrado`)
-    return
-  }
-
-  await prisma.lead.update({
-    where: { id: lead.id },
-    data: {
-      status: LeadStatus.REPLIED,
-      repliedAt: new Date(repliedAt),
-    },
-  })
-
-  console.log(`[Email Replied] Lead ${lead.id} marcado como REPLIED`)
-}
-
-// Handler: Lead fez opt-out
-async function handleOptedOut(data: {
-  optOutToken: string
-  optedOutAt: string
-}) {
-  const { optOutToken, optedOutAt } = data
-
-  console.log(`[Opted Out] Token: ${optOutToken}`)
-
-  const lead = await prisma.lead.findUnique({
-    where: { optOutToken },
-  })
-
-  if (!lead) {
-    console.error(`[Opted Out] Lead não encontrado para token: ${optOutToken}`)
-    return
-  }
-
-  await prisma.lead.update({
-    where: { id: lead.id },
-    data: {
-      status: LeadStatus.OPTED_OUT,
-      optedOutAt: new Date(optedOutAt),
-    },
-  })
-
-  console.log(`[Opted Out] Lead ${lead.id} marcado como OPTED_OUT`)
 }

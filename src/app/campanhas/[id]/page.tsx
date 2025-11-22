@@ -13,7 +13,18 @@ import { toast } from "sonner";
 import { useUIStore } from "@/lib/store";
 
 // Simple CSV export function
-function exportLeadsToCSV(leads: any[], campaignTitle: string) {
+interface LeadForExport {
+  nomeEmpresa?: string;
+  email?: string;
+  telefone?: string;
+  website?: string;
+  endereco?: string;
+  categoria?: string;
+  notaMedia?: string;
+  totalReviews?: string;
+}
+
+function exportLeadsToCSV(leads: LeadForExport[], campaignTitle: string) {
   const headers = ["Nome Empresa", "Email", "Telefone", "Website", "Endereço", "Categoria", "Nota Média", "Total Reviews"];
   const rows = leads.map(lead => [
     lead.nomeEmpresa || "",
@@ -413,7 +424,7 @@ export default function CampaignDetailPage() {
                   toast.error("Nenhum lead para exportar");
                   return;
                 }
-                exportLeadsToCSV(campaign.leads, campaign.title);
+                exportLeadsToCSV(campaign.leads as LeadForExport[], campaign.title);
                 toast.success("CSV exportado com sucesso!");
               }}
             >

@@ -46,12 +46,12 @@ export default function CampanhasPage() {
         const status = CAMPAIGN_STATUS_LABELS[c.status as keyof typeof CAMPAIGN_STATUS_LABELS] || "concluído";
 
         // Registra tempo de início do polling
-        if ((status === "processando" || status === "extração concluída") && !pollingStartTimes.current[c.id]) {
+        if ((status === "Processando" || status === "Extração Concluída") && !pollingStartTimes.current[c.id]) {
           pollingStartTimes.current[c.id] = Date.now();
         }
 
         // Remove do rastreamento se completou
-        if (status !== "processando" && status !== "extração concluída" && pollingStartTimes.current[c.id]) {
+        if (status !== "Processando" && status !== "Extração Concluída" && pollingStartTimes.current[c.id]) {
           delete pollingStartTimes.current[c.id];
         }
 
