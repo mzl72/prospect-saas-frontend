@@ -1,193 +1,155 @@
-# 🚀 Prospect SaaS
+# Prospect SaaS - Plataforma de Prospecção B2B com IA
 
-Plataforma de prospecção inteligente que automatiza a geração, enriquecimento e contato com leads através de múltiplos canais (Email + WhatsApp).
+Sistema completo de geração e enriquecimento de leads B2B usando Google Maps + IA, com envio automatizado por Email e WhatsApp.
 
-## 💡 O que faz?
+## O que é isso?
 
-Você informa o tipo de negócio e a localização. O sistema:
-1. **Busca** empresas no Google Maps (via Apify)
-2. **Enriquece** com dados de IA (pesquisa + análise estratégica)
-3. **Envia** sequências personalizadas por email e/ou WhatsApp
-4. **Rastreia** opens, clicks, respostas automaticamente
-5. **Para** quando o lead responder
+Uma plataforma SaaS que extrai leads do Google Maps, enriquece cada lead com análise de IA (pesquisa da empresa, geração de mensagens personalizadas) e permite envio automatizado de campanhas multi-canal.
 
-Tudo configurável: horários, intervalos, templates e prompts de IA.
+## Stack Tecnológica
 
-## 🛠️ Stack
+- **Frontend**: Next.js 15.5.3, React 19, TypeScript, Tailwind CSS v4, Shadcn/UI
+- **Backend**: Next.js API Routes, Prisma ORM, PostgreSQL
+- **Automação**: N8N (workflows de extração/enriquecimento), Evolution API (WhatsApp), Resend (Email)
+- **Estado**: Zustand com persist middleware
+- **Cache**: TanStack Query v5 (React Query)
+- **Validação**: Zod + sanitização XSS + rate limiting
+- **Deploy**: Docker Compose (PostgreSQL, Redis, Evolution API, N8N, App)
 
-- **Next.js 15** (App Router) + TypeScript + Tailwind CSS + shadcn/ui
-- **PostgreSQL** + Prisma ORM
-- **Zustand** (estado) + **React Query** (cache)
-- **Resend** (emails) + **Evolution API** (WhatsApp)
-- **N8N** (workflows) + **Apify** (scraping)
+## Como Funciona
 
-## ⚡ Features
+### 1. Wizard de Geração (3 etapas)
+Usuário configura: tipo de negócio, localização, quantidade (4/20/40/100/200 leads), nível de serviço (básico ou completo).
 
-### ✅ Pronto para usar
-- 🎯 Criação de campanhas com wizard de 3 etapas
-- 📊 Dashboard com métricas em tempo real
-- 📧 Sequências de 3 emails (First touch → Bump → Breakup)
-- 💬 Sequências de 3 WhatsApp com Evolution API
-- 🔄 Modo híbrido (intercala email + WhatsApp)
-- 🤖 Enriquecimento com IA (GPT-4 + Perplexity)
-- 📈 Tracking completo (opens, clicks, bounces, replies)
-- 🚫 Opt-out automático (LGPD/CAN-SPAM)
-- ⏰ Horário comercial + rate limiting
-- 🌓 Dark mode
-- 🔒 Validação Zod + sanitização XSS
+### 2. Processamento Automático
+- **Básico** (0.25 créditos/lead): Extração de dados do Google Maps via Apify
+- **Completo** (1 crédito/lead): Básico + enriquecimento com IA (Perplexity + GPT-4o-mini)
 
-### 🔄 Como funciona
-
+### 3. Fluxo de Dados
 ```
-Wizard → N8N → Apify (scraping) → IA (enriquecimento) → Webhook
-         ↓
-  Cron jobs (a cada 5min) → Envia emails/WhatsApp → Tracking
-         ↓
-  Lead responde? → Para sequência automaticamente
+Frontend → POST /api/campaigns → N8N Webhook
+N8N → Apify (extração) → POST /api/webhooks/n8n (leads-extracted)
+N8N → IA (enriquecimento) → POST /api/webhooks/n8n (lead-enriched)
+N8N → POST /api/webhooks/n8n (campaign-completed)
 ```
 
-## 🚀 Quick Start
+## Estrutura do Projeto
 
+```
+├── src/
+│   ├── app/              # Páginas Next.js e API Routes
+│   ├── components/       # Componentes React (UI + Layout + Wizard)
+│   ├── lib/              # Utilitários, stores, validações, segurança
+│   └── types/            # TypeScript types (re-export do Prisma)
+├── prisma/               # Schema do banco de dados
+├── fluxos-n8n/           # Workflows N8N exportados (JSON)
+└── docker-compose.yml    # Infraestrutura completa
+```
+
+## Database Schema
+
+- **User**: id, email, credits (sistema de créditos pré-pago)
+- **Campaign**: id, userId, status (PROCESSING/EXTRACTION_COMPLETED/COMPLETED/FAILED), tipo (BASICO/COMPLETO), tracking de leads
+- **Lead**: id, campaignId, dados extraídos (nome, email, telefone, redes sociais), dados enriquecidos (companyResearch, strategicAnalysis, personalization)
+
+## Features Implementadas
+
+✅ Sistema de créditos com reembolso automático (duplicatas + leads não encontrados)
+✅ Wizard de 3 etapas para geração de leads
+✅ Integração com N8N (extração Apify + enriquecimento IA)
+✅ Webhook handlers para processar callbacks do N8N
+✅ Rate limiting por usuário + IP
+✅ Sanitização XSS + NoSQL injection
+✅ Timeout automático de campanhas
+✅ Validação de ownership (campanhas/leads)
+✅ Paginação de leads
+✅ Polling inteligente (30min timeout)
+
+## O que NÃO está implementado (ainda)
+
+❌ Autenticação real (usa DEMO_USER_ID hardcoded)
+❌ Envio real de emails/WhatsApp (apenas preparação de dados)
+❌ UserSettings (templates customizados, prompts IA, instâncias Evolution)
+❌ Socket.io/tempo real (código removido, usa polling)
+❌ Dashboard analítico com gráficos
+❌ Sistema de notificações
+❌ Multi-tenant
+
+## Instalação e Uso
+
+### 1. Clone e instale dependências
 ```bash
-# Clone e instale
-git clone <seu-repositorio>
+git clone <repo>
 cd prospect-saas-frontend
 npm install
+```
 
-# Configure .env
+### 2. Configure variáveis de ambiente
+```bash
 cp .env.example .env
-# Edite com suas credenciais (DATABASE_URL, RESEND_API_KEY, N8N_WEBHOOK_URL, etc)
+# Edite .env com suas credenciais (DATABASE_URL, N8N_WEBHOOK_URL, etc)
+```
 
-# Setup banco
-npx prisma db push
+### 3. Suba a infraestrutura com Docker
+```bash
+docker-compose up -d
+```
+
+Isso vai subir: PostgreSQL, Redis, Evolution API, N8N, Adminer
+
+### 4. Rode migrações do Prisma
+```bash
 npx prisma generate
-
-# Rode
-npm run dev
-# Acesse http://localhost:3000
+npx prisma migrate dev
 ```
 
-### Variáveis essenciais (.env)
-
+### 5. Inicie o app
 ```bash
-DATABASE_URL="postgresql://postgres:password@localhost:5432/app_prospect_db"
-RESEND_API_KEY="re_..."              # resend.com
-N8N_WEBHOOK_URL="https://..."        # Sua instância N8N
-N8N_WEBHOOK_SECRET="..."
-EVOLUTION_API_KEY="..."              # Evolution API (WhatsApp)
-CRON_SECRET="..."                     # Token para cron jobs
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+npm run dev  # Desenvolvimento
+npm run build && npm start  # Produção
 ```
 
-### Docker (Produção)
+### 6. Configure workflows N8N
+- Acesse http://localhost:5678 (user/pass no .env)
+- Importe workflows de `fluxos-n8n/`
+- Atualize URLs hardcoded (ngrok → seu domínio)
+- Configure credenciais (Apify, OpenAI, Perplexity)
 
-```bash
-docker-compose up -d  # App + PostgreSQL
-```
+## Arquitetura de Segurança
 
-## ⚙️ Configuração
+- **Rate Limiting**: 100-300 req/min por endpoint (memória LRU)
+- **Sanitização**: Zod schemas + XSS filtering + NoSQL injection prevention
+- **Validação**: Payload size limits (100KB-5MB), CUID validation
+- **Webhook Auth**: Constant-time secret comparison (timing attack prevention)
+- **Ownership**: Validação de userId em todas as rotas sensíveis
 
-### 1. Resend (Emails)
-1. Crie conta em [resend.com](https://resend.com)
-2. Adicione e verifique seu domínio (DNS: SPF, DKIM, DMARC)
-3. Crie API Key → adicione no `.env`
-4. Configure webhook: `https://seu-dominio.com/api/webhooks/resend`
-   - Eventos: `email.sent`, `email.opened`, `email.clicked`, `email.bounced`
+## Pricing
 
-### 2. Evolution API (WhatsApp)
-1. Tenha uma instância Evolution API rodando
-2. Adicione `EVOLUTION_API_KEY` no `.env`
-3. Configure instâncias na página `/whatsapp` do app
+- **Básico**: 0.25 créditos/lead (extração Google Maps)
+- **Completo**: 1 crédito/lead (básico + enriquecimento IA)
+- Reembolso automático para duplicatas e leads não encontrados
+- Cálculo centralizado em `src/lib/pricing-service.ts`
 
-### 3. N8N (Workflows)
-1. Importe workflows da pasta `fluxos-n8n/`
-2. Configure credenciais (Apify, OpenAI, Perplexity)
-3. Atualize URLs hardcoded para seu domínio
-4. Adicione `N8N_WEBHOOK_URL` e `N8N_WEBHOOK_SECRET` no `.env`
+## Contribuindo
 
-### 4. Cron Jobs (Produção)
-```bash
-# Adicione ao crontab (executa a cada 5min)
-*/5 * * * * curl -H "Authorization: Bearer SEU_CRON_SECRET" https://seu-dominio.com/api/cron/send-messages
-```
+Este é um projeto MVP. Para adicionar features:
 
-## 📁 Estrutura
+1. Leia os READMEs em cada pasta (`src/app/`, `src/lib/`, etc.)
+2. Siga os padrões de validação (Zod schemas em `validation-schemas.ts`)
+3. Use serviços centralizados (`pricing-service.ts`, `constants.ts`)
+4. Adicione rate limiting adequado
+5. Valide ownership quando necessário
 
-```
-prospect-saas-frontend/
-├── prisma/
-│   ├── schema.prisma              # 8 modelos (User, Campaign, Lead, Email, WhatsApp, etc)
-│   └── README.md
-├── src/
-│   ├── app/
-│   │   ├── api/                   # API Routes (ver api/README.md)
-│   │   │   ├── campaigns/         # CRUD campanhas + leads
-│   │   │   ├── cron/              # send-messages (unificado), check-timeout
-│   │   │   ├── webhooks/          # n8n, resend, evolution
-│   │   │   └── settings/
-│   │   ├── campanhas/             # Páginas frontend (ver app/README.md)
-│   │   ├── emails/                # Config emails
-│   │   ├── whatsapp/              # Config WhatsApp
-│   │   ├── cadencia-hibrida/      # Config híbrida
-│   │   └── gerar/                 # Wizard de criação
-│   ├── components/
-│   │   ├── wizard/                # LeadGenerationWizard
-│   │   ├── cadence/               # HybridCadence, WeekCalendar, MessageIntervals
-│   │   └── ui/                    # shadcn/ui
-│   └── lib/
-│       ├── base-scheduler.ts      # Lógica unificada de scheduling
-│       ├── email-service.ts       # Resend wrapper
-│       ├── whatsapp-service.ts    # Evolution API wrapper
-│       ├── pricing-service.ts     # Single source of truth (cálculos)
-│       ├── sanitization.ts        # XSS prevention
-│       └── validation-schemas.ts  # Zod schemas
-├── fluxos-n8n/                    # Workflows N8N (extração + enriquecimento)
-└── docker-compose.yml             # App + PostgreSQL
-```
+## Roadmap
 
-**📖 Mais detalhes**: Cada pasta tem seu próprio README explicando em detalhes.
+1. Implementar autenticação real (NextAuth.js)
+2. UserSettings para templates/prompts customizados
+3. Integração real com Evolution API (envio WhatsApp)
+4. Integração Resend (envio emails)
+5. Socket.io para updates em tempo real
+6. Dashboard analítico com métricas
+7. Multi-tenant
 
-## 🔒 Segurança
+## Licença
 
-- Validação Zod em todos inputs
-- Sanitização XSS (sanitization.ts)
-- Rate limiting (10/hora campanhas, 100/min webhooks)
-- Bearer tokens (webhooks, cron)
-- Prisma ORM (SQL injection protection)
-- CORS configurado
-
-## 🧪 Testar
-
-```bash
-# Envio manual de emails
-curl -H "Authorization: Bearer SEU_CRON_SECRET" \
-  http://localhost:3000/api/cron/send-messages
-
-# Webhook N8N
-curl -H "x-webhook-secret: SEU_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{"event":"leads-extracted","data":{...}}' \
-  http://localhost:3000/api/webhooks/n8n
-
-# Opt-out
-curl http://localhost:3000/api/unsubscribe?token=TOKEN_DO_LEAD
-```
-
-## 🚀 Deploy
-
-**VPS (recomendado)**: `docker-compose up -d` + configure cron jobs
-
-**Vercel**: Não recomendado (cron jobs limitados)
-
-## 📚 Documentação
-
-- [src/app/README.md](src/app/README.md) - Páginas frontend
-- [src/app/api/README.md](src/app/api/README.md) - API Routes
-- [src/lib/README.md](src/lib/README.md) - Core services
-- [fluxos-n8n/README.md](fluxos-n8n/README.md) - Workflows N8N
-- [prisma/README.md](prisma/README.md) - Schema do banco
-
----
-
-**Versão**: 3.0.0 (Multi-canal: Email + WhatsApp + Híbrido)
-**Última atualização**: Janeiro 2025
+Proprietário - Uso interno

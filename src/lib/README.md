@@ -1,23 +1,60 @@
-# Lib - Core Services & Utilities
+# src/lib - Utilitários e Serviços
 
-**prisma-db.ts**: Cliente Prisma singleton com logging em dev
-**demo-user.ts**: Gerencia usuário demo (DEMO_USER_ID hardcoded para MVP)
-**constants.ts**: Constantes do app (preços, quantidades, cache times, labels de status)
-**pricing-service.ts**: Cálculos de créditos, custos e reembolsos (single source of truth)
-**validation-schemas.ts**: Schemas Zod para validação de DTOs (campanhas, settings, leads)
-**sanitization.ts**: Funções de normalização, escape HTML e prevenção XSS
-**rate-limit.ts**: Rate limiting em memória com LRU e cleanup automático
-**store.ts**: Estado global Zustand (wizard não-persistido + UI persistido)
-**react-query.tsx**: Provider React Query com retry logic e cache config
-**base-scheduler.ts**: Lógica unificada de scheduling (email + WhatsApp + híbrido)
-**scheduling-utils.ts**: Utilitários de timing (horário comercial, delays, janelas de tempo)
-**message-service.ts**: Serviço unificado de envio (Resend + Evolution API)
-**email-service.ts**: Wrapper de compatibilidade para message-service
-**whatsapp-service.ts**: Wrapper de compatibilidade para message-service
-**email-scheduler.ts**: Scheduler específico de emails (usa base-scheduler)
-**whatsapp-scheduler.ts**: Scheduler específico de WhatsApp (usa base-scheduler)
-**campaign-status-service.ts**: Gerencia transições de status de campanhas
-**cron-utils.ts**: Utilitários para cron jobs (tracking diário, distribuição equilibrada)
-**csv-export.ts**: Exporta leads para CSV
-**webhook-validation.ts**: Valida webhooks N8N (secret verification)
-**utils.ts**: Utilitários gerais (clsx/tailwind merge)
+Funções auxiliares, stores, validações e configurações centralizadas.
+
+## Stores (Zustand)
+
+### `store.ts`
+**useWizardStore** (não persistido): Estado temporário do wizard (currentStep, tipoNegocio, localizacao, quantidade, nivelServico). Reset após criar campanha.
+**useUIStore** (persistido): Preferências de UI (autoRefreshEnabled, leadFilters) salvas em localStorage. NÃO persiste notificações voláteis (newDataAvailable).
+
+## Database
+
+### `prisma-db.ts`
+Prisma Client singleton com hot-reload em desenvolvimento. Logs condicionais (query/error/warn em dev, só error em prod).
+
+### `demo-user.ts`
+Gerenciamento do usuário demo (DEMO_USER_ID: "user-demo-001"). Função `ensureDemoUser()` garante existência no banco. TODO: substituir por autenticação real.
+
+## Pricing & Business Logic
+
+### `pricing-service.ts`
+SINGLE SOURCE OF TRUTH para cálculos de créditos: `calculateCampaignCost()`, `calculateRefund()`, `hasEnoughCredits()`, `calculateDiscount()` (15% para 200+, 10% para 100+, 5% para 40+).
+
+### `constants.ts`
+Constantes centralizadas: PRICING (BASICO: 0.25, COMPLETO: 1.0), ALLOWED_QUANTITIES, CACHE_TIMES, CAMPAIGN_TIMEOUT, labels de status. Função `calculateCampaignTimeout()` com validação de inputs.
+
+## Validação & Sanitização
+
+### `validation-schemas.ts`
+Zod schemas para DTOs: `CreateCampaignSchema` (titulo, tipoNegocio, localizacao, quantidade, nivelServico), `LeadDataSchema` (validação de leads do webhook Apify com URLs opcionais).
+
+### `sanitization.ts`
+Funções de limpeza de dados: `normalizeToNull()` (converte sentinels "N/A" para null), `sanitizeInput()` (remove XSS, preserva variáveis {template}), `containsXSS()`, `escapeHtml()`.
+
+## Segurança
+
+### `security.ts`
+Rate limiting por usuário (`checkUserRateLimit`, store em memória com LRU cleanup), validações anti-DoS (`validateStringLength`, `validateArrayLength`, `validatePayloadSize`), `sanitizeForDatabase()` (previne NoSQL injection, preserva JSON), `isValidCUID()`, `constantTimeCompare()` (anti timing attack).
+
+### `rate-limit.ts`
+Rate limiting simples por IP/identifier com LRU (Least Recently Used). Store em memória (max 10k entradas), cleanup a cada 5min. `checkRateLimit()`, `getClientIp()`, `getRateLimitHeaders()` (RFC 6585).
+
+## React Query
+
+### `react-query.tsx`
+Provider TanStack Query v5 com configuração global: staleTime 3min, gcTime 10min, retry inteligente (não retenta 4xx), backoff exponencial, sem refetch on window focus. Exporta `getQueryClient()` para invalidações globais.
+
+## Utilitários
+
+### `utils.ts`
+Helper `cn()` do Shadcn para merge de classes Tailwind (clsx + tailwind-merge).
+
+## Padrões de Código
+
+- Constantes em UPPER_SNAKE_CASE com `as const`
+- Funções de cálculo com validação de inputs e throw de erros descritivos
+- Sanitização em camadas: Zod → sanitizeForDatabase → validações específicas
+- Rate limiting diferenciado por tipo de operação (leitura > escrita)
+- Stores Zustand com partialize para controlar o que persiste
+- Comentários JSDoc em funções públicas
