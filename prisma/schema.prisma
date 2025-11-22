@@ -8,6 +8,7 @@ datasource db {
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
+// === USUÁRIO ===
 model User {
   id        String     @id @default(cuid())
   email     String     @unique
@@ -16,156 +17,63 @@ model User {
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
   campaigns Campaign[]
-  settings  UserSettings?
 
   @@map("users")
 }
 
-model UserSettings {
-  id                      String   @id @default(cuid())
-  userId                  String   @unique @map("user_id")
-
-  // Templates de Pesquisa e Análise
-  templatePesquisa        String   @default("") @map("template_pesquisa") @db.Text
-  templateAnaliseEmpresa  String   @default("") @map("template_analise_empresa") @db.Text
-  informacoesPropria      String   @default("") @map("informacoes_propria") @db.Text
-
-  // Prompts específicos por canal - Email
-  emailPromptOverview     String   @default("") @map("email_prompt_overview") @db.Text
-  emailPromptTatica       String   @default("") @map("email_prompt_tatica") @db.Text
-  emailPromptDiretrizes   String   @default("") @map("email_prompt_diretrizes") @db.Text
-
-  // Prompts específicos por canal - WhatsApp
-  whatsappPromptOverview  String   @default("") @map("whatsapp_prompt_overview") @db.Text
-  whatsappPromptTatica    String   @default("") @map("whatsapp_prompt_tatica") @db.Text
-  whatsappPromptDiretrizes String  @default("") @map("whatsapp_prompt_diretrizes") @db.Text
-
-  // Prompts específicos por canal - Híbrido
-  hybridPromptOverview    String   @default("") @map("hybrid_prompt_overview") @db.Text
-  hybridPromptTatica      String   @default("") @map("hybrid_prompt_tatica") @db.Text
-  hybridPromptDiretrizes  String   @default("") @map("hybrid_prompt_diretrizes") @db.Text
-
-  // Email Templates
-  emailTitulo1            String   @default("") @map("email_titulo_1")
-  emailCorpo1             String   @default("") @map("email_corpo_1") @db.Text
-  emailCorpo2             String   @default("") @map("email_corpo_2") @db.Text
-  emailTitulo3            String   @default("") @map("email_titulo_3")
-  emailCorpo3             String   @default("") @map("email_corpo_3") @db.Text
-
-  // Informações da Empresa (CRÍTICO)
-  nomeEmpresa             String   @default("") @map("nome_empresa")
-  assinatura              String   @default("") @map("assinatura")
-  telefoneContato         String   @default("") @map("telefone_contato")
-  websiteEmpresa          String   @default("") @map("website_empresa")
-
-  // Emails Remetentes (CRÍTICO - armazenado como JSON array)
-  senderEmails            String   @default("[]") @map("sender_emails") @db.Text
-
-  // WhatsApp Templates
-  whatsappMessage1        String   @default("") @map("whatsapp_message_1") @db.Text
-  whatsappMessage2        String   @default("") @map("whatsapp_message_2") @db.Text
-  whatsappMessage3        String   @default("") @map("whatsapp_message_3") @db.Text
-
-  // Hybrid Templates (3 Emails + 2 WhatsApp dedicados para cadência híbrida)
-  hybridEmailTitulo1      String   @default("") @map("hybrid_email_titulo_1")
-  hybridEmailCorpo1       String   @default("") @map("hybrid_email_corpo_1") @db.Text
-  hybridEmailCorpo2       String   @default("") @map("hybrid_email_corpo_2") @db.Text
-  hybridEmailTitulo3      String   @default("") @map("hybrid_email_titulo_3")
-  hybridEmailCorpo3       String   @default("") @map("hybrid_email_corpo_3") @db.Text
-  hybridWhatsappMessage1  String   @default("") @map("hybrid_whatsapp_message_1") @db.Text
-  hybridWhatsappMessage2  String   @default("") @map("hybrid_whatsapp_message_2") @db.Text
-
-  // Evolution API Instances (armazenado como JSON array)
-  evolutionInstances      String   @default("[]") @map("evolution_instances") @db.Text
-
-  // === CADÊNCIAS (Intervalos + Dias da Semana + Janelas de Tempo) ===
-  // Formato: Array de { type?: "email" | "whatsapp", messageNumber: 1|2|3, dayOfWeek: 0-6, timeWindow: "HH:MM-HH:MM", daysAfterPrevious: number }
-  // Permite configurar dia da semana e janela de tempo para cada mensagem
-
-  emailOnlyCadence        String   @default("[{\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":0},{\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"14:00-16:00\",\"daysAfterPrevious\":2},{\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":2}]") @map("email_only_cadence") @db.Text
-
-  whatsappOnlyCadence     String   @default("[{\"messageNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"10:00-12:00\",\"daysAfterPrevious\":0},{\"messageNumber\":2,\"dayOfWeek\":3,\"timeWindow\":\"15:00-17:00\",\"daysAfterPrevious\":2},{\"messageNumber\":3,\"dayOfWeek\":5,\"timeWindow\":\"10:00-12:00\",\"daysAfterPrevious\":2}]") @map("whatsapp_only_cadence") @db.Text
-
-  hybridCadence           String   @default("[{\"type\":\"email\",\"messageNumber\":1,\"emailNumber\":1,\"dayOfWeek\":1,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":0},{\"type\":\"whatsapp\",\"messageNumber\":2,\"whatsappNumber\":1,\"dayOfWeek\":2,\"timeWindow\":\"14:00-16:00\",\"daysAfterPrevious\":1},{\"type\":\"email\",\"messageNumber\":3,\"emailNumber\":2,\"dayOfWeek\":4,\"timeWindow\":\"09:00-11:00\",\"daysAfterPrevious\":2}]") @map("hybrid_cadence") @db.Text
-
-  // Configurações de Email
-  dailyEmailLimit         Int      @default(100) @map("daily_email_limit")
-  emailBusinessHourStart  Int      @default(9) @map("email_business_hour_start")
-  emailBusinessHourEnd    Int      @default(18) @map("email_business_hour_end")
-
-  // Configurações de WhatsApp
-  whatsappDailyLimit      Int      @default(50) @map("whatsapp_daily_limit")
-  whatsappBusinessHourStart Int    @default(9) @map("whatsapp_business_hour_start")
-  whatsappBusinessHourEnd Int      @default(18) @map("whatsapp_business_hour_end")
-
-  // Configurações de Cadência Híbrida
-  hybridDailyLimit        Int      @default(70) @map("hybrid_daily_limit")
-  hybridBusinessHourStart Int      @default(9) @map("hybrid_business_hour_start")
-  hybridBusinessHourEnd   Int      @default(18) @map("hybrid_business_hour_end")
-
-  sendOnlyBusinessHours   Boolean  @default(true) @map("send_only_business_hours")
-
-  useHybridCadence        Boolean  @default(false) @map("use_hybrid_cadence")
-
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_settings")
-}
-
-// Rastreamento de último envio por canal (para controlar delay automático)
-model ChannelSendLog {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  channel         String   // "email", "whatsapp", "hybrid"
-  lastSentAt      DateTime @map("last_sent_at")
-  nextAllowedAt   DateTime @map("next_allowed_at") // Calculado baseado no delay aleatório
-
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@unique([userId, channel])
-  @@map("channel_send_logs")
-}
-
+// === CAMPANHA ===
 model Campaign {
   id          String         @id @default(cuid())
   userId      String         @map("user_id")
   title       String
   status      CampaignStatus @default(PROCESSING)
-  quantidade  Int
-  tipo        CampaignType
-  termos      String
-  locais      String
-  planilhaUrl String?        @map("planilha_url")
+  quantidade  Int            // Quantidade de leads solicitada
+  tipo        CampaignType   // BASICO ou COMPLETO
+  termos      String         // Tipo de negócio (ex: "restaurante, padaria")
+  locais      String         // Localização (ex: "São Paulo, SP")
+  planilhaUrl String?        @map("planilha_url") // URL da planilha gerada
 
-  // Campos de timeout e rastreamento
-  processStartedAt         DateTime? @map("process_started_at")
-  estimatedCompletionTime  Int?      @map("estimated_completion_time") // em segundos
-  timeoutAt                DateTime? @map("timeout_at") // dobro do tempo estimado
-  creditsCost              Int?      @map("credits_cost") // custo em créditos para reembolso
+  // Rastreamento de leads
+  leadsRequested  Int      @map("leads_requested")  // Quantidade solicitada
+  leadsCreated    Int      @default(0) @map("leads_created") // Quantidade criada
+  leadsDuplicated Int      @default(0) @map("leads_duplicated") // Duplicatas
+  creditsCost     Int      @map("credits_cost") // Custo em créditos
+  creditsRefunded Float    @default(0) @map("credits_refunded") // Créditos devolvidos
 
-  // Rastreamento de leads solicitados vs criados
-  leadsRequested           Int?      @map("leads_requested") // quantidade solicitada pelo usuário
-  leadsCreated             Int       @default(0) @map("leads_created") // quantidade realmente criada
-  leadsDuplicated          Int       @default(0) @map("leads_duplicated") // quantidade de duplicatas encontradas
-  creditsRefunded          Float     @default(0) @map("credits_refunded") // créditos já devolvidos (Float para aceitar 0.25, 0.5, etc)
+  // Timeout
+  processStartedAt        DateTime? @map("process_started_at")
+  estimatedCompletionTime Int?      @map("estimated_completion_time") // segundos
+  timeoutAt               DateTime? @map("timeout_at")
 
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leads       Lead[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads Lead[]
 
   @@map("campaigns")
 }
 
+enum CampaignStatus {
+  PROCESSING            // Processando extração
+  EXTRACTION_COMPLETED  // Extração completa (BASICO finalizado)
+  COMPLETED             // Tudo finalizado (COMPLETO com enrichment)
+  FAILED               // Falha ou timeout
+}
+
+enum CampaignType {
+  BASICO   // Apenas extração de leads
+  COMPLETO // Extração + enriquecimento com IA
+}
+
+// === LEAD ===
 model Lead {
   id             String     @id @default(cuid())
   campaignId     String     @map("campaign_id")
+
+  // Dados básicos extraídos do Google Maps
   nomeEmpresa    String     @map("nome_empresa")
-  email          String?    // Email do lead para envio
+  email          String?
   endereco       String?
   website        String?
   telefone       String?
@@ -174,7 +82,7 @@ model Lead {
   notaMedia      String?    @map("nota_media")
   linkGoogleMaps String?    @map("link_google_maps")
 
-  // Redes sociais (extraídas pelo actor lukaskrivka/google-maps-with-contact-details)
+  // Redes sociais (actor lukaskrivka/google-maps-with-contact-details)
   linkedinUrl    String?    @map("linkedin_url")
   twitterUrl     String?    @map("twitter_url")
   instagramUrl   String?    @map("instagram_url")
@@ -183,129 +91,27 @@ model Lead {
   tiktokUrl      String?    @map("tiktok_url")
   pinterestUrl   String?    @map("pinterest_url")
 
-  createdAt      DateTime   @default(now()) @map("created_at")
+  // Tracking
+  apifyLeadId String?    @unique @map("apify_lead_id")
+  extractedAt DateTime?  @map("extracted_at")
+  enrichedAt  DateTime?  @map("enriched_at")
+  status      LeadStatus @default(EXTRACTED)
 
-  // Campos de tracking e status
-  apifyLeadId    String?    @unique @map("apify_lead_id")
-  extractedAt    DateTime?  @map("extracted_at")
-  enrichedAt     DateTime?  @map("enriched_at")
-  status         LeadStatus @default(EXTRACTED)
-  cadenceType    CadenceType? @map("cadence_type") // Qual tipo de cadência foi aplicada
+  // Dados enriquecidos (apenas para COMPLETO)
+  companyResearch   String? @map("company_research") @db.Text
+  strategicAnalysis String? @map("strategic_analysis") @db.Text
+  personalization   String? @db.Text
+  analysisLink      String? @map("analysis_link")
 
-  // Dados enriquecidos (Fluxo 2)
-  companyResearch    String? @map("company_research") @db.Text
-  strategicAnalysis  String? @map("strategic_analysis") @db.Text
-  personalization    String? @db.Text
-  analysisLink       String? @map("analysis_link")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  // Email tracking
-  assignedSender String?   @map("assigned_sender")
-  optOutToken    String?   @unique @map("opt_out_token")
-  optedOutAt     DateTime? @map("opted_out_at")
-  repliedAt      DateTime? @map("replied_at")
-
-  campaign        Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  emails          Email[]
-  whatsappMessages WhatsAppMessage[]
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId, status])
   @@map("leads")
 }
 
-enum CampaignStatus {
-  PROCESSING
-  EXTRACTION_COMPLETED  // Leads extraídos (BASICO finalizado, COMPLETO aguardando enrichment)
-  COMPLETED             // Totalmente finalizado
-  FAILED
-}
-
-enum CampaignType {
-  BASICO
-  COMPLETO
-}
-
 enum LeadStatus {
-  EXTRACTED
-  ENRICHED
-  EMAIL_1_SENT
-  EMAIL_2_SENT
-  EMAIL_3_SENT
-  WHATSAPP_1_SENT
-  WHATSAPP_2_SENT
-  WHATSAPP_3_SENT
-  REPLIED
-  OPTED_OUT
-  BOUNCED
-}
-
-enum EmailStatus {
-  PENDING
-  SENT
-  OPENED
-  REPLIED
-  BOUNCED
-  FAILED
-}
-
-model Email {
-  id             String      @id @default(cuid())
-  leadId         String      @map("lead_id")
-  sequenceNumber Int         @map("sequence_number")
-  subject        String
-  body           String      @db.Text
-  senderAccount  String      @map("sender_account")
-  sentAt         DateTime?   @map("sent_at")
-  messageId      String?     @unique @map("message_id")
-  threadId       String?     @map("thread_id")
-  status         EmailStatus @default(PENDING)
-  openedAt       DateTime?   @map("opened_at")
-  repliedAt      DateTime?   @map("replied_at")
-  bouncedAt      DateTime?   @map("bounced_at")
-  createdAt      DateTime    @default(now()) @map("created_at")
-
-  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  @@index([leadId, sequenceNumber])
-  @@map("emails")
-}
-
-model WhatsAppMessage {
-  id             String         @id @default(cuid())
-  leadId         String         @map("lead_id")
-  sequenceNumber Int            @map("sequence_number") // 1, 2 ou 3
-  phoneNumber    String         @map("phone_number")
-  message        String         @db.Text
-  senderInstance String?        @map("sender_instance") // URL da instância Evolution API
-  status         WhatsAppStatus @default(PENDING)
-
-  // Tracking
-  sentAt      DateTime? @map("sent_at")
-  deliveredAt DateTime? @map("delivered_at")
-  readAt      DateTime? @map("read_at")
-  repliedAt   DateTime? @map("replied_at")
-
-  // Evolution API
-  messageId    String?   @unique @map("message_id")
-  errorMessage String?   @map("error_message")
-  createdAt    DateTime  @default(now()) @map("created_at")
-
-  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-  @@index([leadId, sequenceNumber])
-  @@map("whatsapp_messages")
-}
-
-enum WhatsAppStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-  REPLIED
-  FAILED
-}
-
-enum CadenceType {
-  EMAIL_ONLY
-  WHATSAPP_ONLY
-  HYBRID
+  EXTRACTED // Lead extraído do Google Maps
+  ENRICHED  // Lead enriquecido com IA (apenas COMPLETO)
 }

@@ -7,10 +7,6 @@ import {
   Home,
   Target,
   LayoutList,
-  Mail,
-  MessageSquare,
-  GitMerge,
-  Settings,
   Coins,
 } from "lucide-react";
 
@@ -35,10 +31,6 @@ export function Sidebar() {
     { href: "/", label: "Início", icon: Home },
     { href: "/gerar", label: "Gerar Leads", icon: Target },
     { href: "/campanhas", label: "Campanhas", icon: LayoutList },
-    { href: "/emails", label: "Emails", icon: Mail },
-    { href: "/whatsapp", label: "WhatsApp", icon: MessageSquare },
-    { href: "/cadencia-hibrida", label: "Híbrido", icon: GitMerge },
-    { href: "/configuracoes", label: "Configurações", icon: Settings },
   ];
 
   return (

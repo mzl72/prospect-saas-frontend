@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/react-query";
-import { SocketProvider } from "@/lib/socket-client";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -91,9 +90,7 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <ReactQueryProvider>
-            <SocketProvider>
-              {children}
-            </SocketProvider>
+            {children}
           </ReactQueryProvider>
           <Toaster />
         </ErrorBoundary>

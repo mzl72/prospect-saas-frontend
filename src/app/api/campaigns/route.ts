@@ -6,8 +6,18 @@ import { calculateCampaignTimeout } from "@/lib/constants";
 import { calculateCampaignCost } from "@/lib/pricing-service";
 // Rate limiting imports removidos (usando checkUserRateLimit de security.ts)
 import { CreateCampaignSchema } from '@/lib/validation-schemas';
-import { parseJsonArray } from '@/lib/validation-helper';
 import { ZodError } from 'zod';
+
+// Helper function to parse JSON arrays
+function parseJsonArray(value: string | null | undefined): any[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 import {
   checkUserRateLimit,
   getUserRateLimitHeaders,

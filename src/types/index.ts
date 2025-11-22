@@ -5,35 +5,23 @@
 
 import type {
   User as PrismaUser,
-  UserSettings as PrismaUserSettings,
   Campaign as PrismaCampaign,
   Lead as PrismaLead,
-  Email as PrismaEmail,
-  WhatsAppMessage as PrismaWhatsAppMessage,
   CampaignStatus,
   CampaignType,
   LeadStatus,
-  EmailStatus,
-  WhatsAppStatus,
-  CadenceType,
 } from '@prisma/client';
 
 // Re-export Prisma types as-is (no duplicação)
 export type User = PrismaUser;
-export type UserSettings = PrismaUserSettings;
 export type Campaign = PrismaCampaign;
 export type Lead = PrismaLead;
-export type Email = PrismaEmail;
-export type WhatsAppMessage = PrismaWhatsAppMessage;
 
 // Re-export enums
 export type {
   CampaignStatus,
   CampaignType,
   LeadStatus,
-  EmailStatus,
-  WhatsAppStatus,
-  CadenceType,
 };
 
 // ========================================
@@ -70,23 +58,6 @@ export interface CreditsResponse {
   credits: number;
 }
 
-export interface SettingsResponse {
-  success: boolean;
-  settings: UserSettings | null;
-}
-
-// ========================================
-// SCHEDULER & MESSAGING TYPES
-// ========================================
-
-// Re-export from specialized modules (evita duplicação)
-export type { CadenceItem } from '@/lib/base-scheduler';
-export type {
-  SendEmailParams,
-  SendWhatsAppParams,
-  SendMessageResult
-} from '@/lib/message-service';
-
 // ========================================
 // CAMPAIGN UTILITIES TYPES
 // ========================================
@@ -95,15 +66,6 @@ export interface CampaignStats {
   total: number;
   extracted: number;
   enriched: number;
-  email1Sent: number;
-  email2Sent: number;
-  email3Sent: number;
-  whatsapp1Sent: number;
-  whatsapp2Sent: number;
-  whatsapp3Sent: number;
-  replied: number;
-  optedOut: number;
-  bounced: number;
 }
 
 // ========================================
@@ -112,7 +74,6 @@ export interface CampaignStats {
 
 export type {
   CreateCampaignDto,
-  UpdateUserSettingsDto,
   LeadData
 } from '@/lib/validation-schemas';
 

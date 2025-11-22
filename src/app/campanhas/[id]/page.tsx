@@ -9,9 +9,32 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArrowLeft, Download, RefreshCw, Mail, Info, ExternalLink, MapPin, Phone, Globe, Calendar, Star, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
-import { exportLeadsToCSV } from "@/lib/csv-export";
 import { toast } from "sonner";
 import { useUIStore } from "@/lib/store";
+
+// Simple CSV export function
+function exportLeadsToCSV(leads: any[], campaignTitle: string) {
+  const headers = ["Nome Empresa", "Email", "Telefone", "Website", "Endereço", "Categoria", "Nota Média", "Total Reviews"];
+  const rows = leads.map(lead => [
+    lead.nomeEmpresa || "",
+    lead.email || "",
+    lead.telefone || "",
+    lead.website || "",
+    lead.endereco || "",
+    lead.categoria || "",
+    lead.notaMedia || "",
+    lead.totalReviews || ""
+  ]);
+
+  const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${campaignTitle.replace(/[^a-z0-9]/gi, "_")}_leads.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 type LeadStatus =
   | "EXTRACTED"

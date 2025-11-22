@@ -15,16 +15,12 @@ done
 
 echo "✅ PostgreSQL está pronto!"
 
-# Remover .env de produção para forçar uso das variáveis do Docker
-echo "🧹 Limpando arquivos de ambiente locais..."
-rm -f .env .env.production 2>/dev/null || true
-
 # Executar migrations do Prisma
 echo "🔄 Executando migrações do Prisma..."
 npx prisma db push --skip-generate
 
 echo "✅ Migrações concluídas!"
 
-# Iniciar aplicação
+# Iniciar aplicação Next.js
 echo "🚀 Iniciando aplicação Next.js..."
-exec node server.js
+exec node_modules/.bin/next start

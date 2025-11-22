@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { validateLeadOwnership, ownershipErrorResponse } from '@/lib/auth-middleware'
 import { DEMO_USER_ID } from '@/lib/demo-user'
 import { checkUserRateLimit, getUserRateLimitHeaders, isValidCUID } from '@/lib/security'
+
+// Inline helper functions
+async function validateLeadOwnership(leadId: string, userId: string) {
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { campaign: true }
+  });
+  return lead?.campaign.userId === userId;
+}
+
+function ownershipErrorResponse() {
+  return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+}
 
 export const dynamic = 'force-dynamic'
 

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { calculateCampaignStats, determineCampaignStatus } from '@/lib/campaign-status-service'
-import { validateCampaignOwnership, ownershipErrorResponse } from '@/lib/auth-middleware'
 import { DEMO_USER_ID } from '@/lib/demo-user'
 import {
   checkUserRateLimit,
@@ -11,6 +9,30 @@ import {
   sanitizeForDatabase,
 } from '@/lib/security'
 import { z } from 'zod'
+
+// Inline helper functions
+function calculateCampaignStats(campaign: any) {
+  const total = campaign.leadsRequested || 0;
+  const created = campaign.leadsCreated || 0;
+  const duplicated = campaign.leadsDuplicated || 0;
+  const progress = total > 0 ? Math.round((created / total) * 100) : 0;
+  return { total, created, duplicated, progress };
+}
+
+function determineCampaignStatus(campaign: any): string {
+  if (campaign.status === 'FAILED') return 'FAILED';
+  if (campaign.tipo === 'BASICO' && campaign.status === 'EXTRACTION_COMPLETED') return 'COMPLETED';
+  return campaign.status;
+}
+
+async function validateCampaignOwnership(campaignId: string, userId: string) {
+  const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
+  return campaign?.userId === userId;
+}
+
+function ownershipErrorResponse() {
+  return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+}
 
 export const dynamic = 'force-dynamic'
 

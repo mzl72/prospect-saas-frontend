@@ -41,29 +41,6 @@ export const CreateCampaignSchema = z.object({
 export type CreateCampaignDto = z.infer<typeof CreateCampaignSchema>;
 
 /**
- * Schema para atualização de configurações do usuário
- */
-export const UpdateUserSettingsSchema = z.object({
-  emailSubject1: z.string().max(200).optional(),
-  emailBody1: z.string().max(5000).optional(),
-  emailSubject2: z.string().max(200).optional(),
-  emailBody2: z.string().max(5000).optional(),
-  emailSubject3: z.string().max(200).optional(),
-  emailBody3: z.string().max(5000).optional(),
-
-  whatsappMessage1: z.string().max(2000).optional(),
-  whatsappMessage2: z.string().max(2000).optional(),
-  whatsappMessage3: z.string().max(2000).optional(),
-
-  hybridCadence: z.string().optional(),
-
-  dailyEmailLimit: z.number().int().min(1).max(500).optional(),
-  dailyWhatsappLimit: z.number().int().min(1).max(500).optional(),
-});
-
-export type UpdateUserSettingsDto = z.infer<typeof UpdateUserSettingsSchema>;
-
-/**
  * Schema para validação de lead extraído do webhook
  * URLs opcionais aceitam null, undefined ou strings válidas (não vazias)
  */

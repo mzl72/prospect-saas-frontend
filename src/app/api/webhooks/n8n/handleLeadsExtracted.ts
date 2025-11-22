@@ -2,8 +2,13 @@
 import { prisma } from '@/lib/prisma-db'
 import { LeadStatus } from '@prisma/client'
 import { calculateRefund } from '@/lib/pricing-service'
-import { isValidEmail } from '@/lib/email-service'
 import { normalizeToNull } from '@/lib/sanitization'
+
+// Simple email validation
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
 
 // Alias para compatibilidade com código existente
 const normalizeValue = normalizeToNull
