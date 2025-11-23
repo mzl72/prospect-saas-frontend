@@ -15,15 +15,15 @@ done
 
 echo "✅ PostgreSQL está pronto!"
 
-# Executar migrations do Prisma
-echo "🔄 Executando migrações do Prisma..."
-npx prisma migrate deploy || npx prisma db push --accept-data-loss --skip-generate
+# Criar schema no banco
+echo "🔄 Criando schema do banco..."
+npx prisma db push --skip-generate --accept-data-loss
 
-echo "✅ Migrações concluídas!"
+echo "✅ Schema criado!"
 
-# Executar seed se necessário
-echo "🌱 Verificando seed do banco..."
-npx prisma db seed 2>/dev/null || echo "⚠️  Seed já executado ou não necessário"
+# Executar seed
+echo "🌱 Executando seed do banco..."
+npx tsx prisma/seed.ts
 
 # Iniciar aplicação Next.js
 echo "🚀 Iniciando aplicação Next.js..."

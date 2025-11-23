@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { DEMO_USER_ID } from '@/lib/demo-user'
-import { checkUserRateLimit, getUserRateLimitHeaders, isValidCUID } from '@/lib/security'
+import { requireAuth } from '@/lib/auth'
+import { checkUserRateLimit, getUserRateLimitHeaders, isValidCUID, constantTimeCompare } from '@/lib/security'
 
 // Inline helper functions
 async function validateLeadOwnership(leadId: string, userId: string): Promise<boolean> {
@@ -9,11 +9,14 @@ async function validateLeadOwnership(leadId: string, userId: string): Promise<bo
     where: { id: leadId },
     include: { campaign: true }
   });
-  return lead?.campaign.userId === userId;
+  if (!lead) return false;
+
+  // Timing-safe comparison para prevenir timing attacks durante enumeration
+  return constantTimeCompare(lead.campaign.userId, userId);
 }
 
 function ownershipErrorResponse() {
-  return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 403 });
 }
 
 export const dynamic = 'force-dynamic'
@@ -26,11 +29,15 @@ export async function GET(
   try {
     const { leadId } = await params
 
-    // 1. Rate limiting: 300 req/min por usuário
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting: 150 req/min por usuário (reduzido para prevenir enumeration)
+    // OWASP A01:2025 - Enumeration Protection
     const rateLimitResult = checkUserRateLimit({
-      userId: DEMO_USER_ID,
+      userId,
       endpoint: 'leads:get',
-      maxRequests: 300,
+      maxRequests: 150,
       windowMs: 60 * 1000,
     });
 
@@ -44,7 +51,7 @@ export async function GET(
       );
     }
 
-    // 2. Validar formato CUID
+    // 3. Validar formato CUID
     if (!isValidCUID(leadId)) {
       return NextResponse.json(
         { success: false, error: 'ID de lead inválido' },
@@ -52,8 +59,8 @@ export async function GET(
       )
     }
 
-    // 3. Validar ownership
-    const isOwner = await validateLeadOwnership(leadId, DEMO_USER_ID)
+    // 4. Validar ownership
+    const isOwner = await validateLeadOwnership(leadId, userId)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
@@ -87,6 +94,14 @@ export async function GET(
       }
     )
   } catch (error) {
+    // Erros de autenticação
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
     console.error('[API /campaigns/[id]/leads/[leadId] GET] Erro:', error)
     return NextResponse.json(
       { error: 'Erro ao buscar lead' },

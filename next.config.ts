@@ -69,6 +69,27 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
+          {
+            key: 'Content-Security-Policy',
+            // CSP rigoroso (OWASP A02:2025)
+            // Permite apenas recursos do mesmo origin, com exceções necessárias
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-inline necessário para Next.js
+              "style-src 'self' 'unsafe-inline'", // unsafe-inline necessário para Tailwind/styled-components
+              "img-src 'self' data: https:", // Permite imagens de CDNs
+              "font-src 'self' data:",
+              "connect-src 'self' https://n8n-prospect.easycheck.site https://evolution-prospect.easycheck.site",
+              "frame-ancestors 'none'", // Previne clickjacking
+              "base-uri 'self'", // Previne ataques de injeção de base tag
+              "form-action 'self'", // Apenas submissões para mesmo origin
+              "upgrade-insecure-requests", // Força HTTPS
+            ].join('; '),
+          },
         ],
       },
     ];

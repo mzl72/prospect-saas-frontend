@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { sanitizeInput, containsXSS } from "@/lib/sanitization";
 
 // Wizard state context
 interface WizardContextType {
@@ -97,16 +98,31 @@ function CreditosDisplay() {
     queryKey: ["credits"],
     queryFn: async () => {
       const response = await fetch("/api/users/credits");
+
+      // SECURITY: Validar status HTTP
+      if (!response.ok) {
+        throw new Error("Failed to fetch credits");
+      }
+
       const data = await response.json();
-      return data.success ? data.credits : 0;
+
+      // SECURITY: Validar tipo de resposta
+      if (data.success && typeof data.credits === "number" && isFinite(data.credits)) {
+        return Math.max(0, Math.floor(data.credits));
+      }
+
+      return 0;
     },
+    // SECURITY: Rate limiting via retry
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
   });
 
   if (isLoading) {
     return <div className="text-sm text-gray-300">Créditos: ...</div>;
   }
 
-  return <div className="text-sm text-gray-300">Créditos: {creditos}</div>;
+  return <div className="text-sm text-gray-300">Créditos: {creditos.toLocaleString()}</div>;
 }
 
 function EtapaConfiguracao() {
@@ -125,16 +141,25 @@ function EtapaConfiguracao() {
   const validate = () => {
     const newErrors = { tipoNegocio: "", localizacao: "" };
 
+    // SECURITY (OWASP A05:2025): Validação de input com limites
     if (!tipoNegocio.trim()) {
       newErrors.tipoNegocio = "Campo obrigatório";
     } else if (tipoNegocio.trim().length < 3) {
       newErrors.tipoNegocio = "Mínimo 3 caracteres";
+    } else if (tipoNegocio.length > 500) {
+      newErrors.tipoNegocio = "Máximo 500 caracteres";
+    } else if (containsXSS(tipoNegocio)) {
+      newErrors.tipoNegocio = "Caracteres inválidos detectados";
     }
 
     if (!localizacao.trim()) {
       newErrors.localizacao = "Campo obrigatório";
     } else if (localizacao.trim().length < 3) {
       newErrors.localizacao = "Mínimo 3 caracteres";
+    } else if (localizacao.length > 500) {
+      newErrors.localizacao = "Máximo 500 caracteres";
+    } else if (containsXSS(localizacao)) {
+      newErrors.localizacao = "Caracteres inválidos detectados";
     }
 
     setErrors(newErrors);
@@ -161,7 +186,9 @@ function EtapaConfiguracao() {
           }`}
           value={tipoNegocio}
           onChange={(e) => {
-            setTipoNegocio(e.target.value);
+            // Sanitizar input em tempo real (OWASP A05:2025 - XSS Prevention)
+            const sanitized = sanitizeInput(e.target.value);
+            setTipoNegocio(sanitized);
             if (errors.tipoNegocio) setErrors({ ...errors, tipoNegocio: "" });
           }}
         />
@@ -182,7 +209,9 @@ function EtapaConfiguracao() {
           }`}
           value={localizacao}
           onChange={(e) => {
-            setLocalizacao(e.target.value);
+            // Sanitizar input em tempo real (OWASP A05:2025 - XSS Prevention)
+            const sanitized = sanitizeInput(e.target.value);
+            setLocalizacao(sanitized);
             if (errors.localizacao) setErrors({ ...errors, localizacao: "" });
           }}
         />
@@ -309,9 +338,23 @@ function EtapaConfirmacao() {
     queryKey: ["credits"],
     queryFn: async () => {
       const response = await fetch("/api/users/credits");
+
+      // SECURITY: Validar status HTTP
+      if (!response.ok) {
+        throw new Error("Failed to fetch credits");
+      }
+
       const data = await response.json();
-      return data.success ? data.credits : 0;
+
+      // SECURITY: Validar tipo de resposta
+      if (data.success && typeof data.credits === "number" && isFinite(data.credits)) {
+        return Math.max(0, Math.floor(data.credits));
+      }
+
+      return 0;
     },
+    // SECURITY: Rate limiting
+    retry: 2,
   });
 
   const custo = calculateCampaignCost(quantidade, nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO');
@@ -321,6 +364,14 @@ function EtapaConfirmacao() {
     mutationFn: async () => {
       const tiposArray = tipoNegocio.split(",").map((s) => s.trim()).filter(Boolean);
       const locaisArray = localizacao.split(",").map((s) => s.trim()).filter(Boolean);
+
+      // SECURITY (OWASP A06:2025): Validar tamanho de arrays (previne DoS)
+      if (tiposArray.length > 10) {
+        throw new Error("Máximo 10 tipos de negócio permitidos");
+      }
+      if (locaisArray.length > 10) {
+        throw new Error("Máximo 10 localizações permitidas");
+      }
 
       const response = await fetch("/api/campaigns", {
         method: "POST",
@@ -348,6 +399,8 @@ function EtapaConfirmacao() {
 
       return result;
     },
+    // SECURITY (OWASP A06:2025): Rate limiting via retry limit
+    retry: 1, // Apenas 1 retry para mutações críticas
     onSuccess: async () => {
       // Invalida cache para atualizar dados (força refetch imediato)
       await Promise.all([
@@ -364,10 +417,9 @@ function EtapaConfirmacao() {
       // Reset wizard
       resetWizard();
 
-      // Aguarda um pouco para garantir atualização do cache
-      setTimeout(() => {
-        window.location.href = "/campanhas";
-      }, 100);
+      // SECURITY FIX (OWASP A06:2025): Remover setTimeout (race condition)
+      // Redirecionar imediatamente após invalidação do cache
+      window.location.href = "/campanhas";
     },
     onError: (error) => {
       console.error("Erro ao criar campanha:", error);

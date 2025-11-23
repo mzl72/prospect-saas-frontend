@@ -16,8 +16,17 @@ async function main() {
     return;
   }
 
-  // Criar usuário admin
-  const hashedPassword = await bcrypt.hash("admin123", 10);
+  // SECURITY (OWASP A07:2025): Senha obrigatória via .env
+  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+
+  if (!adminPassword) {
+    console.error("❌ ERRO: ADMIN_INITIAL_PASSWORD não definida no .env");
+    console.error("   Adicione ao .env: ADMIN_INITIAL_PASSWORD=SuaSenhaSegura123!");
+    process.exit(1);
+  }
+
+  // Bcrypt rounds: 14 (recomendação OWASP 2025 para alta segurança)
+  const hashedPassword = await bcrypt.hash(adminPassword, 14);
 
   const admin = await prisma.user.create({
     data: {
@@ -33,9 +42,9 @@ async function main() {
 
   console.log("✅ Usuário admin criado:");
   console.log(`   Email: ${admin.email}`);
-  console.log(`   Senha: admin123`);
   console.log(`   Role: ${admin.role}`);
   console.log(`   Créditos: ${admin.credits}`);
+  console.log("   Senha: [Definida via ADMIN_INITIAL_PASSWORD - altere no primeiro login]");
 }
 
 main()

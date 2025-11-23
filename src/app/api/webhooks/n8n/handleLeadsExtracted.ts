@@ -95,12 +95,19 @@ export async function handleLeadsExtracted(data: {
       leadsRequested: true,
       creditsCost: true,
       creditsRefunded: true,
+      status: true, // Validar status
     },
   })
 
   if (!campaign) {
     console.error(`[Leads Extracted] Campanha ${campaignId} não encontrada`)
     throw new Error(`Campanha ${campaignId} não encontrada`)
+  }
+
+  // Validação de segurança: apenas processar campanhas em status válido
+  if (campaign.status !== 'PROCESSING') {
+    console.error(`[Leads Extracted] Campanha ${campaignId} não está em processamento (status: ${campaign.status})`)
+    throw new Error(`Campanha ${campaignId} não está em processamento`)
   }
 
   // Verificar quais leads já existem no banco (evitar duplicatas)

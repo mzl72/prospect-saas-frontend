@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma-db'
-import { DEMO_USER_ID } from '@/lib/demo-user'
+import { requireAuth } from '@/lib/auth'
 import { CampaignStatus } from '@prisma/client'
 import {
   checkUserRateLimit,
@@ -8,6 +8,7 @@ import {
   isValidCUID,
   validatePayloadSize,
   sanitizeForDatabase,
+  constantTimeCompare,
 } from '@/lib/security'
 import { z } from 'zod'
 
@@ -43,11 +44,14 @@ function determineCampaignStatus(currentStatus: string, tipo: string, stats: Cam
 
 async function validateCampaignOwnership(campaignId: string, userId: string): Promise<boolean> {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-  return campaign?.userId === userId;
+  if (!campaign) return false;
+
+  // Timing-safe comparison para prevenir timing attacks durante enumeration
+  return constantTimeCompare(campaign.userId, userId);
 }
 
 function ownershipErrorResponse() {
-  return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 403 });
 }
 
 export const dynamic = 'force-dynamic'
@@ -65,11 +69,15 @@ export async function GET(
   try {
     const { id: campaignId } = await params
 
-    // 1. Rate limiting: 200 req/min por usuário
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting: 100 req/min por usuário (reduzido para prevenir enumeration)
+    // OWASP A01:2025 - Enumeration Protection
     const rateLimitResult = checkUserRateLimit({
-      userId: DEMO_USER_ID,
+      userId,
       endpoint: 'campaigns:get',
-      maxRequests: 200,
+      maxRequests: 100,
       windowMs: 60 * 1000,
     });
 
@@ -83,7 +91,7 @@ export async function GET(
       );
     }
 
-    // 2. Validar formato CUID (previne injection)
+    // 3. Validar formato CUID (previne injection)
     if (!isValidCUID(campaignId)) {
       return NextResponse.json(
         { success: false, error: 'ID de campanha inválido' },
@@ -91,15 +99,15 @@ export async function GET(
       );
     }
 
-    // 3. Validar ownership
-    const isOwner = await validateCampaignOwnership(campaignId, DEMO_USER_ID)
+    // 4. Validar ownership
+    const isOwner = await validateCampaignOwnership(campaignId, userId)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
 
     const url = new URL(request.url)
 
-    // 4. Validar paginação (previne DoS com valores absurdos)
+    // 5. Validar paginação (previne DoS com valores absurdos)
     const page = Math.max(1, Math.min(10000, parseInt(url.searchParams.get('page') || '1', 10)))
     const pageSize = Math.max(1, Math.min(100, parseInt(url.searchParams.get('pageSize') || '50', 10)))
     const skip = (page - 1) * pageSize
@@ -168,6 +176,14 @@ export async function GET(
       }
     )
   } catch (error) {
+    // Erros de autenticação
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
     console.error('[API /campaigns/[id] GET] Erro:', error)
     return NextResponse.json(
       { error: 'Erro ao buscar campanha' },
@@ -184,9 +200,12 @@ export async function PATCH(
   try {
     const { id: campaignId } = await params
 
-    // 1. Rate limiting: 30 req/min por usuário
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting: 30 req/min por usuário
     const rateLimitResult = checkUserRateLimit({
-      userId: DEMO_USER_ID,
+      userId,
       endpoint: 'campaigns:update',
       maxRequests: 30,
       windowMs: 60 * 1000,
@@ -202,7 +221,7 @@ export async function PATCH(
       );
     }
 
-    // 2. Validar formato CUID
+    // 3. Validar formato CUID
     if (!isValidCUID(campaignId)) {
       return NextResponse.json(
         { success: false, error: 'ID de campanha inválido' },
@@ -210,13 +229,13 @@ export async function PATCH(
       );
     }
 
-    // 3. Validar ownership
-    const isOwner = await validateCampaignOwnership(campaignId, DEMO_USER_ID)
+    // 4. Validar ownership
+    const isOwner = await validateCampaignOwnership(campaignId, userId)
     if (!isOwner) {
       return ownershipErrorResponse()
     }
 
-    // 4. Validar payload size
+    // 5. Validar payload size
     const bodyText = await request.text();
     const payloadValidation = validatePayloadSize(bodyText, 10 * 1024); // 10KB max
 
@@ -229,10 +248,10 @@ export async function PATCH(
 
     const body = JSON.parse(bodyText);
 
-    // 5. Sanitizar
+    // 6. Sanitizar
     const sanitizedBody = sanitizeForDatabase(body);
 
-    // 6. Validar com Zod
+    // 7. Validar com Zod
     const validation = UpdateCampaignSchema.safeParse(sanitizedBody)
     if (!validation.success) {
       return NextResponse.json(
@@ -258,6 +277,14 @@ export async function PATCH(
       }
     )
   } catch (error) {
+    // Erros de autenticação
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
     console.error('[API /campaigns/[id] PATCH] Erro:', error)
     return NextResponse.json(
       { error: 'Erro ao atualizar campanha' },

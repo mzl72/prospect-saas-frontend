@@ -21,6 +21,9 @@ model User {
   tenancyId    String?  @map("tenancy_id")
   tenancyName  String?  @map("tenancy_name")
 
+  // Security: JWT invalidation on password change
+  tokenVersion Int      @default(0) @map("token_version")
+
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 

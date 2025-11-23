@@ -1,0 +1,227 @@
+##1 - Esse é o documento que utilizamos (Não está completo pois é muito grande, vou te passar somente o necessário):
+Plano de Desenvolvimento - 3 Semanas (MVP 100% Funcional)
+Objetivo: Sistema de prospecção B2B inspirado no Meta Ads com campanhas de extração e envio automatizado.
+📊 Estado Atual (Fase 0 - Concluído)
+✅ Infraestrutura
+Docker Compose: PostgreSQL, Redis, Evolution API, N8N, Adminer
+Next.js 15.5.3 + React 19 + TypeScript + Tailwind v4
+Prisma ORM com schema inicial (User, Campaign, Lead)
+TanStack Query v5 + Zustand stores
+Entre outras necessárias
+✅ Funcionalidades Implementadas
+Wizard 3 etapas para criação de campanha (tipo negócio, localização, quantidade, nível)
+Sistema de créditos (BASICO: 0.25, COMPLETO: 1.0)
+POST /api/campaigns → chama N8N webhook
+Webhook handlers: leads-extracted, lead-enriched, campaign-completed
+Reembolso automático (duplicatas + leads não encontrados)
+Rate limiting por usuário + IP
+Sanitização XSS + NoSQL injection
+Validação de ownership (campanhas/leads)
+✅ Fluxos N8N Atuais
+Fluxo 1 (Extração): Apify Google Maps → webhook leads-extracted → dispara Fluxo 2 se completo
+Fluxo 2 (Enriquecimento): Perplexity + GPT-4o-mini → gera 3 mensagens (email/whatsapp/hybrid) → webhook lead-enriched
+✅ UI Atual
+Landing page (/)
+Wizard de geração (/gerar)
+Lista de campanhas (/campanhas)
+Detalhes de campanha (/campanhas/[id])
+Sidebar com navegação
+⚠️ Limitações Atuais
+Usa DEMO_USER_ID hardcoded (sem auth)
+Não envia mensagens reais (apenas prepara dados)
+Sem templates customizáveis
+Sem campanhas de envio
+Sem captura de respostas
+UI não segue padrão Meta Ads
+🎯 Arquitetura Alvo (MVP 3 Semanas)
+Resumo Executivo
+Este roteiro divide a evolução do sistema em 3 sprints lógicos e incrementais. Ao iniciar uma tarefa, identifique em qual semana ela se encaixa para manter o contexto:
+SEMANA 1 (Fundação & Estrutura): Foco em Infraestrutura e CRUDs. O objetivo é preparar o sistema multi-usuário (NextAuth, Roles), estabelecer o novo layout do Dashboard (estilo Meta Ads) e criar as interfaces de gerenciamento base (Templates, Configurações de API/Email).
+SEMANA 2 (Motor de Envio): Foco em Lógica de Negócio e Integrações. O objetivo é fazer o sistema funcionar. Inclui o Wizard de Campanhas de Envio, o motor de agendamento/cadência (Cron Jobs), e as integrações reais de envio (Evolution API para WhatsApp, Resend para Email) e recepção (Webhooks).
+SEMANA 3 (Dados & Polish): Foco em Visualização e Estabilidade. O objetivo é fechar o ciclo. Inclui a exibição de métricas agregadas, histórico detalhado do Lead, tratamento de respostas de e-mail, testes E2E e polimento final de UI/UX.
+
+Estrutura de Campanhas (igual Meta Ads)
+Campanha (Objetivo)
+└─ Conjunto (Configurações)
+└─ Criativo (Templates/Mensagens)
+3 Tipos de Campanha:
+Extração: Google Maps → Leads brutos (sem mensagens)
+Extração + Enriquecimento: Google Maps → IA gera mensagens personalizadas
+Envio: Seleciona lista existente → Envia com cadência configurada
+Roles & Permissões
+Admin: Acesso total (gerenciar usuários, configurações, templates, campanhas)
+Manager: Criar/editar campanhas e templates, ver métricas (sem acesso a configurações/usuários)
+Operator: Apenas visualizar campanhas e métricas (sem criar/editar)
+Novos Models do Banco
+Template (id, tipo, nome, conteúdo, variáveis, createdBy, createdAt)
+Message (id, leadId, tipo, ordem, conteúdo, createdAt)
+SendCampaign (id, extractionCampaignId, status, scheduleConfig, cadenceConfig)
+SentMessage (id, messageId, sendCampaignId, leadId, channel, status, sentAt, deliveredAt, openedAt, respondedAt)
+LeadResponse (id, leadId, channel, message, receivedAt)
+User (adicionar: role, tenancyId, tenancyName)
+EvolutionInstance (id, name, apiUrl, apiKey, isActive)
+EmailSender (id, email, resendKey, fromName, isActive)
+UI Nova (Meta Ads Style)
+/ → Landing page
+/login → Auth
+/dashboard → Métricas gerais (leads, conversões, créditos)
+/dashboard/campanhas → Lista com tabs (Todas, Ativas, Pausadas, Concluídas)
+/dashboard/campanhas/[id] → Detalhes + leads + métricas
+/dashboard/templates → CRUD templates (Email, WhatsApp, Prompts IA)
+/dashboard/configuracoes → Instâncias Evolution, Email Senders, Dados Empresa, Usuários
+📅 SEMANA 1 - Fundação & Refatoração
+🗓️ DIA 1 (Segunda) - Auth & Database Schema
+Planejamento (20min)
+Revisar schema atual vs schema alvo
+Definir migrations strategy (criar novas tabelas sem quebrar existentes)
+Planejar estrutura de roles/permissões
+Desenvolvimento
+[ ] Instalar NextAuth.js + Prisma Adapter
+[ ] Criar migrations:
+Adicionar role, tenancyId, tenancyName em User
+Criar tabela Account (NextAuth)
+Criar tabela Session (NextAuth)
+[ ] Configurar NextAuth providers (Email magic link)
+[ ] Criar middleware de proteção de rotas
+[ ] Implementar helper getServerSession()
+[ ] Criar seed para usuário admin inicial
+Testes
+Login com email funciona
+Middleware bloqueia rotas protegidas
+Session persiste após reload
+Documentação
+Atualizar README.md (seção autenticação)
+Criar src/lib/auth/README.md
+🗓️ DIA 2 (Terça) - UI Refactor - Dashboard Layout
+Planejamento (20min)
+Estudar estrutura de tabs do Meta Ads
+Definir componentes reutilizáveis (DashboardLayout, Tabs, Filters)
+Desenvolvimento
+[ ] Criar /dashboard route group (layout compartilhado)
+[ ] Criar DashboardLayout (Sidebar + TopBar + Breadcrumbs)
+[ ] Criar componente Tabs reutilizável
+[ ] Criar componente FilterBar (search, status, date range)
+[ ] Refatorar Sidebar (adicionar links Dashboard, Templates, Configurações)
+[ ] Criar página /dashboard (métricas placeholder)
+[ ] Migrar /campanhas → /dashboard/campanhas
+Testes
+Navegação entre tabs funciona
+Sidebar destaca rota ativa
+Layout responsivo
+Documentação
+Atualizar src/components/README.md
+Adicionar screenshot do layout
+🗓️ DIA 3 (Quarta) - Campanhas List (Meta Ads Style)
+Planejamento (20min)
+Definir colunas da tabela (Nome, Status, Tipo, Resultados, Gasto, Data)
+Planejar filtros e ações em massa
+Desenvolvimento
+[ ] Criar componente CampaignTable (sortable columns)
+[ ] Implementar tabs: Todas, Ativas, Pausadas, Concluídas
+[ ] Adicionar filtros: tipo, data, busca
+[ ] Implementar ações em massa (pausar, retomar, arquivar)
+[ ] Adicionar métricas inline (total enviado, taxa resposta, custo)
+[ ] Criar botão "Criar" com dropdown (3 tipos de campanha)
+[ ] Estilizar igual Meta Ads (cores, espaçamentos, badges)
+Testes
+Filtros funcionam corretamente
+Ações em massa atualizam múltiplas campanhas
+Ordenação por coluna funciona
+Documentação
+Atualizar src/app/dashboard/campanhas/README.md
+🗓️ DIA 4 (Quinta) - Templates CRUD - Backend
+Planejamento (20min)
+Definir schema Template
+Planejar validação de variáveis {nomeEmpresa}
+Estruturar tipos de template (EMAIL, WHATSAPP, PROMPT_IA)
+Desenvolvimento
+[ ] Criar migration: tabela Template
+[ ] Criar Zod schema: CreateTemplateSchema, UpdateTemplateSchema
+[ ] Criar API routes:
+GET /api/templates (listar com filtro por tipo)
+POST /api/templates (criar com validação de variáveis)
+PATCH /api/templates/[id] (atualizar)
+DELETE /api/templates/[id] (soft delete)
+[ ] Implementar validação de permissões (Manager+ pode criar)
+[ ] Criar helper extractVariables(template) → string[]
+[ ] Adicionar templates padrão no seed
+Testes
+CRUD completo funciona
+Validação de variáveis detecta {variavel} corretamente
+Permissões impedem Operator de criar
+Documentação
+Criar src/app/api/templates/README.md
+🗓️ DIA 5 (Sexta) - Templates CRUD - Frontend
+Planejamento (20min)
+Definir UI de listagem (cards vs tabela)
+Planejar modal de criação/edição
+Desenvolvimento
+[ ] Criar página /dashboard/templates
+[ ] Implementar tabs: Email, WhatsApp, Prompts IA
+[ ] Criar componente TemplateCard (preview + ações)
+[ ] Criar modal CreateTemplateDialog
+[ ] Implementar editor com syntax highlight de variáveis
+[ ] Adicionar preview de template com dados de exemplo
+[ ] Criar botão "Duplicar template"
+[ ] Adicionar biblioteca de templates prontos (categorias)
+Testes
+Criar template funciona
+Variáveis são destacadas visualmente
+Preview renderiza variáveis corretamente
+Documentação
+Atualizar src/components/README.md (adicionar TemplateCard)
+🗓️ DIA 6 (Sábado) - Configurações - Instâncias
+Planejamento (20min)
+Definir schema EvolutionInstance e EmailSender
+Planejar teste de conexão (ping Evolution API)
+Desenvolvimento
+[ ] Criar migrations:
+Tabela EvolutionInstance
+Tabela EmailSender
+[ ] Criar API routes:
+GET /api/config/evolution-instances
+POST /api/config/evolution-instances (com teste de conexão)
+PATCH /api/config/evolution-instances/[id]/toggle (ativar/desativar)
+[ ] Criar helper testEvolutionConnection(apiUrl, apiKey)
+[ ] Criar API routes para EmailSender (similar)
+[ ] Implementar permissões (apenas Admin)
+Testes
+Teste de conexão Evolution API funciona
+Toggle ativa/desativa instância
+Apenas Admin acessa
+Documentação
+Criar src/app/api/config/README.md
+🗓️ DIA 7 (Domingo) - Configurações - Frontend
+Planejamento (20min)
+Definir layout de configurações (tabs laterais)
+Planejar validação de formulários
+Desenvolvimento
+[ ] Criar página /dashboard/configuracoes
+[ ] Implementar tabs: Empresa, Evolution API, Email, Usuários
+[ ] Criar form Dados da Empresa (nome, site, descrição)
+[ ] Criar lista de EvolutionInstances (add, edit, test, toggle)
+[ ] Criar lista de EmailSenders (add, edit, test, toggle)
+[ ] Criar lista de Usuários (convidar por email, alterar role, remover)
+[ ] Adicionar indicador visual de conexão (verde/vermelho)
+Testes
+Testar conexão mostra feedback visual
+Convidar usuário envia email
+Alterar role funciona
+Documentação
+Atualizar README.md (seção configurações)
+
+Estamos no dia 0, ou seja, antes de iniciar o plao vamos revisar e otimizar o que temos agora.
+
+1. agora: liste todos os arquivos da raiz, prisma/ e src/ com glob e outros comandos (ignore migrations do prisma/ e componentes shadcn)
+2. Apenas leia todos os README existentes em todas as pastas. VOCÊ É OBRIGADO A LER TODOS OS README
+   Não precisa me dar nenhum relatório grande, seja conciso para comigo
+
+##2 - 1. LEIA arquivos mais importantes da raiz (.env, package, middleware, arquivos docker, etc). Nunca me dê um relatório grande, não gaste tokens, seja conciso.
+
+2. Leias as pastas types, components (ignorando shadcn), prisma (seed, schema) e lib. use glob para ver quais são.
+
+Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (frontend, backend e banco de dados), boas práticas, segurança, etc... Não quero relatório nem documentação grande, seja sempre conciso para me reportar, a não ser que eu peça o contrário
+
+##3 - leia arquivos dentro de src/app/, src/app/api, src/app/dashboard e src/app/login
+
+Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (frontend, backend e banco de dados), boas práticas, segurança, etc... Não quero relatório nem documentação grande, seja sempre conciso para me reportar, a nãos er que eu peça o contrário

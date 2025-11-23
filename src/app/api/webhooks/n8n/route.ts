@@ -180,6 +180,12 @@ async function handleCampaignCompleted(data: {
 
   console.log(`[Campaign Completed] Recebido para campanha: ${campaignId}`)
 
+  // Validação de segurança: campaignId deve ser CUID válido
+  if (!/^c[a-z0-9]{24}$/i.test(campaignId)) {
+    console.error(`[Campaign Completed] ID de campanha inválido: ${campaignId}`)
+    throw new Error('ID de campanha inválido')
+  }
+
   // Buscar campanha com contagem de leads
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
@@ -188,6 +194,7 @@ async function handleCampaignCompleted(data: {
       status: true,
       tipo: true,
       leadsCreated: true,
+      userId: true, // Para logging
       _count: {
         select: {
           leads: {

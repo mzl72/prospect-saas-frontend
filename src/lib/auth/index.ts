@@ -1,2 +1,2 @@
 export { authOptions } from "./config";
-export { getServerSession } from "next-auth";
+export { getServerSession, requireAuth, requireRole } from "./session";

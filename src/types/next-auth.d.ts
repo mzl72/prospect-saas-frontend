@@ -6,6 +6,7 @@ declare module "next-auth" {
     user: {
       id: string;
       role: string;
+      tokenVersion: number;
       tenancyId: string | null;
       tenancyName: string | null;
       credits: number;
@@ -14,6 +15,7 @@ declare module "next-auth" {
 
   interface User extends DefaultUser {
     role: string;
+    tokenVersion: number;
     tenancyId: string | null;
     tenancyName: string | null;
     credits: number;
@@ -24,6 +26,7 @@ declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     id: string;
     role: string;
+    tokenVersion: number;
     tenancyId: string | null;
     tenancyName: string | null;
     credits: number;

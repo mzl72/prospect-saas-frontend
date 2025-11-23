@@ -24,6 +24,11 @@ export function Sidebar() {
     { href: "/dashboard/campanhas", label: "Campanhas", icon: Target },
   ];
 
+  // SECURITY (OWASP A05:2025): Sanitizar e validar créditos antes de exibir
+  const sanitizedCredits = typeof credits === "number" && isFinite(credits)
+    ? Math.max(0, Math.floor(credits))
+    : 0;
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex flex-col shadow-sm">
       {/* Logo */}
@@ -65,7 +70,8 @@ export function Sidebar() {
           <Coins className="w-5 h-5 text-green-600" />
           <div className="flex-1">
             <div className="text-xs text-gray-500">Créditos</div>
-            <div className="text-sm font-semibold text-green-700">{credits.toLocaleString()}</div>
+            {/* SECURITY: Usar valor sanitizado */}
+            <div className="text-sm font-semibold text-green-700">{sanitizedCredits.toLocaleString()}</div>
           </div>
         </div>
       </div>

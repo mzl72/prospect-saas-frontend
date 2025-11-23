@@ -1,10 +1,9 @@
 // src/app/api/campaigns/route.ts
 import { prisma } from "@/lib/prisma-db";
 import { NextRequest, NextResponse } from "next/server";
-import { DEMO_USER_ID, ensureDemoUser } from "@/lib/demo-user";
+import { requireAuth } from "@/lib/auth";
 import { calculateCampaignTimeout } from "@/lib/constants";
 import { calculateCampaignCost } from "@/lib/pricing-service";
-// Rate limiting imports removidos (usando checkUserRateLimit de security.ts)
 import { CreateCampaignSchema } from '@/lib/validation-schemas';
 import { ZodError } from 'zod';
 import {
@@ -15,15 +14,20 @@ import {
   validatePayloadSize,
   sanitizeForDatabase,
 } from '@/lib/security';
+import { fetchWithRetry } from '@/lib/retry';
+import { logger } from '@/lib/logger';
 
 export const dynamic = "force-dynamic";
 
 // GET - Listar campanhas
 export async function GET(_request: NextRequest) {
   try {
-    // Rate limiting: 100 req/min por usuário
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting: 100 req/min por usuário
     const rateLimitResult = checkUserRateLimit({
-      userId: DEMO_USER_ID,
+      userId,
       endpoint: 'campaigns:list',
       maxRequests: 100,
       windowMs: 60 * 1000,
@@ -39,11 +43,9 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // Garante que usuário existe
-    await ensureDemoUser();
-
+    // 3. Buscar campanhas do usuário
     const campaigns = await prisma.campaign.findMany({
-      where: { userId: DEMO_USER_ID },
+      where: { userId },
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
@@ -62,6 +64,14 @@ export async function GET(_request: NextRequest) {
       }
     );
   } catch (error) {
+    // Erros de autenticação
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
     console.error("[API /campaigns GET] Erro ao buscar campanhas:", {
       error: error instanceof Error ? error.message : error,
       stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
@@ -77,9 +87,12 @@ export async function GET(_request: NextRequest) {
 // POST - Criar nova campanha + Chamar N8N
 export async function POST(request: NextRequest) {
   try {
-    // 1. Rate limiting por usuário: 10 campanhas/hora
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting por usuário: 10 campanhas/hora
     const rateLimitResult = checkUserRateLimit({
-      userId: DEMO_USER_ID,
+      userId,
       endpoint: 'campaigns:create',
       maxRequests: 10,
       windowMs: 60 * 60 * 1000,
@@ -95,7 +108,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Validação de payload size (previne JSON bombing)
+    // 3. Validação de payload size (previne JSON bombing)
     const bodyText = await request.text();
     const payloadValidation = validatePayloadSize(bodyText, 100 * 1024); // 100KB max
 
@@ -108,10 +121,10 @@ export async function POST(request: NextRequest) {
 
     const body = JSON.parse(bodyText) as Record<string, unknown>;
 
-    // 3. Sanitização contra NoSQL injection
+    // 4. Sanitização contra NoSQL injection
     const sanitizedBody = sanitizeForDatabase(body) as typeof body;
 
-    // 4. Validação com Zod
+    // 5. Validação com Zod
     try {
       CreateCampaignSchema.parse(sanitizedBody);
     } catch (error) {
@@ -125,7 +138,7 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // 5. Validações adicionais de tamanho (previne DoS)
+    // 6. Validações adicionais de tamanho (previne DoS)
     const titleValidation = validateStringLength(sanitizedBody.titulo as string, 'título', 200);
     if (!titleValidation.valid) {
       return NextResponse.json({ success: false, error: titleValidation.error }, { status: 400 });
@@ -142,24 +155,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calcular custo usando serviço centralizado
+    // 7. Calcular custo usando serviço centralizado
     const validData = sanitizedBody as { quantidade: number; nivelServico: string; tipoNegocio: string[]; localizacao: string[]; titulo?: string };
     const custo = calculateCampaignCost(
       validData.quantidade,
       validData.nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO'
     );
 
-    // Garante que usuário existe antes da transação
-    await ensureDemoUser();
-
-    // Modo COMPLETO: enriquecimento com IA será processado pelo N8N
-    // N8N vai chamar o webhook handleLeadEnrichment após processar cada lead
-
-    // Transação atômica: criar campanha + debitar créditos
+    // 8. Transação atômica: criar campanha + debitar créditos
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Verificar saldo
+      // Verificar saldo
       const user = await tx.user.findUnique({
-        where: { id: DEMO_USER_ID },
+        where: { id: userId },
         select: { credits: true },
       });
 
@@ -167,23 +174,23 @@ export async function POST(request: NextRequest) {
         throw new Error("Créditos insuficientes");
       }
 
-      // 2. Debitar créditos
+      // Debitar créditos
       await tx.user.update({
-        where: { id: DEMO_USER_ID },
+        where: { id: userId },
         data: { credits: { decrement: custo } },
       });
 
-      // 3. Calcular timeout da campanha
+      // Calcular timeout da campanha
       const campaignType = validData.nivelServico.toUpperCase() as "BASICO" | "COMPLETO";
       const { estimatedSeconds, timeoutDate } = calculateCampaignTimeout(
         validData.quantidade,
         campaignType
       );
 
-      // 4. Criar campanha
+      // Criar campanha
       const campaign = await tx.campaign.create({
         data: {
-          userId: DEMO_USER_ID,
+          userId,
           title: validData.titulo || `${validData.tipoNegocio.join(", ")} em ${validData.localizacao.join(", ")}`,
           quantidade: validData.quantidade,
           tipo: campaignType,
@@ -194,17 +201,17 @@ export async function POST(request: NextRequest) {
           estimatedCompletionTime: estimatedSeconds,
           timeoutAt: timeoutDate,
           creditsCost: custo,
-          leadsRequested: validData.quantidade, // quantidade solicitada pelo usuário
+          leadsRequested: validData.quantidade,
         },
       });
 
       return campaign;
     });
 
-    // 5. Chamar N8N para processar (paralelo, não bloqueia resposta)
+    // 9. Chamar N8N para processar (paralelo, não bloqueia resposta)
+    // OWASP A10:2025 - Retry com exponential backoff
     const n8nUrl = process.env.N8N_WEBHOOK_URL || "https://n8n.fflow.site/webhook/interface";
     const n8nPayload = {
-      // Dados da campanha
       campaignId: result.id,
       termos: validData.tipoNegocio.join(","),
       locais: validData.localizacao.join(","),
@@ -213,66 +220,86 @@ export async function POST(request: NextRequest) {
       consolidado: validData.nivelServico === "completo" ? "true" : "false",
       timestamp: new Date().toLocaleString("pt-BR"),
       titulo: validData.titulo || result.title,
-
-      // TODO: Adicionar configurações de templates quando implementar UserSettings
-      // Por enquanto, N8N usará templates padrão para enriquecimento
     };
 
-    fetch(n8nUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: n8nPayload }),
-    })
+    // Executar N8N call com retry (não bloqueia resposta ao cliente)
+    fetchWithRetry(
+      n8nUrl,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: n8nPayload }),
+      },
+      {
+        maxAttempts: 3,
+        initialDelayMs: 1000,
+        maxDelayMs: 5000,
+      }
+    )
       .then((response) => {
-        if (!response.ok) {
-          throw new Error(`N8N returned status ${response.status}`);
-        }
-        console.log(`[API /campaigns POST] ✅ N8N webhook called successfully for campaign ${result.id}`);
+        logger.info("N8N webhook called successfully", {
+          campaignId: result.id,
+          status: response.status,
+        });
       })
       .catch(async (error) => {
-        console.error("[API /campaigns POST] ❌ Erro ao chamar N8N:", {
-          error: error instanceof Error ? error.message : error,
+        logger.error("N8N webhook failed after retries", error, {
           campaignId: result.id,
           n8nUrl,
-          timestamp: new Date().toISOString(),
         });
 
         try {
           // Reembolsar créditos e marcar campanha como falha
           await prisma.$transaction([
-            // Devolver créditos ao usuário
             prisma.user.update({
-              where: { id: DEMO_USER_ID },
-              data: {
-                credits: {
-                  increment: custo,
-                },
-              },
+              where: { id: userId },
+              data: { credits: { increment: custo } },
             }),
-            // Marcar campanha como falha
             prisma.campaign.update({
               where: { id: result.id },
               data: { status: "FAILED" },
             }),
           ]);
 
-          console.log(`[API /campaigns POST] 💰 Refunded ${custo} credits to user due to N8N failure`);
+          logger.info("Credits refunded due to N8N failure", {
+            userId,
+            campaignId: result.id,
+            creditsRefunded: custo,
+          });
         } catch (updateError) {
-          console.error("[API /campaigns POST] ❌ Failed to refund credits:", updateError);
+          logger.error("Failed to refund credits after N8N failure", updateError, {
+            userId,
+            campaignId: result.id,
+          });
         }
       });
 
-    // 6. Resposta imediata para frontend
+    // 10. Resposta imediata para frontend
     return NextResponse.json({
       success: true,
       campaignId: result.id,
       message: "Campanha criada e enviada para processamento!",
     });
   } catch (error) {
+    // Erros de autenticação/autorização
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Erros de créditos insuficientes
+    if (error instanceof Error && error.message === "Créditos insuficientes") {
+      return NextResponse.json(
+        { success: false, error: 'Créditos insuficientes' },
+        { status: 402 }
+      );
+    }
+
     console.error("[API /campaigns POST] Erro ao criar campanha:", {
       error: error instanceof Error ? error.message : error,
       stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
-      body: request.body,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(
