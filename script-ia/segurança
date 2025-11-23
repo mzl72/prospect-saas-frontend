@@ -5,7 +5,7 @@ Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (fron
 ##1- Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
 Leias as pastas types, components (ignorando shadcn), prisma (seed) e hooks. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.
 
-XSS, CSRF, RATING LIMIT DEDICADO PARA CADA, BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
+XSS, CSRF, RATING LIMIT DEDICADO PARA CADA (limites e contadores próprios para cada endpoint), BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
 A01:2025 - Broken Access Control
 A02:2025 - Security Misconfiguration
 A03:2025 - Software Supply Chain Failures
@@ -22,7 +22,7 @@ Dê um relatório conciso, informando a nota de segurança de cada item informad
 ##2- Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
 Leias as pastas src/, src/app/ e src/app/api. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.
 
-XSS, CSRF, RATING LIMIT DEDICADO PARA CADA, BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
+XSS, CSRF, RATING LIMIT DEDICADO PARA CADA(limites e contadores próprios para cada endpoint), BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
 A01:2025 - Broken Access Control
 A02:2025 - Security Misconfiguration
 A03:2025 - Software Supply Chain Failures
@@ -39,7 +39,7 @@ Dê um relatório conciso, informando a nota de segurança de cada item informad
 ##3 - Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
 Leias as pastas src/app/dashboard, src/app/login e lib. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.
 
-XSS, CSRF, RATING LIMIT DEDICADO PARA CADA, BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
+XSS, CSRF, RATING LIMIT DEDICADO PARA CADA(limites e contadores próprios para cada endpoint), BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
 A01:2025 - Broken Access Control
 A02:2025 - Security Misconfiguration
 A03:2025 - Software Supply Chain Failures
