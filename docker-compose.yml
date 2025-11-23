@@ -160,6 +160,8 @@ services:
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
       RESEND_API_KEY: ${RESEND_API_KEY}
       CRON_SECRET: ${CRON_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       LOG_LEVEL: ${LOG_LEVEL:-ERROR}
       NODE_ENV: production
     networks:

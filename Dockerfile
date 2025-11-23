@@ -47,6 +47,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copiar Prisma schema para migrations
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
+# Copiar src/ para middleware e outras dependências runtime
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
+
 # Copiar package.json para Prisma CLI
 COPY --from=builder /app/package.json ./
 

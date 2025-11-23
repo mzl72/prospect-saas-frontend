@@ -12,6 +12,7 @@ const DEMO_USER_DATA = {
   id: DEMO_USER_ID,
   email: "demo@prospectsaas.com",
   name: "Usuário Demo",
+  password: "demo123-placeholder", // Placeholder - não usado em prod com auth real
   credits: 150,
 };
 

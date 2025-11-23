@@ -41,22 +41,17 @@ export default function HomePage() {
               Extraia leads do Google Maps, enriqueça com IA e envie campanhas
               personalizadas por Email e WhatsApp automaticamente
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex justify-center">
               <Button
                 asChild
                 size="lg"
                 className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl hover:shadow-2xl transition-all duration-300 text-lg px-8 py-6 group"
               >
-                <Link href="/dashboard/campanhas" className="flex items-center gap-2">
-                  Acessar Dashboard
+                <Link href="/login" className="flex items-center gap-2">
+                  Começar Agora
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Link href="/dashboard">
-                <button className="inline-flex items-center justify-center gap-2 h-12 px-8 py-6 rounded-md border-2 border-white text-white bg-transparent hover:bg-white hover:text-blue-600 hover:shadow-xl active:scale-95 backdrop-blur-sm text-lg font-medium transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50">
-                  Ver Dashboard
-                </button>
-              </Link>
             </div>
 
             {/* Stats */}
