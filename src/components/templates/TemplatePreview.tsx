@@ -36,8 +36,8 @@ export function TemplatePreview({
     return Array.from(new Set([...contentVars, ...subjectVars]));
   }, [content, subject]);
 
-  // Dados de exemplo para preview
-  const sampleData: Record<string, string> = {
+  // Dados de exemplo para preview (memoizado para evitar re-renders)
+  const sampleData = useMemo<Record<string, string>>(() => ({
     nomeEmpresa: "Acme Corp",
     nomeContato: "João Silva",
     email: "joao@acme.com",
@@ -53,7 +53,7 @@ export function TemplatePreview({
     beneficio: "aumentar suas vendas em 300%",
     nossaSolucao: "plataforma de automação de vendas",
     redesSociais: "LinkedIn, Instagram, Facebook",
-  };
+  }), []);
 
   // Dados finais (custom ou sample)
   const finalData = useMemo(() => {
