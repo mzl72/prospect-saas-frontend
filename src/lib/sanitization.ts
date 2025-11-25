@@ -184,3 +184,30 @@ export function generateSecureCSV(
 
   return csvLines.join('\n');
 }
+
+// ========================================
+// SANITIZAÇÃO PARA DISPLAY (React)
+// ========================================
+
+/**
+ * Sanitiza texto para display seguro em React
+ * Remove tags HTML e scripts, preserva texto puro
+ * Usado em componentes que renderizam dados de usuário
+ */
+export function sanitizeForDisplay(text: string | null | undefined): string {
+  if (!text) return '';
+
+  // Converter para string
+  let sanitized = String(text).trim();
+
+  // Escapar HTML para prevenir XSS
+  sanitized = sanitized
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+
+  return sanitized;
+}

@@ -5,12 +5,21 @@ Funções auxiliares, stores, validações e configurações centralizadas.
 ## Database
 
 ### `prisma-db.ts`
-
 Prisma Client singleton com hot-reload em desenvolvimento. Logs condicionais (query/error/warn em dev, só error em prod).
 
-### `demo-user.ts`
+## Auth (NextAuth)
 
-Gerenciamento do usuário demo (DEMO_USER_ID: "user-demo-001"). Função `ensureDemoUser()` garante existência no banco. TODO: substituir por autenticação real.
+### `auth/config.ts`
+NextAuth config: Credentials provider, bcrypt hash, JWT com tokenVersion (invalidação), callbacks (session, jwt). Rate limit login: 5 tentativas/15min.
+
+### `auth/index.ts`
+Exporta `requireAuth()` helper para proteger API routes. Verifica session + tokenVersion. Throw UNAUTHORIZED se inválido.
+
+### `auth/session.ts`
+`getServerSession()` wrapper com authOptions. Usado em middleware e páginas server-side.
+
+### `auth/session-provider.tsx`
+SessionProvider wrapper para client components. Usado no root layout.
 
 ## Pricing & Business Logic
 
@@ -47,8 +56,13 @@ Provider TanStack Query v5 com configuração global: staleTime 3min, gcTime 10m
 ## Utilitários
 
 ### `utils.ts`
-
 Helper `cn()` do Shadcn para merge de classes Tailwind (clsx + tailwind-merge).
+
+### `retry.ts`
+`fetchWithRetry()` com exponential backoff. Usado para chamar N8N webhook. Configurável: maxAttempts, initialDelayMs, maxDelayMs.
+
+### `logger.ts`
+Logger estruturado: `logger.info()`, `logger.error()`, `logger.warn()`. JSON format em produção, console.log em dev.
 
 ## Padrões de Código
 
