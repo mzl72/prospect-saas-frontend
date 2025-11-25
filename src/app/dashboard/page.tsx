@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, Users, TrendingUp, CreditCard } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 
+// Force dynamic rendering (não fazer SSG)
+export const dynamic = "force-dynamic";
+
 export default function DashboardPage() {
   const { data: creditos = 0 } = useCredits();
 
@@ -33,8 +36,8 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-gray-400">Visão geral das suas campanhas e métricas</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
+        <p className="text-muted-foreground">Visão geral das suas campanhas e métricas</p>
       </div>
 
       {/* Métricas Cards */}
@@ -42,14 +45,14 @@ export default function DashboardPage() {
         {/* Total Campanhas */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total de Campanhas
             </CardTitle>
             <Target className="w-4 h-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{totalCampanhas}</div>
-            <p className="text-xs text-gray-400 mt-1">
+            <div className="text-2xl font-bold text-foreground">{totalCampanhas}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               {campanhasAtivas} ativas
             </p>
           </CardContent>
@@ -58,14 +61,14 @@ export default function DashboardPage() {
         {/* Total Leads */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total de Leads
             </CardTitle>
             <Users className="w-4 h-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{totalLeads}</div>
-            <p className="text-xs text-gray-400 mt-1">
+            <div className="text-2xl font-bold text-foreground">{totalLeads}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Extraídos e enriquecidos
             </p>
           </CardContent>
@@ -74,14 +77,14 @@ export default function DashboardPage() {
         {/* Taxa de Conversão (placeholder) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Taxa de Resposta
             </CardTitle>
             <TrendingUp className="w-4 h-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">--%</div>
-            <p className="text-xs text-gray-400 mt-1">
+            <div className="text-2xl font-bold text-foreground">--%</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Em breve
             </p>
           </CardContent>
@@ -90,14 +93,14 @@ export default function DashboardPage() {
         {/* Créditos */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Créditos Disponíveis
             </CardTitle>
             <CreditCard className="w-4 h-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{creditos}</div>
-            <p className="text-xs text-gray-400 mt-1">
+            <div className="text-2xl font-bold text-foreground">{creditos}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Saldo atual
             </p>
           </CardContent>
@@ -107,10 +110,10 @@ export default function DashboardPage() {
       {/* Placeholder para gráficos futuros */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-white">Atividade Recente</CardTitle>
+          <CardTitle className="text-foreground">Atividade Recente</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-gray-400">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p>Gráficos e métricas detalhadas em breve...</p>
           </div>
         </CardContent>

@@ -48,7 +48,7 @@ export function Tabs({
 
   if (variant === "underline") {
     return (
-      <div className={cn("border-b border-gray-700", className)}>
+      <div className={cn("border-b border-border", className)}>
         <nav className="flex space-x-8">
           {sanitizedTabs.map((tab) => {
             const isActive = activeTab === tab.value;
@@ -60,8 +60,8 @@ export function Tabs({
                 className={cn(
                   "pb-4 px-1 border-b-2 font-medium text-sm transition-colors",
                   isActive
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-400 hover:text-gray-300"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
                 {tab.label}
@@ -87,8 +87,8 @@ export function Tabs({
             className={cn(
               "px-4 py-2 rounded-full text-sm font-medium transition-colors",
               isActive
-                ? "bg-blue-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             )}
           >
             {tab.label}

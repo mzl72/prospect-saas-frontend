@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/react-query";
+import { SessionProvider } from "@/lib/auth/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -89,9 +90,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <ReactQueryProvider>
-            {children}
-          </ReactQueryProvider>
+          <SessionProvider>
+            <ReactQueryProvider>
+              {children}
+            </ReactQueryProvider>
+          </SessionProvider>
           <Toaster />
         </ErrorBoundary>
       </body>

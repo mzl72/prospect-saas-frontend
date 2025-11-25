@@ -86,10 +86,10 @@ export default function HomePage() {
             <div className="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
               SIMPLES E RÁPIDO
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
               Como Funciona
             </h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Da extração ao envio automatizado em 3 etapas simples
             </p>
           </div>
@@ -111,7 +111,7 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   Escolha nicho, localização e quantidade. Extraímos dados completos do
                   Google Maps: nome, telefone, website, endereço e redes sociais.
                 </p>
@@ -134,7 +134,7 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   Nossa IA pesquisa cada empresa, analisa o negócio e gera emails
                   e mensagens de WhatsApp 100% personalizadas para cada lead.
                 </p>
@@ -157,7 +157,7 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   Configure cadências inteligentes e envie campanhas por Email,
                   WhatsApp ou híbrido. Acompanhe respostas, aberturas e conversões em tempo real.
                 </p>
@@ -174,10 +174,10 @@ export default function HomePage() {
             <div className="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
               PREÇOS TRANSPARENTES
             </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
               Preços Simples
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className="text-xl text-gray-600">
               Pague apenas pelos leads que usar. Sem mensalidades, sem taxas
               escondidas.
             </p>
@@ -189,17 +189,17 @@ export default function HomePage() {
                 <CardTitle className="text-3xl mb-2">
                   Básico
                 </CardTitle>
-                <p className="text-gray-300 text-lg">
+                <p className="text-gray-600 text-lg">
                   Extração de dados do Google Maps
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-extrabold text-white">
+                    <span className="text-5xl font-extrabold text-gray-900">
                       0,25
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       créditos por lead
                     </span>
                   </div>
@@ -209,7 +209,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-300">
+                    <span className="text-gray-700">
                       Extração completa do Google Maps
                     </span>
                   </li>
@@ -217,7 +217,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-300">
+                    <span className="text-gray-700">
                       Dados: nome, telefone, website, endereço
                     </span>
                   </li>
@@ -225,7 +225,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-300">
+                    <span className="text-gray-700">
                       Redes sociais e avaliações
                     </span>
                   </li>
@@ -233,7 +233,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className="text-gray-300">
+                    <span className="text-gray-700">
                       Exportação em planilha
                     </span>
                   </li>
@@ -249,7 +249,7 @@ export default function HomePage() {
                 <CardTitle className="text-3xl mb-2 text-blue-600">
                   Completo
                 </CardTitle>
-                <p className="text-gray-300 text-lg">
+                <p className="text-gray-600 text-lg">
                   Tudo do básico + IA personalizada
                 </p>
               </CardHeader>
@@ -259,7 +259,7 @@ export default function HomePage() {
                     <span className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                       1
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       crédito por lead
                     </span>
                   </div>
@@ -269,7 +269,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-300 font-medium">
+                    <span className="text-gray-700 font-medium">
                       Tudo do plano Básico
                     </span>
                   </li>
@@ -277,7 +277,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-300 font-medium">
+                    <span className="text-gray-700 font-medium">
                       Pesquisa e análise com IA
                     </span>
                   </li>
@@ -285,7 +285,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-300 font-medium">
+                    <span className="text-gray-700 font-medium">
                       Emails e WhatsApp personalizados
                     </span>
                   </li>
@@ -293,7 +293,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-300 font-medium">
+                    <span className="text-gray-700 font-medium">
                       Envio automatizado com cadências
                     </span>
                   </li>
@@ -301,7 +301,7 @@ export default function HomePage() {
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-gray-300 font-medium">
+                    <span className="text-gray-700 font-medium">
                       Dashboard CRM e métricas em tempo real
                     </span>
                   </li>

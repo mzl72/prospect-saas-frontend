@@ -15,19 +15,28 @@ Write-Host ""
 # 2. Build sem cache
 Write-Host "[2/4] Construindo imagens Docker (sem cache)..." -ForegroundColor Yellow
 docker compose build --no-cache
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Erro no build. Abortando deploy." -ForegroundColor Red
+    exit 1
+}
 Write-Host "Build concluido" -ForegroundColor Green
 Write-Host ""
 
 # 3. Subir containers com force recreate
 Write-Host "[3/4] Subindo containers (force recreate)..." -ForegroundColor Yellow
-docker compose up -d --force-recreate
-Write-Host "Containers iniciados" -ForegroundColor Green
+docker compose up -d --force-recreate --pull missing
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Erro ao subir containers. Verificando imagens..." -ForegroundColor Red
+    Write-Host "NOTA: Se falhou por timeout de rede, tente novamente ou use 'docker compose pull' separadamente." -ForegroundColor Yellow
+    Write-Host ""
+}
+Write-Host "Tentativa de start de containers concluida" -ForegroundColor Green
 Write-Host ""
 
-# 4. Limpar imagens antigas
-Write-Host "[4/4] Limpando imagens Docker antigas..." -ForegroundColor Yellow
-docker image prune -a -f
-Write-Host "Imagens antigas removidas" -ForegroundColor Green
+# 4. Limpar APENAS imagens dangling (sem tag) - NAO remove imagens em uso
+Write-Host "[4/4] Limpando imagens dangling (sem afetar imagens em uso)..." -ForegroundColor Yellow
+docker image prune -f
+Write-Host "Limpeza concluida" -ForegroundColor Green
 Write-Host ""
 
 # 5. Mostrar status dos containers

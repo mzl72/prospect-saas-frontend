@@ -16,6 +16,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Force dynamic rendering (não fazer SSG)
+export const dynamic = "force-dynamic";
+
 // Campaign type
 interface Campaign {
   id: string;
@@ -87,8 +90,8 @@ export default function CampanhasPage() {
       {/* Header com botão Criar */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Campanhas</h1>
-          <p className="text-gray-400">Gerencie suas campanhas de prospecção</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Campanhas</h1>
+          <p className="text-muted-foreground">Gerencie suas campanhas de prospecção</p>
         </div>
 
         <Button
@@ -117,7 +120,7 @@ export default function CampanhasPage() {
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-400">Carregando campanhas...</div>
+          <div className="text-muted-foreground">Carregando campanhas...</div>
         </div>
       )}
 
@@ -125,7 +128,7 @@ export default function CampanhasPage() {
       {!isLoading && filteredCampaigns.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               {activeTab === "all"
                 ? "Você ainda não criou nenhuma campanha"
                 : `Nenhuma campanha ${activeTab === "active" ? "ativa" : activeTab === "paused" ? "pausada" : "concluída"}`}
@@ -155,7 +158,7 @@ export default function CampanhasPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <Link
                         href={`/dashboard/campanhas/${campaign.id}`}
-                        className="text-lg font-semibold text-white hover:text-blue-600 transition-colors"
+                        className="text-lg font-semibold text-foreground hover:text-primary transition-colors"
                       >
                         {campaign.title.substring(0, 200)}
                       </Link>
@@ -164,7 +167,7 @@ export default function CampanhasPage() {
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-6 text-sm text-gray-400">
+                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
                       <span>Tipo: {campaign.tipo === "BASICO" ? "Básico" : "Completo"}</span>
                       <span>•</span>
                       <span>
@@ -192,16 +195,16 @@ export default function CampanhasPage() {
                 </div>
 
                 {/* Métricas Inline (placeholder) */}
-                <div className="mt-4 pt-4 border-t border-gray-700 flex items-center gap-8 text-sm">
+                <div className="mt-4 pt-4 border-t border-border flex items-center gap-8 text-sm">
                   <div>
-                    <span className="text-gray-400">Gasto: </span>
-                    <span className="font-semibold text-white">
+                    <span className="text-muted-foreground">Gasto: </span>
+                    <span className="font-semibold text-foreground">
                       {campaign.creditsCost || 0} créditos
                     </span>
                   </div>
                   {(campaign.creditsRefunded ?? 0) > 0 && (
                     <div>
-                      <span className="text-gray-400">Reembolsado: </span>
+                      <span className="text-muted-foreground">Reembolsado: </span>
                       <span className="font-semibold text-green-600">
                         +{campaign.creditsRefunded} créditos
                       </span>

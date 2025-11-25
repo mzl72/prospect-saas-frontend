@@ -77,7 +77,7 @@ export function LeadGenerationWizard() {
       <Card className="w-full">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="dark:text-white">Etapa {currentStep} de 3</CardTitle>
+            <CardTitle>Etapa {currentStep} de 3</CardTitle>
             <CreditosDisplay />
           </div>
           <Progress value={progress} className="w-full" />
@@ -119,10 +119,10 @@ function CreditosDisplay() {
   });
 
   if (isLoading) {
-    return <div className="text-sm text-gray-300">Créditos: ...</div>;
+    return <div className="text-sm text-muted-foreground">Créditos: ...</div>;
   }
 
-  return <div className="text-sm text-gray-300">Créditos: {creditos.toLocaleString()}</div>;
+  return <div className="text-sm text-muted-foreground">Créditos: {creditos.toLocaleString()}</div>;
 }
 
 function EtapaConfiguracao() {
@@ -175,13 +175,13 @@ function EtapaConfiguracao() {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-100">
+        <label className="block text-sm font-medium mb-2 text-foreground">
           Que tipo de empresa você quer encontrar?
         </label>
         <input
           type="text"
           placeholder="ex: restaurante, academia, dentista"
-          className={`w-full p-3 border rounded-md bg-gray-800 text-gray-100 border-gray-600 placeholder:text-gray-500 ${
+          className={`w-full p-3 border rounded-md bg-background text-foreground border-border placeholder:text-muted-foreground ${
             errors.tipoNegocio ? "border-red-500" : ""
           }`}
           value={tipoNegocio}
@@ -198,13 +198,13 @@ function EtapaConfiguracao() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-100">
+        <label className="block text-sm font-medium mb-2 text-foreground">
           Em qual região?
         </label>
         <input
           type="text"
           placeholder="ex: São Paulo, Pinheiros, Jundiaí"
-          className={`w-full p-3 border rounded-md bg-gray-800 text-gray-100 border-gray-600 placeholder:text-gray-500 ${
+          className={`w-full p-3 border rounded-md bg-background text-foreground border-border placeholder:text-muted-foreground ${
             errors.localizacao ? "border-red-500" : ""
           }`}
           value={localizacao}
@@ -221,7 +221,7 @@ function EtapaConfiguracao() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-100">Quantos leads?</label>
+        <label className="block text-sm font-medium mb-2 text-foreground">Quantos leads?</label>
         <div className="flex gap-2">
           {[4, 20, 40, 100, 200].map((qty) => (
             <Button
@@ -255,7 +255,7 @@ function EtapaNivelServico() {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-100">
+        <h3 className="text-lg font-semibold text-foreground">
           Encontraremos de 0 à {quantidade} leads. Escolha o nível de serviço:
         </h3>
       </div>
@@ -265,17 +265,17 @@ function EtapaNivelServico() {
           className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
             nivelServico === "basico"
               ? "border-blue-500 bg-blue-50"
-              : "border-gray-700 hover:border-gray-300"
+              : "border-border hover:border-blue-300"
           }`}
           onClick={() => setNivelServico("basico")}
         >
           <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg text-gray-100">BÁSICO</h4>
+            <h4 className="font-semibold text-lg text-foreground">BÁSICO</h4>
             <span className="text-lg font-bold text-green-600">
               {custoBasico} créditos
             </span>
           </div>
-          <ul className="space-y-1 text-sm text-gray-300">
+          <ul className="space-y-1 text-sm text-muted-foreground">
             <li>✓ Lista com dados do Google Maps</li>
             <li>✓ Nome, telefone, endereço, avaliações</li>
             <li>✓ Planilha para download</li>
@@ -286,17 +286,17 @@ function EtapaNivelServico() {
           className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
             nivelServico === "completo"
               ? "border-blue-500 bg-blue-50"
-              : "border-gray-700 hover:border-gray-300"
+              : "border-border hover:border-blue-300"
           }`}
           onClick={() => setNivelServico("completo")}
         >
           <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg text-gray-100">COMPLETO</h4>
+            <h4 className="font-semibold text-lg text-foreground">COMPLETO</h4>
             <span className="text-lg font-bold text-green-600">
               {custoCompleto} créditos
             </span>
           </div>
-          <ul className="space-y-1 text-sm text-gray-300">
+          <ul className="space-y-1 text-sm text-muted-foreground">
             <li>✓ Tudo do Básico</li>
             <li>✓ Pesquisa detalhada da empresa</li>
             <li>✓ E-mails personalizados prontos</li>
@@ -439,39 +439,39 @@ function EtapaConfirmacao() {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold text-gray-100">Confirme sua configuração</h3>
+        <h3 className="text-xl font-semibold text-foreground">Confirme sua configuração</h3>
       </div>
 
-      <div className="bg-gray-50 p-4 rounded-lg space-y-3 border border-gray-700">
+      <div className="bg-muted/30 p-4 rounded-lg space-y-3 border border-border">
         <div>
-          <span className="font-medium text-gray-100">Tipo de negócio:</span>
-          <span className="ml-2 text-gray-300">{tipoNegocio}</span>
+          <span className="font-medium text-foreground">Tipo de negócio:</span>
+          <span className="ml-2 text-muted-foreground">{tipoNegocio}</span>
         </div>
         <div>
-          <span className="font-medium text-gray-100">Localização:</span>
-          <span className="ml-2 text-gray-300">{localizacao}</span>
+          <span className="font-medium text-foreground">Localização:</span>
+          <span className="ml-2 text-muted-foreground">{localizacao}</span>
         </div>
         <div>
-          <span className="font-medium text-gray-100">Quantidade:</span>
-          <span className="ml-2 text-gray-300">{quantidade} leads</span>
+          <span className="font-medium text-foreground">Quantidade:</span>
+          <span className="ml-2 text-muted-foreground">{quantidade} leads</span>
         </div>
         <div>
-          <span className="font-medium text-gray-100">Nível:</span>
-          <span className="ml-2 capitalize text-gray-300">{nivelServico}</span>
+          <span className="font-medium text-foreground">Nível:</span>
+          <span className="ml-2 capitalize text-muted-foreground">{nivelServico}</span>
         </div>
-        <div className="border-t border-gray-600 pt-3">
-          <span className="font-medium text-gray-100">Custo total:</span>
+        <div className="border-t border-border pt-3">
+          <span className="font-medium text-foreground">Custo total:</span>
           <span className="ml-2 text-lg font-bold text-green-600">
             {custo} créditos
           </span>
         </div>
         <div>
-          <span className="font-medium text-gray-100">Saldo atual:</span>
-          <span className="ml-2 text-gray-300">{creditos} créditos</span>
+          <span className="font-medium text-foreground">Saldo atual:</span>
+          <span className="ml-2 text-muted-foreground">{creditos} créditos</span>
         </div>
         <div>
-          <span className="font-medium text-gray-100">Saldo após:</span>
-          <span className="ml-2 text-gray-300">{creditos - custo} créditos</span>
+          <span className="font-medium text-foreground">Saldo após:</span>
+          <span className="ml-2 text-muted-foreground">{creditos - custo} créditos</span>
         </div>
       </div>
 
@@ -507,7 +507,7 @@ function EtapaConfirmacao() {
 
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {Object.entries(missingFieldsByPage).map(([page, fields]: [string, any]) => (
-                <div key={page} className="bg-gray-800 p-3 rounded border border-red-200 space-y-2">
+                <div key={page} className="bg-background p-3 rounded border border-red-200 space-y-2">
                   <p className="text-red-600 text-sm font-medium">
                     {pageNames[page] || page}:
                   </p>
@@ -567,29 +567,29 @@ function EtapaConfirmacao() {
 
           <div className="space-y-3 py-4">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Tipo de negócio:</span>
-              <span className="font-medium">{tipoNegocio}</span>
+              <span className="text-muted-foreground">Tipo de negócio:</span>
+              <span className="font-medium text-foreground">{tipoNegocio}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Localização:</span>
-              <span className="font-medium">{localizacao}</span>
+              <span className="text-muted-foreground">Localização:</span>
+              <span className="font-medium text-foreground">{localizacao}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Quantidade:</span>
-              <span className="font-medium">{quantidade} leads</span>
+              <span className="text-muted-foreground">Quantidade:</span>
+              <span className="font-medium text-foreground">{quantidade} leads</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Nível:</span>
-              <span className="font-medium capitalize">{nivelServico}</span>
+              <span className="text-muted-foreground">Nível:</span>
+              <span className="font-medium capitalize text-foreground">{nivelServico}</span>
             </div>
-            <div className="border-t border-gray-700 pt-3 mt-3">
+            <div className="border-t border-border pt-3 mt-3">
               <div className="flex justify-between text-sm font-semibold">
-                <span className="text-white">Custo total:</span>
+                <span className="text-foreground">Custo total:</span>
                 <span className="text-blue-600">{custo} créditos</span>
               </div>
               <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-400">Saldo após:</span>
-                <span className="text-white">{creditos - custo} créditos</span>
+                <span className="text-muted-foreground">Saldo após:</span>
+                <span className="text-foreground">{creditos - custo} créditos</span>
               </div>
             </div>
           </div>

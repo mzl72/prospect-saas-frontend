@@ -30,11 +30,11 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-background">
       <Sidebar />
       <div className="ml-64 min-h-screen flex flex-col">
         <TopBar breadcrumbs={getBreadcrumbs()} />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 bg-background">{children}</main>
       </div>
     </div>
   );

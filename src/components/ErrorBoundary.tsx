@@ -72,22 +72,22 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900 rounded-lg shadow-xl p-8 text-center">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-card rounded-lg shadow-xl p-8 text-center border border-border">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               Algo deu errado
             </h1>
-            <p className="text-gray-300 mb-6">
+            <p className="text-muted-foreground mb-6">
               Ocorreu um erro inesperado. Tente recarregar a página.
             </p>
 
             {/* SECURITY: Apenas mostrar detalhes em dev */}
             {process.env.NODE_ENV === "development" && this.state.error && (
               <div className="mb-6 p-4 bg-red-50 rounded-md text-left">
-                <p className="text-xs text-gray-500 mb-2">Error ID: {this.state.errorId}</p>
+                <p className="text-xs text-muted-foreground mb-2">Error ID: {this.state.errorId}</p>
                 <p className="text-sm font-mono text-red-800 break-all">
                   {/* SECURITY: Sanitizar mensagem antes de exibir */}
                   {this.sanitizeErrorMessage(this.state.error.toString())}
@@ -97,9 +97,9 @@ export class ErrorBoundary extends React.Component<
 
             {/* SECURITY: Em produção, mostrar apenas error ID */}
             {process.env.NODE_ENV === "production" && this.state.errorId && (
-              <div className="mb-6 p-3 bg-gray-800 rounded-md">
-                <p className="text-xs text-gray-400">
-                  Código do erro: <span className="font-mono text-gray-300">{this.state.errorId}</span>
+              <div className="mb-6 p-3 bg-muted rounded-md">
+                <p className="text-xs text-muted-foreground">
+                  Código do erro: <span className="font-mono text-foreground">{this.state.errorId}</span>
                 </p>
               </div>
             )}
