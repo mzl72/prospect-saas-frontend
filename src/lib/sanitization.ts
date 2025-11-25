@@ -116,3 +116,71 @@ export function containsXSS(text: string): boolean {
 
   return xssPatterns.some(pattern => pattern.test(withoutTemplateVars));
 }
+
+// ========================================
+// CSV INJECTION PROTECTION (OWASP A05:2025)
+// ========================================
+
+/**
+ * Escapa células CSV para prevenir CSV Injection
+ * Protege contra fórmulas maliciosas (=, +, -, @, tab, CR)
+ *
+ * Ataques comuns:
+ * =1+1; =cmd|'/c calc'!A1; @SUM(1+1)
+ * +1+1|'/c calc'!A1; -1+1|'/c calc'!A1
+ *
+ * @param value - Valor da célula CSV
+ * @returns Valor escapado e seguro
+ */
+export function escapeCsvCell(value: string | null | undefined): string {
+  if (!value) return '';
+
+  // Converter para string e trim
+  let escaped = String(value).trim();
+
+  // Se a célula começa com caracteres perigosos, prefixar com aspas simples
+  const dangerousChars = ['=', '+', '-', '@', '\t', '\r', '\n'];
+  if (dangerousChars.some(char => escaped.startsWith(char))) {
+    escaped = `'${escaped}`;
+  }
+
+  // Escapar aspas duplas (duplicando-as) e envolver em aspas se contém vírgula, quebra de linha ou aspas
+  if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r')) {
+    escaped = `"${escaped.replace(/"/g, '""')}"`;
+  }
+
+  return escaped;
+}
+
+/**
+ * Converte array de objetos para CSV seguro (com escape anti-injection)
+ *
+ * @param data - Array de objetos com dados
+ * @param headers - Array com nomes dos headers
+ * @param fields - Array com nomes dos campos (keys) dos objetos
+ * @returns String CSV segura
+ */
+export function generateSecureCSV(
+  data: Record<string, unknown>[],
+  headers: string[],
+  fields: string[]
+): string {
+  // Escapar headers
+  const escapedHeaders = headers.map(h => escapeCsvCell(h));
+
+  // Processar linhas
+  const rows = data.map(item => {
+    return fields.map(field => {
+      const value = item[field];
+      return escapeCsvCell(String(value ?? ''));
+    });
+  });
+
+  // Montar CSV
+  const csvLines = [
+    escapedHeaders.join(','),
+    ...rows.map(row => row.join(','))
+  ];
+
+  return csvLines.join('\n');
+}

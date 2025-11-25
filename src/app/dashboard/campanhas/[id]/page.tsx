@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ArrowLeft, Download, RefreshCw, Mail, Info, ExternalLink, MapPin, Phone, Globe, Calendar, Star, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { generateSecureCSV } from "@/lib/sanitization";
 
-// Simple CSV export function
+// CSV export with injection protection (OWASP A05:2025)
 interface LeadForExport {
   nomeEmpresa?: string;
   email?: string;
@@ -24,26 +25,34 @@ interface LeadForExport {
 }
 
 function exportLeadsToCSV(leads: LeadForExport[], campaignTitle: string) {
-  const headers = ["Nome Empresa", "Email", "Telefone", "Website", "Endereço", "Categoria", "Nota Média", "Total Reviews"];
-  const rows = leads.map(lead => [
-    lead.nomeEmpresa || "",
-    lead.email || "",
-    lead.telefone || "",
-    lead.website || "",
-    lead.endereco || "",
-    lead.categoria || "",
-    lead.notaMedia || "",
-    lead.totalReviews || ""
-  ]);
+  try {
+    const headers = ["Nome Empresa", "Email", "Telefone", "Website", "Endereço", "Categoria", "Nota Média", "Total Reviews"];
+    const fields = ["nomeEmpresa", "email", "telefone", "website", "endereco", "categoria", "notaMedia", "totalReviews"];
 
-  const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${campaignTitle.replace(/[^a-z0-9]/gi, "_")}_leads.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+    // Usar função segura que previne CSV Injection
+    const csvContent = generateSecureCSV(
+      leads as Record<string, unknown>[],
+      headers,
+      fields
+    );
+
+    // Adicionar BOM UTF-8 para correta exibição de acentos no Excel
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+
+    // Sanitizar nome do arquivo (remover caracteres perigosos)
+    const sanitizedTitle = campaignTitle.replace(/[^a-z0-9_-]/gi, "_");
+    link.download = `${sanitizedTitle}_leads.csv`;
+
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("[CSV Export] Erro ao exportar:", error);
+    toast.error("Erro ao exportar CSV. Tente novamente.");
+  }
 }
 
 type LeadStatus =
@@ -160,7 +169,8 @@ export default function CampaignDetailPage() {
       if (campaign?.status === "COMPLETED" || campaign?.status === "FAILED") {
         return false;
       }
-      return autoRefreshEnabled ? 10000 : false;
+      // OWASP A06:2025 - Insecure Design: aumentado de 10s para 30s para reduzir carga
+      return autoRefreshEnabled ? 30000 : false;
     },
   });
 

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs } from "@/components/ui/tabs";
 import { Plus, MoreVertical } from "lucide-react";
 import Link from "next/link";
 import { LeadGenerationWizard } from "@/components/wizard/LeadGenerationWizard";
@@ -100,50 +101,18 @@ export default function CampanhasPage() {
       </div>
 
       {/* Tabs (Meta Ads style) */}
-      <div className="border-b border-gray-700 mb-6">
-        <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === "all"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-400 hover:text-gray-300"
-            }`}
-          >
-            Todas ({counts.all})
-          </button>
-          <button
-            onClick={() => setActiveTab("active")}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === "active"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-400 hover:text-gray-300"
-            }`}
-          >
-            Ativas ({counts.active})
-          </button>
-          <button
-            onClick={() => setActiveTab("paused")}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === "paused"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-400 hover:text-gray-300"
-            }`}
-          >
-            Pausadas ({counts.paused})
-          </button>
-          <button
-            onClick={() => setActiveTab("completed")}
-            className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === "completed"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-400 hover:text-gray-300"
-            }`}
-          >
-            Concluídas ({counts.completed})
-          </button>
-        </nav>
-      </div>
+      <Tabs
+        tabs={[
+          { label: "Todas", value: "all", count: counts.all },
+          { label: "Ativas", value: "active", count: counts.active },
+          { label: "Pausadas", value: "paused", count: counts.paused },
+          { label: "Concluídas", value: "completed", count: counts.completed },
+        ]}
+        activeTab={activeTab}
+        onChange={(value) => setActiveTab(value as TabType)}
+        variant="underline"
+        className="mb-6"
+      />
 
       {/* Loading State */}
       {isLoading && (
@@ -188,7 +157,7 @@ export default function CampanhasPage() {
                         href={`/dashboard/campanhas/${campaign.id}`}
                         className="text-lg font-semibold text-white hover:text-blue-600 transition-colors"
                       >
-                        {campaign.title}
+                        {campaign.title.substring(0, 200)}
                       </Link>
                       <Badge className={statusColors[campaign.status]}>
                         {statusLabels[campaign.status]}

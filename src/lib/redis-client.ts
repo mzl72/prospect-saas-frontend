@@ -46,24 +46,24 @@ function initRedis(): Redis | null {
 
   try {
     // Suporta tanto URL completa quanto apenas password
-    const config = redisUrl.startsWith("redis://")
-      ? redisUrl
-      : {
-          host: "localhost",
-          port: 6379,
-          password: redisUrl,
-          maxRetriesPerRequest: 3,
-          retryStrategy(times: number) {
-            if (times > 3) {
-              console.error("[Redis] Max retries reached, using memory fallback");
-              useMemoryFallback = true;
-              return null;
-            }
-            return Math.min(times * 50, 2000);
-          },
-        };
-
-    redis = new Redis(config);
+    if (redisUrl.startsWith("redis://")) {
+      redis = new Redis(redisUrl);
+    } else {
+      redis = new Redis({
+        host: "localhost",
+        port: 6379,
+        password: redisUrl,
+        maxRetriesPerRequest: 3,
+        retryStrategy(times: number) {
+          if (times > 3) {
+            console.error("[Redis] Max retries reached, using memory fallback");
+            useMemoryFallback = true;
+            return null;
+          }
+          return Math.min(times * 50, 2000);
+        },
+      });
+    }
 
     redis.on("error", (err) => {
       console.error("[Redis] Connection error:", err.message);

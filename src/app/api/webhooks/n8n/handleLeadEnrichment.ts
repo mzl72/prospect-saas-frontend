@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/prisma-db'
 import { LeadStatus } from '@prisma/client'
 import { normalizeToNull } from '@/lib/sanitization'
+import { LeadEnrichmentSchema } from '@/lib/validation-schemas'
 
 /**
  * Busca lead por ID ou apifyId
@@ -38,14 +39,23 @@ async function findLead(leadId?: string, apifyId?: string, companyName?: string)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function handleLeadEnrichment(cadenceType: 'email' | 'whatsapp' | 'hybrid', data: any) {
   console.log(`[Lead Enrichment - ${cadenceType}] Iniciando processamento`)
-  console.log(`[Lead Enrichment] Dados recebidos:`, {
-    leadId: data.leadId,
-    apifyId: data.apifyId,
-    companyName: data.companyName
+
+  // SECURITY (OWASP A05:2025 - Injection): Validar com Zod antes de processar
+  const validation = LeadEnrichmentSchema.safeParse(data);
+  if (!validation.success) {
+    console.error(`[Lead Enrichment] Validation failed:`, validation.error.flatten());
+    throw new Error(`Dados inválidos: ${validation.error.issues.map(i => i.message).join(', ')}`);
+  }
+
+  const validatedData = validation.data;
+  console.log(`[Lead Enrichment] Dados validados:`, {
+    leadId: validatedData.leadId,
+    apifyId: validatedData.apifyId,
+    companyName: validatedData.companyName
   })
 
-  // 1. Buscar lead com campanha para validação de ownership
-  const lead = await findLead(data.leadId, data.apifyId, data.companyName)
+  // 1. Buscar lead com campanha para validação de ownership (usa dados validados)
+  const lead = await findLead(validatedData.leadId, validatedData.apifyId, validatedData.companyName)
   if (!lead) {
     throw new Error('Lead não encontrado')
   }
@@ -68,44 +78,23 @@ export async function handleLeadEnrichment(cadenceType: 'email' | 'whatsapp' | '
     throw new Error('Campanha não está em status válido para enriquecimento')
   }
 
-  // 3. Validar length limits (OWASP A06:2025 - previne DoS via payloads gigantes)
-  const MAX_TEXT_LENGTH = 50000; // 50KB por campo de IA
-  const MAX_URL_LENGTH = 2048;
+  // 3. Zod JÁ validou tamanhos (max 50KB), não precisa truncar novamente
+  // Se chegou aqui, os dados estão dentro dos limites
 
-  if (data.companyResearch && data.companyResearch.length > MAX_TEXT_LENGTH) {
-    console.warn(`[Lead Enrichment] companyResearch truncado de ${data.companyResearch.length} para ${MAX_TEXT_LENGTH} chars`);
-    data.companyResearch = data.companyResearch.substring(0, MAX_TEXT_LENGTH);
-  }
-
-  if (data.strategicAnalysis && data.strategicAnalysis.length > MAX_TEXT_LENGTH) {
-    console.warn(`[Lead Enrichment] strategicAnalysis truncado de ${data.strategicAnalysis.length} para ${MAX_TEXT_LENGTH} chars`);
-    data.strategicAnalysis = data.strategicAnalysis.substring(0, MAX_TEXT_LENGTH);
-  }
-
-  if (data.personalization && data.personalization.length > MAX_TEXT_LENGTH) {
-    console.warn(`[Lead Enrichment] personalization truncado de ${data.personalization.length} para ${MAX_TEXT_LENGTH} chars`);
-    data.personalization = data.personalization.substring(0, MAX_TEXT_LENGTH);
-  }
-
-  if (data.analysisLink && data.analysisLink.length > MAX_URL_LENGTH) {
-    console.warn(`[Lead Enrichment] analysisLink truncado`);
-    data.analysisLink = data.analysisLink.substring(0, MAX_URL_LENGTH);
-  }
-
-  // 4. Normalizar campos opcionais
+  // 4. Normalizar campos opcionais (usa dados validados)
   const normalizedData = {
-    email: normalizeToNull(data.email),
-    telefone: normalizeToNull(data.telefone),
-    linkedinUrl: normalizeToNull(data.linkedinUrl),
-    twitterUrl: normalizeToNull(data.twitterUrl),
-    instagramUrl: normalizeToNull(data.instagramUrl),
-    facebookUrl: normalizeToNull(data.facebookUrl),
-    youtubeUrl: normalizeToNull(data.youtubeUrl),
-    tiktokUrl: normalizeToNull(data.tiktokUrl),
-    pinterestUrl: normalizeToNull(data.pinterestUrl),
+    email: normalizeToNull(validatedData.email),
+    telefone: normalizeToNull(validatedData.telefone),
+    linkedinUrl: normalizeToNull(validatedData.linkedinUrl),
+    twitterUrl: normalizeToNull(validatedData.twitterUrl),
+    instagramUrl: normalizeToNull(validatedData.instagramUrl),
+    facebookUrl: normalizeToNull(validatedData.facebookUrl),
+    youtubeUrl: normalizeToNull(validatedData.youtubeUrl),
+    tiktokUrl: normalizeToNull(validatedData.tiktokUrl),
+    pinterestUrl: normalizeToNull(validatedData.pinterestUrl),
   }
 
-  // 5. Atualizar lead com dados enriquecidos
+  // 5. Atualizar lead com dados enriquecidos (usa dados validados)
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
@@ -113,11 +102,11 @@ export async function handleLeadEnrichment(cadenceType: 'email' | 'whatsapp' | '
       ...(normalizedData.email && { email: normalizedData.email }),
       ...(normalizedData.telefone && { telefone: normalizedData.telefone }),
 
-      // Dados enriquecidos pela IA (com length limits aplicados)
-      companyResearch: data.companyResearch || null,
-      strategicAnalysis: data.strategicAnalysis || null,
-      personalization: data.personalization || null,
-      analysisLink: data.analysisLink || null,
+      // Dados enriquecidos pela IA (Zod já validou tamanhos)
+      companyResearch: validatedData.companyResearch || null,
+      strategicAnalysis: validatedData.strategicAnalysis || null,
+      personalization: validatedData.personalization || null,
+      analysisLink: validatedData.analysisLink || null,
 
       // Redes sociais
       ...(normalizedData.linkedinUrl && { linkedinUrl: normalizedData.linkedinUrl }),
@@ -136,14 +125,14 @@ export async function handleLeadEnrichment(cadenceType: 'email' | 'whatsapp' | '
 
   console.log(`[Lead Enrichment] Lead ${lead.id} enriquecido com sucesso`)
 
-  // Log dos dados salvos
-  if (data.companyResearch) {
-    console.log(`[Lead Enrichment] ✅ Company Research salvo (${data.companyResearch.length} chars)`)
+  // Log dos dados salvos (usa dados validados)
+  if (validatedData.companyResearch) {
+    console.log(`[Lead Enrichment] ✅ Company Research salvo (${validatedData.companyResearch.length} chars)`)
   }
-  if (data.strategicAnalysis) {
-    console.log(`[Lead Enrichment] ✅ Strategic Analysis salvo (${data.strategicAnalysis.length} chars)`)
+  if (validatedData.strategicAnalysis) {
+    console.log(`[Lead Enrichment] ✅ Strategic Analysis salvo (${validatedData.strategicAnalysis.length} chars)`)
   }
-  if (data.personalization) {
-    console.log(`[Lead Enrichment] ✅ Personalization salvo (${data.personalization.length} chars)`)
+  if (validatedData.personalization) {
+    console.log(`[Lead Enrichment] ✅ Personalization salvo (${validatedData.personalization.length} chars)`)
   }
 }

@@ -1,6 +1,6 @@
 ##0 - 1. LEIA arquivos mais importantes da raiz (.env, package, middleware, arquivos docker, etc). Nunca me dê um relatório grande, não gaste tokens, seja conciso.
 
-Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (frontend, backend e banco de dados), boas práticas, segurança, etc... Não quero relatório nem documentação grande, seja sempre conciso para me reportar, a nãos er que eu peça o contrário
+Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (frontend, backend e banco de dados), boas práticas, segurança, etc... Não quero relatório nem documentação grande, seja sempre conciso para me reportar, a não ser que eu peça o contrário
 
 ##1- Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
 Leias as pastas types, components (ignorando shadcn), prisma (seed) e hooks. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.

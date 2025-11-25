@@ -79,7 +79,8 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days (OWASP A07:2025 - reduzido de 30 para 7 dias)
+    updateAge: 24 * 60 * 60, // Atualiza token a cada 24h se usado
   },
   pages: {
     signIn: "/login",

@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     console.error('[N8N Webhook] Erro crítico:', {
       event: payload?.event,
       error: errorMessage,
-      stack: errorStack,
+      stack: process.env.NODE_ENV === 'development' ? errorStack : undefined,
       timestamp: new Date().toISOString(),
     })
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma-db";
-import { invalidateUserTokens } from "@/lib/auth/jwt-invalidation";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import {

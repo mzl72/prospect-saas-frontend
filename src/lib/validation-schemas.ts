@@ -65,3 +65,35 @@ export const LeadDataSchema = z.object({
 });
 
 export type LeadData = z.infer<typeof LeadDataSchema>;
+
+/**
+ * Schema para validação de lead enrichment (dados IA)
+ * SECURITY (OWASP A06:2025): Limites de tamanho para prevenir DoS
+ */
+export const LeadEnrichmentSchema = z.object({
+  leadId: z.string().regex(/^c[a-z0-9]{24}$/i, 'CUID inválido').optional(),
+  apifyId: z.string().min(1).optional(),
+  companyName: z.string().min(1).optional(),
+
+  // Dados enriquecidos com limites de tamanho (50KB por campo)
+  companyResearch: z.string().max(50000, 'companyResearch muito grande (max 50KB)').optional(),
+  strategicAnalysis: z.string().max(50000, 'strategicAnalysis muito grande (max 50KB)').optional(),
+  personalization: z.string().max(50000, 'personalization muito grande (max 50KB)').optional(),
+  analysisLink: z.string().url().max(2048, 'URL muito longa').optional(),
+
+  // Campos opcionais atualizáveis
+  email: z.union([z.string().email(), z.literal(''), z.null()]).optional(),
+  telefone: z.string().max(50).nullable().optional(),
+  linkedinUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  twitterUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  instagramUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  facebookUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  youtubeUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  tiktokUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+  pinterestUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
+}).refine(
+  (data) => data.leadId || data.apifyId || data.companyName,
+  { message: 'leadId, apifyId ou companyName são obrigatórios' }
+);
+
+export type LeadEnrichmentData = z.infer<typeof LeadEnrichmentSchema>;

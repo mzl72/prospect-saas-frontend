@@ -19,6 +19,7 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       "src/lib/socket-server.js", // Ignorar CommonJS file
+      "scripts/**/*.js", // Ignorar scripts CommonJS
     ],
   },
   {

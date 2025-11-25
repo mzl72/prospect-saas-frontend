@@ -6,6 +6,8 @@ import {
   LayoutDashboard,
   Target,
   Coins,
+  FileText,
+  Settings,
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 
@@ -16,12 +18,16 @@ export function Sidebar() {
   const isActive = (path: string) => {
     if (path === "/dashboard" && pathname === "/dashboard") return true;
     if (path === "/dashboard/campanhas" && pathname.startsWith("/dashboard/campanhas")) return true;
+    if (path === "/dashboard/templates" && pathname.startsWith("/dashboard/templates")) return true;
+    if (path === "/dashboard/configuracoes" && pathname.startsWith("/dashboard/configuracoes")) return true;
     return false;
   };
 
   const menuItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/campanhas", label: "Campanhas", icon: Target },
+    { href: "/dashboard/templates", label: "Templates", icon: FileText },
+    { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
   ];
 
   // SECURITY (OWASP A05:2025): Sanitizar e validar créditos antes de exibir
