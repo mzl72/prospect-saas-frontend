@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// === USUÁRIO ===
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String?    // Hash bcrypt (opcional para demo user)
+  credits   Int        @default(150)
+
+  // Multi-tenant & Roles
+  role         UserRole? @default(OPERATOR)
+  tenancyId    String?  @map("tenancy_id")
+  tenancyName  String?  @map("tenancy_name")
+
+  // Security: JWT invalidation on password change
+  tokenVersion Int      @default(0) @map("token_version")
+
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  campaigns Campaign[]
+  accounts  Account[]
+  sessions  Session[]
+  templates Template[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN    // Acesso total (gerenciar usuários, configurações, templates, campanhas)
+  MANAGER  // Criar/editar campanhas e templates, ver métricas (sem acesso a configurações/usuários)
+  OPERATOR // Apenas visualizar campanhas e métricas (sem criar/editar)
+}
+
+// === NEXTAUTH ===
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// === CAMPANHA ===
+model Campaign {
+  id          String         @id @default(cuid())
+  userId      String         @map("user_id")
+  title       String
+  status      CampaignStatus @default(PROCESSING)
+  quantidade  Int            // Quantidade de leads solicitada
+  tipo        CampaignType   // BASICO ou COMPLETO
+  termos      String         // Tipo de negócio (ex: "restaurante, padaria")
+  locais      String         // Localização (ex: "São Paulo, SP")
+  planilhaUrl String?        @map("planilha_url") // URL da planilha gerada
+
+  // Rastreamento de leads
+  leadsRequested  Int      @map("leads_requested")  // Quantidade solicitada
+  leadsCreated    Int      @default(0) @map("leads_created") // Quantidade criada
+  leadsDuplicated Int      @default(0) @map("leads_duplicated") // Duplicatas
+  creditsCost     Int      @map("credits_cost") // Custo em créditos
+  creditsRefunded Float    @default(0) @map("credits_refunded") // Créditos devolvidos
+
+  // Timeout
+  processStartedAt        DateTime? @map("process_started_at")
+  estimatedCompletionTime Int?      @map("estimated_completion_time") // segundos
+  timeoutAt               DateTime? @map("timeout_at")
+
+  // Archive (soft delete)
+  isArchived Boolean @default(false) @map("is_archived")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads Lead[]
+
+  @@index([userId, isArchived])
+  @@map("campaigns")
+}
+
+enum CampaignStatus {
+  PROCESSING            // Processando extração
+  EXTRACTION_COMPLETED  // Extração completa (BASICO finalizado)
+  COMPLETED             // Tudo finalizado (COMPLETO com enrichment)
+  FAILED                // Falha ou timeout
+  PAUSED                // Campanha pausada manualmente
+}
+
+enum CampaignType {
+  BASICO   // Apenas extração de leads
+  COMPLETO // Extração + enriquecimento com IA
+}
+
+// === LEAD ===
+model Lead {
+  id             String     @id @default(cuid())
+  campaignId     String     @map("campaign_id")
+
+  // Dados básicos extraídos do Google Maps
+  nomeEmpresa    String     @map("nome_empresa")
+  email          String?
+  endereco       String?
+  website        String?
+  telefone       String?
+  categoria      String?
+  totalReviews   String?    @map("total_reviews")
+  notaMedia      String?    @map("nota_media")
+  linkGoogleMaps String?    @map("link_google_maps")
+
+  // Redes sociais (actor lukaskrivka/google-maps-with-contact-details)
+  linkedinUrl    String?    @map("linkedin_url")
+  twitterUrl     String?    @map("twitter_url")
+  instagramUrl   String?    @map("instagram_url")
+  facebookUrl    String?    @map("facebook_url")
+  youtubeUrl     String?    @map("youtube_url")
+  tiktokUrl      String?    @map("tiktok_url")
+  pinterestUrl   String?    @map("pinterest_url")
+
+  // Tracking
+  apifyLeadId String?    @unique @map("apify_lead_id")
+  extractedAt DateTime?  @map("extracted_at")
+  enrichedAt  DateTime?  @map("enriched_at")
+  status      LeadStatus @default(EXTRACTED)
+
+  // Dados enriquecidos (apenas para COMPLETO)
+  companyResearch   String? @map("company_research") @db.Text
+  strategicAnalysis String? @map("strategic_analysis") @db.Text
+  personalization   String? @db.Text
+  analysisLink      String? @map("analysis_link")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, status])
+  @@map("leads")
+}
+
+enum LeadStatus {
+  EXTRACTED // Lead extraído do Google Maps
+  ENRICHED  // Lead enriquecido com IA (apenas COMPLETO)
+}
+
+// === TEMPLATE ===
+enum TemplateType {
+  EMAIL      // Template de email
+  WHATSAPP   // Template de WhatsApp
+  PROMPT_IA  // Prompt para IA (enriquecimento)
+}
+
+model Template {
+  id          String       @id @default(cuid())
+  type        TemplateType // EMAIL, WHATSAPP, PROMPT_IA
+  name        String       // "Email Boas-vindas", "WhatsApp Follow-up"
+  subject     String?      // Apenas para EMAIL (assunto)
+  content     String       @db.Text // Conteúdo com variáveis {nomeEmpresa}
+  variables   String[]     // ["nomeEmpresa", "nomeContato", "website"]
+
+  createdBy   String       @map("created_by")
+  createdByUser User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  isActive    Boolean      @default(true) // Soft delete
+  isDefault   Boolean      @default(false) // Templates padrão do sistema
+
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@index([type, isActive])
+  @@index([createdBy])
+  @@map("templates")
+}

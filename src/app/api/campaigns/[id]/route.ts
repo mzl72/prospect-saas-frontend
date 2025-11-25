@@ -1,0 +1,294 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma-db'
+import { requireAuth } from '@/lib/auth'
+import { CampaignStatus } from '@prisma/client'
+import {
+  checkUserRateLimit,
+  getUserRateLimitHeaders,
+  isValidCUID,
+  validatePayloadSize,
+  sanitizeForDatabase,
+  constantTimeCompare,
+} from '@/lib/security'
+import { z } from 'zod'
+
+// Inline helper functions
+interface LeadWithStatus {
+  status: string;
+}
+
+interface CampaignStatsResult {
+  totalLeads: number;
+  totalExtracted: number;
+  totalEnriched: number;
+}
+
+function calculateCampaignStats(allLeads: LeadWithStatus[]): CampaignStatsResult {
+  const totalExtracted = allLeads.filter((l) => l.status === 'EXTRACTED').length;
+  const totalEnriched = allLeads.filter((l) => l.status === 'ENRICHED').length;
+
+  return {
+    totalLeads: allLeads.length,
+    totalExtracted,
+    totalEnriched,
+  };
+}
+
+function determineCampaignStatus(currentStatus: string, tipo: string, stats: CampaignStatsResult): CampaignStatus {
+  if (currentStatus === 'FAILED') return 'FAILED';
+  if (currentStatus === 'COMPLETED') return 'COMPLETED';
+  if (tipo === 'BASICO' && currentStatus === 'EXTRACTION_COMPLETED') return 'COMPLETED';
+  if (tipo === 'COMPLETO' && stats.totalEnriched > 0) return 'EXTRACTION_COMPLETED';
+  return currentStatus as CampaignStatus;
+}
+
+async function validateCampaignOwnership(campaignId: string, userId: string): Promise<boolean> {
+  const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
+  if (!campaign) return false;
+
+  // Timing-safe comparison para prevenir timing attacks durante enumeration
+  return constantTimeCompare(campaign.userId, userId);
+}
+
+function ownershipErrorResponse() {
+  return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 403 });
+}
+
+export const dynamic = 'force-dynamic'
+
+// Schema de validação para PATCH
+const UpdateCampaignSchema = z.object({
+  status: z.enum(['PROCESSING', 'COMPLETED', 'FAILED']),
+})
+
+// GET - Buscar campanha específica com leads e calcular status
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: campaignId } = await params
+
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting: 100 req/min por usuário (reduzido para prevenir enumeration)
+    // OWASP A01:2025 - Enumeration Protection
+    const rateLimitResult = checkUserRateLimit({
+      userId,
+      endpoint: 'campaigns:get',
+      maxRequests: 100,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 3. Validar formato CUID (previne injection)
+    if (!isValidCUID(campaignId)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de campanha inválido' },
+        { status: 400 }
+      );
+    }
+
+    // 4. Validar ownership
+    const isOwner = await validateCampaignOwnership(campaignId, userId)
+    if (!isOwner) {
+      return ownershipErrorResponse()
+    }
+
+    const url = new URL(request.url)
+
+    // 5. Validar paginação (previne DoS com valores absurdos)
+    const page = Math.max(1, Math.min(10000, parseInt(url.searchParams.get('page') || '1', 10)))
+    const pageSize = Math.max(1, Math.min(100, parseInt(url.searchParams.get('pageSize') || '50', 10)))
+    const skip = (page - 1) * pageSize
+
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      include: {
+        leads: {
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: pageSize,
+        },
+        _count: {
+          select: { leads: true },
+        },
+      },
+    })
+
+    if (!campaign) {
+      return NextResponse.json(
+        { error: 'Campanha não encontrada' },
+        { status: 404 }
+      )
+    }
+
+    // Buscar TODOS os leads apenas para cálculo de stats (sem paginação)
+    const allLeads = await prisma.lead.findMany({
+      where: { campaignId },
+      select: { status: true },
+    })
+
+    // Calcular estatísticas
+    const stats = calculateCampaignStats(allLeads)
+
+    // Determinar status correto
+    const newStatus = determineCampaignStatus(campaign.status, campaign.tipo, stats)
+
+    // Atualizar no banco se mudou (mas não sobrescrever COMPLETED/FAILED)
+    if (newStatus !== campaign.status &&
+        campaign.status !== 'COMPLETED' &&
+        campaign.status !== 'FAILED') {
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: newStatus },
+      })
+      campaign.status = newStatus
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        campaign: {
+          ...campaign,
+          stats,
+        },
+        pagination: {
+          page,
+          pageSize,
+          total: campaign._count.leads,
+          totalPages: Math.ceil(campaign._count.leads / pageSize),
+          hasMore: skip + campaign.leads.length < campaign._count.leads,
+        },
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    )
+  } catch (error) {
+    // Erros de autenticação
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    console.error('[API /campaigns/[id] GET] Erro:', error)
+    return NextResponse.json(
+      { error: 'Erro ao buscar campanha' },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH - Atualizar status manualmente (ex: cancelar, pausar)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: campaignId } = await params
+
+    // 1. Autenticação
+    const { userId } = await requireAuth();
+
+    // 2. Rate limiting: 30 req/min por usuário
+    const rateLimitResult = checkUserRateLimit({
+      userId,
+      endpoint: 'campaigns:update',
+      maxRequests: 30,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Limite de requisições excedido' },
+        {
+          status: 429,
+          headers: getUserRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // 3. Validar formato CUID
+    if (!isValidCUID(campaignId)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de campanha inválido' },
+        { status: 400 }
+      );
+    }
+
+    // 4. Validar ownership
+    const isOwner = await validateCampaignOwnership(campaignId, userId)
+    if (!isOwner) {
+      return ownershipErrorResponse()
+    }
+
+    // 5. Validar payload size
+    const bodyText = await request.text();
+    const payloadValidation = validatePayloadSize(bodyText, 10 * 1024); // 10KB max
+
+    if (!payloadValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: payloadValidation.error },
+        { status: 413 }
+      );
+    }
+
+    const body = JSON.parse(bodyText);
+
+    // 6. Sanitizar
+    const sanitizedBody = sanitizeForDatabase(body);
+
+    // 7. Validar com Zod
+    const validation = UpdateCampaignSchema.safeParse(sanitizedBody)
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: 'Dados inválidos', details: validation.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { status } = validation.data
+
+    const campaign = await prisma.campaign.update({
+      where: { id: campaignId },
+      data: { status: status as CampaignStatus },
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        campaign,
+      },
+      {
+        headers: getUserRateLimitHeaders(rateLimitResult),
+      }
+    )
+  } catch (error) {
+    // Erros de autenticação
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: 'Não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    console.error('[API /campaigns/[id] PATCH] Erro:', error)
+    return NextResponse.json(
+      { error: 'Erro ao atualizar campanha' },
+      { status: 500 }
+    )
+  }
+}

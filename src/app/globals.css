@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.5rem;
+  /* Meta Ads Colors - Light Theme Only */
+  --background: #f0f2f5; /* Cinza claro Meta Ads */
+  --foreground: #1c1e21; /* Texto escuro */
+  --card: #ffffff;
+  --card-foreground: #1c1e21;
+  --popover: #ffffff;
+  --popover-foreground: #1c1e21;
+  --primary: #1877f2; /* Azul Meta Ads */
+  --primary-foreground: #ffffff;
+  --secondary: #e4e6eb; /* Cinza claro */
+  --secondary-foreground: #1c1e21;
+  --muted: #f0f2f5;
+  --muted-foreground: #65676b; /* Cinza médio */
+  --accent: #e7f3ff; /* Azul claro */
+  --accent-foreground: #1877f2;
+  --destructive: #f02849; /* Vermelho */
+  --border: #dadde1; /* Borda cinza */
+  --input: #e4e6eb;
+  --ring: #1877f2;
+  --chart-1: #1877f2;
+  --chart-2: #42b72a; /* Verde */
+  --chart-3: #f7b500; /* Amarelo */
+  --chart-4: #f02849; /* Vermelho */
+  --chart-5: #a033ff; /* Roxo */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1c1e21;
+  --sidebar-primary: #1877f2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7f3ff;
+  --sidebar-accent-foreground: #1877f2;
+  --sidebar-border: #dadde1;
+  --sidebar-ring: #1877f2;
+}
+
+/* Dark theme removido - Meta Ads usa apenas light */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

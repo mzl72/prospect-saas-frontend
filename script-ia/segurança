@@ -1,0 +1,54 @@
+##0 - 1. LEIA arquivos mais importantes da raiz (.env, package, middleware, arquivos docker, etc). Nunca me dê um relatório grande, não gaste tokens, seja conciso.
+
+Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (frontend, backend e banco de dados), boas práticas, segurança, etc... Não quero relatório nem documentação grande, seja sempre conciso para me reportar, a não ser que eu peça o contrário
+
+##1- Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
+Leias as pastas types, components (ignorando shadcn), prisma (seed) e hooks. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.
+
+XSS, CSRF, RATING LIMIT DEDICADO PARA CADA (limites e contadores próprios para cada endpoint), BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
+A01:2025 - Broken Access Control
+A02:2025 - Security Misconfiguration
+A03:2025 - Software Supply Chain Failures
+A04:2025 - Cryptographic Failures
+A05:2025 - Injection
+A06:2025 - Insecure Design
+A07:2025 - Authentication Failures
+A08:2025 - Software or Data Integrity Failures
+A09:2025 - Logging & Alerting Failures
+A10:2025 - Mishandling of Exceptional Conditions
+
+Dê um relatório conciso, informando a nota de segurança de cada item informado de ataques mais comuns
+
+##2- Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
+Leias as pastas src/, src/app/ e src/app/api. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.
+
+XSS, CSRF, RATING LIMIT DEDICADO PARA CADA(limites e contadores próprios para cada endpoint), BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
+A01:2025 - Broken Access Control
+A02:2025 - Security Misconfiguration
+A03:2025 - Software Supply Chain Failures
+A04:2025 - Cryptographic Failures
+A05:2025 - Injection
+A06:2025 - Insecure Design
+A07:2025 - Authentication Failures
+A08:2025 - Software or Data Integrity Failures
+A09:2025 - Logging & Alerting Failures
+A10:2025 - Mishandling of Exceptional Conditions
+
+Dê um relatório conciso, informando a nota de segurança de cada item informado de vulnerabilidades mais comuns
+
+##3 - Você prestará serviços como o melhor security information do mundo. Leia todos os arquivos dentro dessas pastas e subpastas dentro dessas pastas procurando por inseguranças:
+Leias as pastas src/app/dashboard, src/app/login e lib. Use glob para ver quais são e outros comandos para ver quais são. Lembre-se que cada pasta tem arquivos e subpastas com mais arquivos, você é obrigado a ler todos completamente.
+
+XSS, CSRF, RATING LIMIT DEDICADO PARA CADA(limites e contadores próprios para cada endpoint), BRUTE FORCE, LIMITE DE CARACTERES, SQL INJECTION, OWASP10:
+A01:2025 - Broken Access Control
+A02:2025 - Security Misconfiguration
+A03:2025 - Software Supply Chain Failures
+A04:2025 - Cryptographic Failures
+A05:2025 - Injection
+A06:2025 - Insecure Design
+A07:2025 - Authentication Failures
+A08:2025 - Software or Data Integrity Failures
+A09:2025 - Logging & Alerting Failures
+A10:2025 - Mishandling of Exceptional Conditions
+
+Dê um relatório conciso, informando a nota de segurança de cada item informado de vulnerabilidades mais comuns

@@ -1,0 +1,204 @@
+services:
+  # ========================================
+  # PostgreSQL - Banco de Dados Principal
+  # Usado por: Next.js App, Evolution API, n8n
+  # ========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-container
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - prospect-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Redis - Cache e Rate Limiting
+  # ========================================
+  redis:
+    image: redis:7-alpine
+    container_name: redis-container
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - prospect-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ========================================
+  # Evolution API - Gateway WhatsApp
+  # ========================================
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.1
+    container_name: evolution-api-container
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-https://evolution-prospect.easycheck.site}
+      AUTHENTICATION_API_KEY: ${AUTHENTICATION_EVOLUTION}
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379
+      CACHE_REDIS_PREFIX_KEY: prospect
+      CACHE_REDIS_SAVE_INSTANCES: "false"
+      CACHE_LOCAL_ENABLED: "false"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: evolution_api
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      STORE_MESSAGES: "true"
+      STORE_MESSAGE_UP: "true"
+      STORE_CONTACTS: "true"
+      STORE_CHATS: "true"
+      WEBHOOK_GLOBAL_URL: ${N8N_WEBHOOK_URL_PUBLIC:-https://n8n-prospect.easycheck.site}/webhook/prospect-events
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+      WEBHOOK_GLOBAL_EVENTS: MESSAGES_UPDATE,MESSAGES_UPSERT,CONNECTION_UPDATE,QRCODE_UPDATED
+      LOG_LEVEL: ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+      LOG_COLOR: "true"
+      CONFIG_SESSION_PHONE_CLIENT: Prospect SaaS
+      CONFIG_SESSION_PHONE_NAME: Chrome
+    volumes:
+      - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
+    networks:
+      - prospect-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/instance/fetchInstances -H 'apikey: ${AUTHENTICATION_EVOLUTION}' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # n8n - Automação de Workflows
+  # ========================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-container
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5678:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL_PUBLIC:-https://n8n-prospect.easycheck.site}
+      N8N_TRUST_PROXY: "true"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - prospect-network
+
+  # ========================================
+  # Next.js App - Prospect SaaS
+  # ========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+        EVOLUTION_API_URL: http://evolution-api:8080
+        EVOLUTION_API_KEY: ${AUTHENTICATION_EVOLUTION}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        N8N_API_KEY: ${N8N_API_KEY}
+        N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+        RESEND_API_KEY: ${RESEND_API_KEY}
+        CRON_SECRET: ${CRON_SECRET}
+        LOG_LEVEL: ${LOG_LEVEL:-ERROR}
+        NODE_ENV: production
+    container_name: prospect-saas-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: ${AUTHENTICATION_EVOLUTION}
+      NEXT_PUBLIC_APP_URL: http://app:3000
+      N8N_API_KEY: ${N8N_API_KEY}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      CRON_SECRET: ${CRON_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-ERROR}
+      NODE_ENV: production
+    networks:
+      - prospect-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ========================================
+  # Adminer - Gerenciador de Banco de Dados
+  # ========================================
+  adminer:
+    image: adminer
+    container_name: adminer-container
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    networks:
+      - prospect-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  evolution_instances:
+    driver: local
+  evolution_store:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+networks:
+  prospect-network:
+    driver: bridge

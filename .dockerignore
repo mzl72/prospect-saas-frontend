@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+npm-debug.log
+
+# Next.js
+.next
+out
+build
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Testing
+coverage
+.nyc_output
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+.cache
+README.md
+deploy.sh
+deploy.ps1
+.dockerignore
+docker-compose.yml
+Dockerfile
