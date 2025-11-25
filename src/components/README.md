@@ -8,20 +8,34 @@ Componentes reutilizáveis organizados por categoria.
 Container principal que renderiza Sidebar condicionalmente (não mostra na landing page). Aplica margin-left quando sidebar está ativa.
 
 ### `layout/Sidebar.tsx`
-Sidebar fixa com navegação (Início, Gerar Leads, Campanhas) e display de créditos do usuário no footer. Destaque visual para rota ativa.
+Sidebar fixa com navegação (Dashboard, Campanhas, Templates, Configurações) e display de créditos do usuário no footer com sanitização. Destaque visual para rota ativa.
 
-### `layout/Header.tsx`
-Header alternativo (não usado atualmente) com navegação horizontal completa: Emails, WhatsApp, Híbrido, Configurações. Display de créditos inline.
+### `layout/TopBar.tsx`
+TopBar com breadcrumbs dinâmicos, user menu (nome, role, perfil) e logout. Integrado com NextAuth. Dialog para menu do usuário.
+
+### `layout/FilterBar.tsx`
+Barra de filtros reutilizável com busca e dropdowns. Usado na página de campanhas para filtrar por status e tipo. Props: searchPlaceholder, searchValue, onSearchChange, filters (array de Filter).
 
 ## Wizard
 
 ### `wizard/LeadGenerationWizard.tsx`
-Wizard de 3 etapas para geração de leads. Etapa 1: tipo negócio + localização + quantidade (4/20/40/100/200). Etapa 2: nível de serviço (básico/completo) com cálculo de custo. Etapa 3: confirmação com dialog e validação de créditos. Usa mutation TanStack Query + invalidate cache.
+Wizard de 3 etapas para geração de leads. Etapa 1: tipo negócio + localização + quantidade (4/20/40/100/200) com validação XSS em tempo real. Etapa 2: nível de serviço (básico/completo) com cálculo de custo. Etapa 3: confirmação com dialog e validação de créditos. Usa mutation TanStack Query + invalidate cache. Sanitização contra XSS e NoSQL injection.
+
+## Campaigns (DIA 3 - Meta Ads Style)
+
+### `campaigns/CampaignTable.tsx`
+Tabela de campanhas com sortable columns, checkboxes para seleção, row expandível com métricas inline. Features: status badges coloridos, formatação de datas relativas (date-fns), skeleton loading, empty state. Colunas: Nome, Status, Tipo, Resultados, Taxa, Gasto, Data, Ações.
+
+### `campaigns/BulkActionsBar.tsx`
+Barra de ações em massa (sticky top) que aparece quando há campanhas selecionadas. Ações: Pausar, Retomar, Arquivar, Exportar, Limpar. Integração com API `/api/campaigns/bulk`. Loading indicator durante ação, toast de sucesso/erro, confirmação para arquivar.
+
+### `campaigns/CreateCampaignModal.tsx`
+Modal com 3 cards para escolher tipo de campanha: 1) Extração (ativo) → abre wizard, 2) Extração + IA (desabilitado, "Em Breve"), 3) Envio (desabilitado, "Em Breve"). Visual: hover azul no card ativo, opacity 0.5 nos desabilitados, badges coloridos.
 
 ## Error Handling
 
 ### `ErrorBoundary.tsx`
-Componente de captura de erros React. Exibe UI de fallback com opção de reload.
+Componente de captura de erros React com logging estruturado e sanitização. Exibe UI de fallback com error ID único. Sanitiza mensagens de erro (remove URLs, emails, tokens). Stack traces apenas em dev.
 
 ## UI (Shadcn)
 

@@ -10,51 +10,43 @@ Landing page com hero section, features, pricing e CTA. Design gradient com stat
 ### `layout.tsx`
 Root layout com providers (ReactQuery, Toaster), metadata e global styles.
 
-### `gerar/page.tsx`
-Página de geração de leads. Renderiza o LeadGenerationWizard em 3 etapas.
+### `login/page.tsx`
+Login com NextAuth (credentials provider), validação, redirect para /dashboard.
 
-### `gerar/loading.tsx`
-Loading state para página de geração.
+### `dashboard/page.tsx`
+Dashboard com métricas gerais (campanhas, leads, conversões, créditos). Cards placeholder.
 
-### `campanhas/page.tsx`
-Lista de campanhas do usuário com status, polling automático (10s) e timeout de 30min. Mostra reembolsos e duplicatas.
+### `dashboard/layout.tsx`
+Layout com Sidebar + TopBar + Breadcrumbs. Proteção de rotas autenticadas.
 
-### `campanhas/loading.tsx`
-Loading state para página de campanhas.
+### `dashboard/campanhas/page.tsx`
+Lista de campanhas com tabs (Todas/Ativas/Pausadas/Concluídas), filtros (busca, status, tipo), tabela sortable, ações em massa. Auto-refresh 30s. (DIA 3 - Meta Ads style)
 
-### `campanhas/[id]/page.tsx`
-Detalhes de campanha específica com lista de leads paginada (50 por página), cálculo de stats e atualização de status.
+### `dashboard/campanhas/[id]/page.tsx`
+Detalhes da campanha com stats cards, tabela de leads, export CSV, modal de detalhes do lead, auto-refresh condicional.
 
-### `campanhas/[id]/leads/[leadId]/page.tsx`
-Página de detalhes de um lead específico (dados extraídos + enriquecidos).
+### `dashboard/templates/page.tsx`
+Placeholder para CRUD de templates (DIA 4-5). Access control: Manager+.
 
-### `campanhas/[id]/leads/[leadId]/whatsapp/page.tsx`
-Página de visualização de mensagens WhatsApp preparadas para o lead.
+### `dashboard/configuracoes/page.tsx`
+Placeholder para configurações (Evolution, Email, Usuários) (DIA 6-7). Access control: Admin only.
 
 ## API Routes
 
 ### `api/campaigns/route.ts`
-- **GET**: Lista campanhas do usuário (rate limit: 100 req/min)
-- **POST**: Cria campanha, debita créditos, chama N8N webhook (rate limit: 10 req/hora)
+**GET**: Lista campanhas (rate limit: 100 req/min). **POST**: Cria campanha, debita créditos, chama N8N (rate limit: 10 req/hora).
+
+### `api/campaigns/bulk/route.ts`
+**PATCH**: Ações em massa (pause/resume/archive). Rate limit: 10 req/hora. Valida ownership. (DIA 3)
 
 ### `api/campaigns/[id]/route.ts`
-- **GET**: Busca campanha com leads paginados, calcula stats, atualiza status (rate limit: 200 req/min)
-- **PATCH**: Atualiza status manual (cancelar/pausar) (rate limit: 30 req/min)
-
-### `api/campaigns/[id]/leads/[leadId]/route.ts`
-- **GET**: Busca lead específico com validação de ownership (rate limit: 300 req/min)
+**GET**: Busca campanha com leads, calcula stats (rate limit: 200 req/min). **PATCH**: Atualiza status (rate limit: 30 req/min).
 
 ### `api/users/credits/route.ts`
-- **GET**: Consulta saldo de créditos do usuário (rate limit: 120 req/min)
+**GET**: Saldo de créditos do usuário (rate limit: 120 req/min).
 
 ### `api/webhooks/n8n/route.ts`
-Handler central de webhooks N8N. Recebe eventos: `leads-extracted`, `lead-enriched`, `lead-enriched-whatsapp`, `lead-enriched-hybrid`, `campaign-completed`. Validação de secret com constant-time compare (rate limit: 100 req/min por IP).
-
-### `api/webhooks/n8n/handleLeadsExtracted.ts`
-Processa leads extraídos do Apify. Normaliza dados, valida email, detecta duplicatas, calcula reembolso e cria leads em batch. CASO ESPECIAL: se zero leads novos, marca campanha FAILED e reembolsa 100%.
-
-### `api/webhooks/n8n/handleLeadEnrichment.ts`
-Processa dados enriquecidos pela IA (companyResearch, strategicAnalysis, personalization). Atualiza lead para status ENRICHED. Aceita 3 tipos de cadência: email, whatsapp, hybrid.
+Handler central N8N. Eventos: leads-extracted, lead-enriched, campaign-completed. Validação secret com constant-time compare (rate limit: 100 req/min por IP).
 
 ## Assets
 
