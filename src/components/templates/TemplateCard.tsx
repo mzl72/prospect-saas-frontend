@@ -166,7 +166,7 @@ export function TemplateCard({ template, onEdit }: TemplateCardProps) {
 
         <CardContent className="pb-3">
           {/* Content Preview */}
-          <div className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4 bg-muted/30 p-3 rounded-md font-mono text-xs">
+          <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4 bg-muted/30 p-3 rounded-md font-mono">
             {contentPreview}
           </div>
 
