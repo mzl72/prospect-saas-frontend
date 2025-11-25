@@ -35,11 +35,17 @@ Constantes centralizadas: PRICING (BASICO: 0.25, COMPLETO: 1.0), ALLOWED_QUANTIT
 
 ### `validation-schemas.ts`
 
-Zod schemas para DTOs: `CreateCampaignSchema` (titulo, tipoNegocio, localizacao, quantidade, nivelServico), `LeadDataSchema` (validação de leads do webhook Apify com URLs opcionais).
+Zod schemas para DTOs: `CreateCampaignSchema`, `LeadDataSchema`, `LeadEnrichmentSchema`, `CreateTemplateSchema` (type, name, subject?, content com limites de tamanho), `UpdateTemplateSchema` (partial + isActive).
 
 ### `sanitization.ts`
 
-Funções de limpeza de dados: `normalizeToNull()` (converte sentinels "N/A" para null), `sanitizeInput()` (remove XSS, preserva variáveis {template}), `containsXSS()`, `escapeHtml()`.
+Funções de limpeza de dados: `normalizeToNull()` (converte sentinels "N/A" para null), `sanitizeInput()` (remove XSS, preserva variáveis {template}), `containsXSS()`, `escapeHtml()`, `escapeCsvCell()`, `generateSecureCSV()` (anti CSV injection).
+
+## Templates
+
+### `template-helpers.ts`
+
+Helpers para manipulação de templates com variáveis dinâmicas: `extractVariables()` (extrai {variavel} com regex seguro), `validateTemplateVariables()` (verifica dados disponíveis), `renderTemplate()` (substitui variáveis), `sanitizeTemplate()` (remove variáveis ausentes), `previewTemplate()` (gera preview com dados de exemplo).
 
 ## Segurança
 

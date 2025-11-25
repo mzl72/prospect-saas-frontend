@@ -212,14 +212,14 @@ Atualizar README.md (seção configurações)
 
 Estamos no dia 0, ou seja, antes de iniciar o plao vamos revisar e otimizar o que temos agora.
 
-1. agora: liste todos os arquivos da raiz, prisma/ e src/ com glob e outros comandos (ignore migrations do prisma/ e componentes shadcn)
-2. Liste todos os arquivos existentes no projeto para você entender a estrutura de pastas e arquivos
+1. agora: liste todos os arquivos da raiz, prisma/ e src/ com glob e find e outros comandos (ignore migrations do prisma/ e componentes shadcn)
+2. Liste todos os arquivos existentes no projeto para você entender a estrutura de pastas e arquivos (obrigatóriamente use ls -la)
 3. Apenas leia todos os README existentes em todas as pastas. VOCÊ É OBRIGADO A LER TODOS OS README
    Não precisa me dar nenhum relatório grande, seja conciso para comigo
 
 ##2 - 1. Veja todos os arquivos que existem na raiz do projeto e LEIA arquivos mais importantes da raiz (.env, package, src/middleware, todos os arquivos docker, etc). Nunca me dê um relatório grande, não gaste tokens, seja conciso.
 
-2. Leias as pastas types, components (ignorando shadcn), prisma (seed, schema) e lib (levando em consideração que existem subpastas dentro dessas pastas com mais arquivos, leia-os também). use glob para ver quais são.
+2. Leias as pastas types, components (ignorando shadcn), prisma (seed, schema), src/lib e src/hooks (levando em consideração que existem subpastas dentro dessas pastas com mais arquivos, leia-os também). use glob para ver quais são.
 
 Isso evita quebra de códigos, quebra de lógicas, mantém a consistência (frontend, backend e banco de dados), boas práticas, segurança, etc... Não quero relatório nem documentação grande, seja sempre conciso para me reportar, a não ser que eu peça o contrário
 

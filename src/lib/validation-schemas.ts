@@ -97,3 +97,41 @@ export const LeadEnrichmentSchema = z.object({
 );
 
 export type LeadEnrichmentData = z.infer<typeof LeadEnrichmentSchema>;
+
+/**
+ * Schema para criação de template
+ * SECURITY: Validação de tamanho para prevenir DoS
+ */
+export const CreateTemplateSchema = z.object({
+  type: z.enum(['EMAIL', 'WHATSAPP', 'PROMPT_IA'], {
+    message: 'Tipo deve ser EMAIL, WHATSAPP ou PROMPT_IA',
+  }),
+  name: z
+    .string()
+    .min(3, 'Nome deve ter no mínimo 3 caracteres')
+    .max(100, 'Nome deve ter no máximo 100 caracteres')
+    .trim(),
+  subject: z
+    .string()
+    .max(200, 'Assunto muito longo (max 200 caracteres)')
+    .trim()
+    .optional()
+    .nullable(),
+  content: z
+    .string()
+    .min(10, 'Conteúdo muito curto (min 10 caracteres)')
+    .max(10000, 'Conteúdo muito longo (max 10KB)')
+    .trim(),
+});
+
+export type CreateTemplateDto = z.infer<typeof CreateTemplateSchema>;
+
+/**
+ * Schema para atualização de template
+ * Todos os campos são opcionais
+ */
+export const UpdateTemplateSchema = CreateTemplateSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateTemplateDto = z.infer<typeof UpdateTemplateSchema>;

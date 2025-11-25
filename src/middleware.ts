@@ -43,6 +43,42 @@ function validateCSRFHeaders(req: NextRequest): boolean {
   return true;
 }
 
+/**
+ * Adiciona security headers nas respostas (A02:2025)
+ */
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  // SECURITY: Content Security Policy (CSP)
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval necessário para Next.js dev
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://n8n.fflow.site",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ];
+  response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
+
+  // SECURITY: X-Content-Type-Options (previne MIME sniffing)
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+
+  // SECURITY: X-Frame-Options (previne clickjacking)
+  response.headers.set('X-Frame-Options', 'DENY');
+
+  // SECURITY: X-XSS-Protection (legado mas útil)
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+
+  // SECURITY: Referrer-Policy (controla info vazada em referer)
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // SECURITY: Permissions-Policy (controla features do navegador)
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  return response;
+}
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
@@ -50,10 +86,11 @@ export default withAuth(
 
     // CSRF Protection (OWASP A02:2025)
     if (!validateCSRFHeaders(req)) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { success: false, error: "CSRF validation failed" },
         { status: 403 }
       );
+      return addSecurityHeaders(response);
     }
 
     // Se está tentando acessar /dashboard sem autenticação
@@ -66,7 +103,9 @@ export default withAuth(
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
-    return NextResponse.next();
+    // Adicionar security headers em todas as respostas
+    const response = NextResponse.next();
+    return addSecurityHeaders(response);
   },
   {
     callbacks: {
