@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma-db';
-import { requireAuth } from '@/lib/auth';
-import { checkUserRateLimit, getUserRateLimitHeaders, validatePayloadSize } from '@/lib/security';
+import { requireAuth, requireRole } from '@/lib/auth';
+import { checkUserRateLimit, getUserRateLimitHeaders, validatePayloadSize, sanitizeForDatabase } from '@/lib/security';
 import { CreateTemplateSchema } from '@/lib/validation-schemas';
 import { extractVariables } from '@/lib/template-helpers';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,10 +71,12 @@ export async function GET(request: NextRequest) {
         id: true,
         type: true,
         name: true,
+        fields: true, // NOVO: Campos estruturados
         subject: true,
         content: true,
         variables: true,
         isDefault: true,
+        isActive: true,
         createdBy: true,
         createdAt: true,
         updatedAt: true,
@@ -120,16 +123,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Autenticação + Autorização
-    const { userId, role } = await requireAuth();
-
-    // AUTHORIZATION: Apenas Manager+ pode criar
-    if (role === 'OPERATOR') {
-      return NextResponse.json(
-        { success: false, error: 'Você não tem permissão para criar templates' },
-        { status: 403 }
-      );
-    }
+    // 1. Autenticação + Autorização (A01:2025 - Broken Access Control)
+    // requireRole valida hierarquia: ADMIN > MANAGER > OPERATOR
+    const { userId, role } = await requireRole('MANAGER');
 
     // 2. Rate limit: 20 templates/hora
     const rateLimitResult = checkUserRateLimit({
@@ -170,16 +166,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Parse e validação do body
+    // 5. Parse e sanitização do body (A05:2025 - NoSQL Injection)
     const body = JSON.parse(bodyText);
+    const sanitizedBody = sanitizeForDatabase(body);
 
     let validData;
     try {
-      validData = CreateTemplateSchema.parse(body);
+      validData = CreateTemplateSchema.parse(sanitizedBody);
     } catch (error) {
       if (error instanceof ZodError) {
         // SECURITY: Não expor estrutura completa do Zod (A10:2025)
         const errorMessages = error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+        logger.warn('Validação Zod falhou ao criar template', { userId, errors: errorMessages });
         return NextResponse.json(
           { success: false, error: errorMessages },
           { status: 400 }
@@ -188,16 +186,18 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // 6. Validação de negócio: subject obrigatório para EMAIL
-    if (validData.type === 'EMAIL' && !validData.subject) {
+    // 6. Validação de negócio: subject obrigatório para EMAIL legacy (sem fields)
+    const isLegacyTemplate = !validData.fields || Object.keys(validData.fields as Record<string, unknown>).length === 0;
+    if (validData.type === 'EMAIL' && isLegacyTemplate && !validData.subject) {
       return NextResponse.json(
-        { success: false, error: 'Assunto é obrigatório para templates de EMAIL' },
+        { success: false, error: 'Assunto é obrigatório para templates de EMAIL (sem campos estruturados)' },
         { status: 400 }
       );
     }
 
     // 7. Extrair variáveis do conteúdo (SECURITY: regex sanitizado)
-    const variables = extractVariables(validData.content);
+    // Para templates estruturados (fields), não extrair variáveis do content
+    const variables = validData.content ? extractVariables(validData.content) : [];
 
     // SECURITY: Limitar número de variáveis (A06:2025 - previne DoS)
     const MAX_VARIABLES = 50;
@@ -208,16 +208,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Criar template
+    // 8. Criar template (suportando fields estruturados + legacy)
     const template = await prisma.template.create({
       data: {
         type: validData.type,
         name: validData.name,
-        subject: validData.subject || null,
-        content: validData.content,
+        fields: validData.fields || undefined, // NOVO: Campos estruturados (JsonB: undefined, não null)
+        subject: validData.subject || null, // Legacy
+        content: validData.content || null, // Legacy
         variables,
         createdBy: userId,
       },
+    });
+
+    // AUDIT LOG (A09:2025)
+    logger.info('Template criado com sucesso', {
+      userId,
+      role,
+      templateId: template.id,
+      type: template.type,
+      variablesCount: variables.length,
     });
 
     return NextResponse.json(
@@ -225,17 +235,31 @@ export async function POST(request: NextRequest) {
       { status: 201, headers: getUserRateLimitHeaders(rateLimitResult) }
     );
   } catch (error) {
+    // A01:2025 - Tratamento de erros de autenticação/autorização
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      logger.warn('Tentativa de criação de template não autenticada', { error: error.message });
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message === 'FORBIDDEN') {
+      logger.security('Tentativa de criação de template sem permissão (OPERATOR)', { error: error.message });
+      return NextResponse.json({ success: false, error: 'Você não tem permissão para criar templates' }, { status: 403 });
     }
 
     // SECURITY: Não vazar detalhes do erro para cliente (A10:2025)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error('[POST /api/templates] Prisma error:', error.code, error.message);
+      logger.error('Erro Prisma ao criar template', {
+        code: error.code,
+        message: error.message,
+        meta: error.meta,
+      });
       return NextResponse.json({ success: false, error: 'Erro ao criar template' }, { status: 500 });
     }
 
-    console.error('[POST /api/templates] Erro:', error);
+    logger.error('Erro inesperado ao criar template', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json({ success: false, error: 'Erro ao criar template' }, { status: 500 });
   }
 }

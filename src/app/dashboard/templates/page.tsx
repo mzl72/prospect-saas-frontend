@@ -7,6 +7,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { CreateTemplateDialog } from "@/components/templates/CreateTemplateDialog";
 import { EditTemplateDialog } from "@/components/templates/EditTemplateDialog";
 import { TemplateCard } from "@/components/templates/TemplateCard";
+import { TemplateDetailModal } from "@/components/templates/TemplateDetailModal";
 import { useTemplates, type Template, type TemplateType } from "@/hooks/useTemplates";
 import { Loader2 } from "lucide-react";
 
@@ -20,6 +21,7 @@ export default function TemplatesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [viewingTemplate, setViewingTemplate] = useState<Template | null>(null);
 
   // SECURITY (A01): Access Control - apenas MANAGER+ acessa
   if (status === "unauthenticated" || session?.user?.role === "OPERATOR") {
@@ -39,7 +41,16 @@ export default function TemplatesPage() {
     );
   }
 
-  return <TemplatesPageContent activeTab={activeTab} setActiveTab={setActiveTab} editingTemplate={editingTemplate} setEditingTemplate={setEditingTemplate} />;
+  return (
+    <TemplatesPageContent
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      editingTemplate={editingTemplate}
+      setEditingTemplate={setEditingTemplate}
+      viewingTemplate={viewingTemplate}
+      setViewingTemplate={setViewingTemplate}
+    />
+  );
 }
 
 function TemplatesPageContent({
@@ -47,11 +58,15 @@ function TemplatesPageContent({
   setActiveTab,
   editingTemplate,
   setEditingTemplate,
+  viewingTemplate,
+  setViewingTemplate,
 }: {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   editingTemplate: Template | null;
   setEditingTemplate: (template: Template | null) => void;
+  viewingTemplate: Template | null;
+  setViewingTemplate: (template: Template | null) => void;
 }) {
   // Fetch templates
   const { data: templates = [], isLoading } = useTemplates();
@@ -132,7 +147,8 @@ function TemplatesPageContent({
             <TemplateCard
               key={template.id}
               template={template}
-              onEdit={template.isDefault ? undefined : setEditingTemplate}
+              onView={setViewingTemplate}
+              onEdit={setEditingTemplate}
             />
           ))}
         </div>
@@ -144,6 +160,14 @@ function TemplatesPageContent({
           Mostrando {filteredTemplates.length} de {templates.length} template(s)
         </div>
       )}
+
+      {/* View Detail Modal */}
+      <TemplateDetailModal
+        template={viewingTemplate}
+        isOpen={!!viewingTemplate}
+        onClose={() => setViewingTemplate(null)}
+        onEdit={setEditingTemplate}
+      />
 
       {/* Edit Dialog */}
       <EditTemplateDialog

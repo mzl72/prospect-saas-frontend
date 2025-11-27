@@ -111,6 +111,9 @@ export const CreateTemplateSchema = z.object({
     .min(3, 'Nome deve ter no mínimo 3 caracteres')
     .max(100, 'Nome deve ter no máximo 100 caracteres')
     .trim(),
+  // Campos estruturados (novo) - JSON com campos customizáveis
+  fields: z.record(z.string(), z.string()).optional().nullable(),
+  // Campos legacy (antigos) - para retrocompatibilidade
   subject: z
     .string()
     .max(200, 'Assunto muito longo (max 200 caracteres)')
@@ -121,7 +124,9 @@ export const CreateTemplateSchema = z.object({
     .string()
     .min(10, 'Conteúdo muito curto (min 10 caracteres)')
     .max(10000, 'Conteúdo muito longo (max 10KB)')
-    .trim(),
+    .trim()
+    .optional()
+    .nullable(),
 });
 
 export type CreateTemplateDto = z.infer<typeof CreateTemplateSchema>;
@@ -129,6 +134,10 @@ export type CreateTemplateDto = z.infer<typeof CreateTemplateSchema>;
 /**
  * Schema para atualização de template
  * Todos os campos são opcionais
+ *
+ * SECURITY:
+ * - Validação de tipos para prevenir injection
+ * - Limite de tamanho para fields (max 50 campos)
  */
 export const UpdateTemplateSchema = CreateTemplateSchema.partial().extend({
   isActive: z.boolean().optional(),

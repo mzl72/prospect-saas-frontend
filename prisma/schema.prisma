@@ -182,10 +182,17 @@ enum TemplateType {
 model Template {
   id          String       @id @default(cuid())
   type        TemplateType // EMAIL, WHATSAPP, PROMPT_IA
-  name        String       // "Email Boas-vindas", "WhatsApp Follow-up"
-  subject     String?      // Apenas para EMAIL (assunto)
-  content     String       @db.Text // Conteúdo com variáveis {nomeEmpresa}
-  variables   String[]     // ["nomeEmpresa", "nomeContato", "website"]
+  name        String       // "Empresa - Produto 1"
+
+  // Campos estruturados (JSON) para templates complexos
+  // Para PROMPT_IA: { overview, research, analysis, rules }
+  // Para EMAIL/WHATSAPP: { overview, email1Subject, email1Body, email2Subject, email2Body, ..., rules }
+  fields      Json?        @db.JsonB // Campos estruturados customizáveis
+
+  // Campos legacy (para compatibilidade com templates simples antigos)
+  subject     String?      // Apenas para EMAIL simples (assunto)
+  content     String?      @db.Text // Conteúdo simples com variáveis {nomeEmpresa}
+  variables   String[]     @default([]) // ["nomeEmpresa", "nomeContato", "website"]
 
   createdBy   String       @map("created_by")
   createdByUser User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)

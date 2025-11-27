@@ -10,8 +10,9 @@ export interface Template {
   id: string;
   type: TemplateType;
   name: string;
-  subject: string | null;
-  content: string;
+  fields?: Record<string, unknown> | null; // Campos estruturados (novo)
+  subject?: string | null; // Legacy
+  content?: string | null; // Legacy
   variables: string[];
   isDefault: boolean;
   isActive: boolean;
@@ -26,14 +27,16 @@ export interface Template {
 export interface CreateTemplateInput {
   type: TemplateType;
   name: string;
-  subject?: string | null;
-  content: string;
+  fields?: Record<string, unknown> | null; // Campos estruturados (novo)
+  subject?: string | null; // Legacy
+  content?: string | null; // Legacy
 }
 
 export interface UpdateTemplateInput {
   name?: string;
-  subject?: string | null;
-  content?: string;
+  fields?: Record<string, unknown> | null; // Campos estruturados (novo)
+  subject?: string | null; // Legacy
+  content?: string | null; // Legacy
   type?: TemplateType;
   isActive?: boolean;
 }
@@ -201,6 +204,7 @@ export function useDeleteTemplate() {
 /**
  * Hook para duplicar template
  * Cria uma cópia com " (cópia)" no nome
+ * Suporta tanto templates estruturados (fields) quanto legacy (subject/content)
  */
 export function useDuplicateTemplate() {
   const createMutation = useCreateTemplate();
@@ -210,8 +214,9 @@ export function useDuplicateTemplate() {
       const input: CreateTemplateInput = {
         type: template.type,
         name: `${template.name} (cópia)`,
-        subject: template.subject,
-        content: template.content,
+        fields: template.fields, // Campos estruturados (novo)
+        subject: template.subject, // Legacy
+        content: template.content, // Legacy
       };
 
       return createMutation.mutateAsync(input);

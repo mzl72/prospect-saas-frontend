@@ -162,6 +162,7 @@ services:
       CRON_SECRET: ${CRON_SECRET}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD}
       LOG_LEVEL: ${LOG_LEVEL:-ERROR}
       NODE_ENV: production
     networks:

@@ -122,9 +122,7 @@ export async function PATCH(request: NextRequest) {
 
     switch (action) {
       case "pause":
-        // TODO (DIA 4): Adicionar status PAUSED ao enum CampaignStatus
-        // Por enquanto, marca como FAILED temporariamente
-        updateData = { status: "FAILED" };
+        updateData = { status: "PAUSED" };
         await prisma.campaign.updateMany({
           where: {
             id: { in: ids },
@@ -132,17 +130,15 @@ export async function PATCH(request: NextRequest) {
           },
           data: updateData,
         });
-        resultMessage = `${campaigns.length} campanha(s) pausada(s) temporariamente (marcadas como FAILED até DIA 4)`;
+        resultMessage = `${campaigns.length} campanha(s) pausada(s) com sucesso`;
         break;
 
       case "resume":
-        // TODO (DIA 4): Adicionar status PAUSED ao enum CampaignStatus
-        // Por enquanto, retoma campanhas marcadas como FAILED
         updateData = { status: "PROCESSING" };
         await prisma.campaign.updateMany({
           where: {
             id: { in: ids },
-            status: "FAILED",
+            status: "PAUSED",
           },
           data: updateData,
         });
@@ -150,16 +146,14 @@ export async function PATCH(request: NextRequest) {
         break;
 
       case "archive":
-        // TODO (DIA 4): Adicionar campo isArchived ao schema
-        // Por enquanto, marcar como COMPLETED
-        updateData = { status: "COMPLETED" };
+        updateData = { isArchived: true };
         await prisma.campaign.updateMany({
           where: {
             id: { in: ids },
           },
           data: updateData,
         });
-        resultMessage = `${campaigns.length} campanha(s) arquivada(s) com sucesso (marcadas como COMPLETED até DIA 4)`;
+        resultMessage = `${campaigns.length} campanha(s) arquivada(s) com sucesso`;
         break;
     }
 

@@ -14,8 +14,8 @@ interface VariableHighlighterProps {
 }
 
 /**
- * Textarea com syntax highlight de variáveis {variavel}
- * Mostra preview colorido e contador de variáveis detectadas
+ * Textarea com contador de variáveis {variavel}
+ * NOTA: Overlay visual removido para evitar problemas de cursor
  */
 export function VariableHighlighter({
   value,
@@ -26,7 +26,6 @@ export function VariableHighlighter({
   disabled = false,
 }: VariableHighlighterProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLDivElement>(null);
   const [variables, setVariables] = useState<string[]>([]);
 
   // Extrair variáveis quando o valor mudar
@@ -35,65 +34,19 @@ export function VariableHighlighter({
     setVariables(extracted);
   }, [value]);
 
-  // Sincronizar scroll entre textarea e highlight
-  const handleScroll = () => {
-    if (textareaRef.current && highlightRef.current) {
-      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-  };
-
-  // Renderizar texto com highlight de variáveis
-  const renderHighlightedText = () => {
-    if (!value) return <span className="text-muted-foreground">{placeholder}</span>;
-
-    // Escapar HTML para prevenir XSS
-    const escapeHtml = (text: string) =>
-      text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
-    const escapedValue = escapeHtml(value);
-
-    // Highlight de variáveis {variavel}
-    const highlighted = escapedValue.replace(
-      /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g,
-      '<span class="bg-blue-100 text-blue-700 px-1 rounded font-semibold border border-blue-300">{$1}</span>'
-    );
-
-    return <span dangerouslySetInnerHTML={{ __html: highlighted }} />;
-  };
-
   return (
-    <div className={`relative ${className}`}>
-      {/* Highlight overlay (background) */}
-      <div
-        ref={highlightRef}
-        className="absolute inset-0 whitespace-pre-wrap break-words overflow-auto pointer-events-none p-3 font-mono text-sm leading-relaxed text-transparent border border-transparent rounded-md"
-        style={{
-          wordBreak: "break-word",
-          overflowWrap: "break-word",
-        }}
-      >
-        {renderHighlightedText()}
-      </div>
-
-      {/* Textarea (foreground) */}
+    <div className={className}>
+      {/* Textarea simples (sem overlay para evitar problemas de cursor) */}
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onScroll={handleScroll}
         placeholder={placeholder}
         rows={rows}
         disabled={disabled}
-        className="relative w-full bg-transparent resize-none p-3 font-mono text-sm leading-relaxed border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full resize-y p-3 font-mono text-sm leading-relaxed border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed text-foreground bg-white"
         style={{
-          caretColor: "black", // Cursor visível
-          color: "transparent", // Texto invisível (overlay mostra colorido)
+          minHeight: `${rows * 1.5}rem`,
         }}
       />
 

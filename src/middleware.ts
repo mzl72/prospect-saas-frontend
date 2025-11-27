@@ -47,10 +47,15 @@ function validateCSRFHeaders(req: NextRequest): boolean {
  * Adiciona security headers nas respostas (A02:2025)
  */
 function addSecurityHeaders(response: NextResponse): NextResponse {
-  // SECURITY: Content Security Policy (CSP)
+  // SECURITY: Content Security Policy (CSP) - Mais restrito em produção
+  const isDev = process.env.NODE_ENV === 'development';
+
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval necessário para Next.js dev
+    // Em prod: remove unsafe-eval (A05:2025 - previne XSS via eval)
+    isDev
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      : "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
@@ -58,6 +63,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    "upgrade-insecure-requests", // Force HTTPS em prod
   ];
   response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
 
