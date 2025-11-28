@@ -27,12 +27,13 @@ interface Campaign {
   processStartedAt?: string;
   estimatedCompletionTime?: number;
   timeoutAt?: string;
+  isArchived?: boolean;
   _count?: {
     leads: number;
   };
 }
 
-type TabType = "all" | "active" | "paused" | "completed";
+type TabType = "all" | "active" | "paused" | "completed" | "archived";
 
 export default function CampanhasPage() {
   // State
@@ -44,16 +45,19 @@ export default function CampanhasPage() {
   const [sortColumn, setSortColumn] = useState("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  // Fetch campaigns
+  // Fetch campaigns (incluir arquivadas para permitir filtro por tab)
   const { data: campaigns = [], isLoading } = useQuery<Campaign[]>({
     queryKey: ["campaigns"],
     queryFn: async () => {
-      const res = await fetch("/api/campaigns");
+      const res = await fetch("/api/campaigns?includeArchived=true");
       if (!res.ok) throw new Error("Erro ao buscar campanhas");
       const data = await res.json();
       return data.campaigns || [];
     },
-    refetchInterval: 30000, // Refetch a cada 30s
+    refetchInterval: 30000, // Refetch a cada 30s (auto-refresh)
+    refetchIntervalInBackground: true, // Continuar refetch mesmo em background
+    staleTime: 0, // Dados sempre considerados stale (força refetch)
+    refetchOnWindowFocus: true, // Refetch ao voltar para a janela
   });
 
   // Filter logic
@@ -61,14 +65,22 @@ export default function CampanhasPage() {
     let filtered = [...campaigns];
 
     // Tab filter
-    if (activeTab === "active") {
-      filtered = filtered.filter((c) => c.status === "PROCESSING");
-    } else if (activeTab === "paused") {
-      filtered = filtered.filter((c) => c.status === "PAUSED");
-    } else if (activeTab === "completed") {
-      filtered = filtered.filter(
-        (c) => c.status === "COMPLETED" || c.status === "EXTRACTION_COMPLETED" || c.status === "FAILED"
-      );
+    if (activeTab === "archived") {
+      // Apenas arquivadas
+      filtered = filtered.filter((c) => c.isArchived === true);
+    } else {
+      // Excluir arquivadas em todas as outras tabs
+      filtered = filtered.filter((c) => !c.isArchived);
+
+      if (activeTab === "active") {
+        filtered = filtered.filter((c) => c.status === "PROCESSING");
+      } else if (activeTab === "paused") {
+        filtered = filtered.filter((c) => c.status === "PAUSED");
+      } else if (activeTab === "completed") {
+        filtered = filtered.filter(
+          (c) => c.status === "COMPLETED" || c.status === "EXTRACTION_COMPLETED" || c.status === "FAILED"
+        );
+      }
     }
 
     // Search filter (title, termos, locais) - com sanitização
@@ -120,16 +132,20 @@ export default function CampanhasPage() {
     return filtered;
   }, [campaigns, activeTab, searchQuery, statusFilter, typeFilter, sortColumn, sortDirection]);
 
-  // Count by status
+  // Count by status (excluindo arquivadas, exceto na tab "archived")
   const counts = useMemo(
-    () => ({
-      all: campaigns.length,
-      active: campaigns.filter((c) => c.status === "PROCESSING").length,
-      paused: campaigns.filter((c) => c.status === "PAUSED").length,
-      completed: campaigns.filter(
-        (c) => c.status === "COMPLETED" || c.status === "EXTRACTION_COMPLETED" || c.status === "FAILED"
-      ).length,
-    }),
+    () => {
+      const notArchived = campaigns.filter((c) => !c.isArchived);
+      return {
+        all: notArchived.length,
+        active: notArchived.filter((c) => c.status === "PROCESSING").length,
+        paused: notArchived.filter((c) => c.status === "PAUSED").length,
+        completed: notArchived.filter(
+          (c) => c.status === "COMPLETED" || c.status === "EXTRACTION_COMPLETED" || c.status === "FAILED"
+        ).length,
+        archived: campaigns.filter((c) => c.isArchived === true).length,
+      };
+    },
     [campaigns]
   );
 
@@ -172,6 +188,7 @@ export default function CampanhasPage() {
           { label: "Ativas", value: "active", count: counts.active },
           { label: "Pausadas", value: "paused", count: counts.paused },
           { label: "Concluídas", value: "completed", count: counts.completed },
+          { label: "Arquivadas", value: "archived", count: counts.archived },
         ]}
         activeTab={activeTab}
         onChange={(value) => setActiveTab(value as TabType)}
@@ -199,11 +216,12 @@ export default function CampanhasPage() {
             onChange: setStatusFilter,
           },
           {
-            label: "Tipo",
-            placeholder: "Todos os tipos",
+            label: "Tipo de Campanha",
+            placeholder: "Todos",
             options: [
               { label: "Básico", value: "BASICO" },
               { label: "Completo", value: "COMPLETO" },
+              { label: "Envio", value: "ENVIO" },
             ],
             value: typeFilter,
             onChange: setTypeFilter,
@@ -215,7 +233,9 @@ export default function CampanhasPage() {
       {/* Bulk Actions Bar */}
       <BulkActionsBar
         selectedIds={selectedIds}
+        selectedCampaigns={filteredCampaigns.filter(c => selectedIds.includes(c.id))}
         onClearSelection={() => setSelectedIds([])}
+        isArchiveView={activeTab === "archived"}
       />
 
       {/* Campaign Table */}

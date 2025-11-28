@@ -161,7 +161,17 @@ export async function GET(
         success: true,
         campaign: {
           ...campaign,
-          stats,
+          stats: {
+            total: campaign.leadsRequested, // Quantidade solicitada (fixo)
+            extracted: stats.totalLeads,     // Quantidade extraída (cresce conforme N8N retorna)
+            enriched: stats.totalEnriched,
+            email1Sent: 0, // TODO: implementar após sistema de envio
+            email2Sent: 0,
+            email3Sent: 0,
+            replied: 0,
+            optedOut: 0,
+            bounced: 0,
+          },
         },
         pagination: {
           page,

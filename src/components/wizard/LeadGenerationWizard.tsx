@@ -2,6 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calculateCampaignCost } from "@/lib/pricing-service";
@@ -14,20 +16,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { sanitizeInput, containsXSS } from "@/lib/sanitization";
+import { containsXSS } from "@/lib/sanitization";
+import { Coins, MapPin, Target, Calendar } from "lucide-react";
 
 // Wizard state context
 interface WizardContextType {
   currentStep: number;
+  nomeCampanha: string;
   tipoNegocio: string;
   localizacao: string;
   quantidade: 4 | 20 | 40 | 100 | 200;
-  nivelServico: "basico" | "completo";
+  nivelServico: "basico"; // Fixo em "basico" (apenas extração)
   setCurrentStep: (step: number) => void;
+  setNomeCampanha: (value: string) => void;
   setTipoNegocio: (value: string) => void;
   setLocalizacao: (value: string) => void;
   setQuantidade: (qty: 4 | 20 | 40 | 100 | 200) => void;
-  setNivelServico: (nivel: "basico" | "completo") => void;
   resetWizard: () => void;
 }
 
@@ -43,50 +47,53 @@ function useWizard() {
 
 export function LeadGenerationWizard() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [nomeCampanha, setNomeCampanha] = useState("");
   const [tipoNegocio, setTipoNegocio] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [quantidade, setQuantidade] = useState<4 | 20 | 40 | 100 | 200>(20);
-  const [nivelServico, setNivelServico] = useState<"basico" | "completo">("basico");
+  const nivelServico = "basico" as const; // Fixo em "basico" (apenas extração)
 
   const resetWizard = () => {
     setCurrentStep(1);
+    setNomeCampanha("");
     setTipoNegocio("");
     setLocalizacao("");
     setQuantidade(20);
-    setNivelServico("basico");
   };
 
-  const progress = (currentStep / 3) * 100;
+  const progress = (currentStep / 2) * 100; // 2 etapas: Configuração + Confirmação
 
   const wizardValue: WizardContextType = {
     currentStep,
+    nomeCampanha,
     tipoNegocio,
     localizacao,
     quantidade,
     nivelServico,
     setCurrentStep,
+    setNomeCampanha,
     setTipoNegocio,
     setLocalizacao,
     setQuantidade,
-    setNivelServico,
     resetWizard,
   };
 
   return (
     <WizardContext.Provider value={wizardValue}>
-      <Card className="w-full">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Etapa {currentStep} de 3</CardTitle>
+      <Card className="w-full border-none shadow-none">
+        <CardHeader className="pb-4">
+          <div className="flex justify-between items-center mb-2">
+            <CardTitle className="text-lg">
+              Etapa {currentStep} de 2
+            </CardTitle>
             <CreditosDisplay />
           </div>
-          <Progress value={progress} className="w-full" />
+          <Progress value={progress} className="w-full h-1.5" />
         </CardHeader>
 
         <CardContent>
           {currentStep === 1 && <EtapaConfiguracao />}
-          {currentStep === 2 && <EtapaNivelServico />}
-          {currentStep === 3 && <EtapaConfirmacao />}
+          {currentStep === 2 && <EtapaConfirmacao />}
         </CardContent>
       </Card>
     </WizardContext.Provider>
@@ -99,49 +106,69 @@ function CreditosDisplay() {
     queryFn: async () => {
       const response = await fetch("/api/users/credits");
 
-      // SECURITY: Validar status HTTP
       if (!response.ok) {
         throw new Error("Failed to fetch credits");
       }
 
       const data = await response.json();
 
-      // SECURITY: Validar tipo de resposta
       if (data.success && typeof data.credits === "number" && isFinite(data.credits)) {
         return Math.max(0, Math.floor(data.credits));
       }
 
       return 0;
     },
-    // SECURITY: Rate limiting via retry
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000),
   });
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Créditos: ...</div>;
+    return (
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Coins className="w-4 h-4" />
+        <span>...</span>
+      </div>
+    );
   }
 
-  return <div className="text-sm text-muted-foreground">Créditos: {creditos.toLocaleString()}</div>;
+  return (
+    <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+      <Coins className="w-4 h-4 text-green-600" />
+      <span>{creditos.toLocaleString()} créditos</span>
+    </div>
+  );
 }
 
 function EtapaConfiguracao() {
   const {
+    nomeCampanha,
     tipoNegocio,
     localizacao,
     quantidade,
+    setNomeCampanha,
     setTipoNegocio,
     setLocalizacao,
     setQuantidade,
     setCurrentStep,
   } = useWizard();
 
-  const [errors, setErrors] = useState({ tipoNegocio: "", localizacao: "" });
+  const [errors, setErrors] = useState({
+    nomeCampanha: "",
+    tipoNegocio: "",
+    localizacao: "",
+  });
 
   const validate = () => {
-    const newErrors = { tipoNegocio: "", localizacao: "" };
+    const newErrors = { nomeCampanha: "", tipoNegocio: "", localizacao: "" };
 
-    // SECURITY (OWASP A05:2025): Validação de input com limites
+    // Nome da campanha (opcional mas recomendado)
+    if (nomeCampanha.trim() && nomeCampanha.length > 100) {
+      newErrors.nomeCampanha = "Máximo 100 caracteres";
+    } else if (nomeCampanha.trim() && containsXSS(nomeCampanha)) {
+      newErrors.nomeCampanha = "Caracteres inválidos detectados";
+    }
+
+    // Tipo de negócio (obrigatório)
     if (!tipoNegocio.trim()) {
       newErrors.tipoNegocio = "Campo obrigatório";
     } else if (tipoNegocio.trim().length < 3) {
@@ -152,6 +179,7 @@ function EtapaConfiguracao() {
       newErrors.tipoNegocio = "Caracteres inválidos detectados";
     }
 
+    // Localização (obrigatório)
     if (!localizacao.trim()) {
       newErrors.localizacao = "Campo obrigatório";
     } else if (localizacao.trim().length < 3) {
@@ -163,7 +191,7 @@ function EtapaConfiguracao() {
     }
 
     setErrors(newErrors);
-    return !newErrors.tipoNegocio && !newErrors.localizacao;
+    return !newErrors.nomeCampanha && !newErrors.tipoNegocio && !newErrors.localizacao;
   };
 
   const handleNext = () => {
@@ -174,155 +202,160 @@ function EtapaConfiguracao() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">
-          Que tipo de empresa você quer encontrar?
-        </label>
-        <input
-          type="text"
-          placeholder="ex: restaurante, academia, dentista"
-          className={`w-full p-3 border rounded-md bg-background text-foreground border-border placeholder:text-muted-foreground ${
-            errors.tipoNegocio ? "border-red-500" : ""
-          }`}
-          value={tipoNegocio}
-          onChange={(e) => {
-            // Sanitizar input em tempo real (OWASP A05:2025 - XSS Prevention)
-            const sanitized = sanitizeInput(e.target.value);
-            setTipoNegocio(sanitized);
-            if (errors.tipoNegocio) setErrors({ ...errors, tipoNegocio: "" });
-          }}
-        />
-        {errors.tipoNegocio && (
-          <p className="text-red-500 text-sm mt-1">{errors.tipoNegocio}</p>
-        )}
+      {/* Nome da Campanha */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <Target className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">Detalhes da Campanha</h3>
+            <p className="text-xs text-muted-foreground">Informações básicas</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="nomeCampanha" className="text-sm font-medium">
+              Nome da Campanha <span className="text-muted-foreground">(Opcional)</span>
+            </Label>
+            <Input
+              id="nomeCampanha"
+              type="text"
+              placeholder="Ex: Restaurantes São Paulo - Pinheiros"
+              className={`mt-1.5 ${errors.nomeCampanha ? "border-red-500" : ""}`}
+              value={nomeCampanha}
+              onChange={(e) => {
+                setNomeCampanha(e.target.value);
+                if (errors.nomeCampanha) setErrors({ ...errors, nomeCampanha: "" });
+              }}
+            />
+            {errors.nomeCampanha ? (
+              <p className="text-red-500 text-xs mt-1">{errors.nomeCampanha}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Se não informado, será gerado automaticamente
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">
-          Em qual região?
-        </label>
-        <input
-          type="text"
-          placeholder="ex: São Paulo, Pinheiros, Jundiaí"
-          className={`w-full p-3 border rounded-md bg-background text-foreground border-border placeholder:text-muted-foreground ${
-            errors.localizacao ? "border-red-500" : ""
-          }`}
-          value={localizacao}
-          onChange={(e) => {
-            // Sanitizar input em tempo real (OWASP A05:2025 - XSS Prevention)
-            const sanitized = sanitizeInput(e.target.value);
-            setLocalizacao(sanitized);
-            if (errors.localizacao) setErrors({ ...errors, localizacao: "" });
-          }}
-        />
-        {errors.localizacao && (
-          <p className="text-red-500 text-sm mt-1">{errors.localizacao}</p>
-        )}
+      {/* Segmentação */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+            <MapPin className="w-4 h-4 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">Segmentação</h3>
+            <p className="text-xs text-muted-foreground">Defina seu público-alvo</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="tipoNegocio" className="text-sm font-medium">
+              Tipo de Negócio <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="tipoNegocio"
+              type="text"
+              placeholder="Ex: restaurante, academia, dentista"
+              className={`mt-1.5 ${errors.tipoNegocio ? "border-red-500" : ""}`}
+              value={tipoNegocio}
+              onChange={(e) => {
+                setTipoNegocio(e.target.value);
+                if (errors.tipoNegocio) setErrors({ ...errors, tipoNegocio: "" });
+              }}
+            />
+            {errors.tipoNegocio && (
+              <p className="text-red-500 text-xs mt-1">{errors.tipoNegocio}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="localizacao" className="text-sm font-medium">
+              Localização <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="localizacao"
+              type="text"
+              placeholder="Ex: São Paulo, Pinheiros, Jundiaí"
+              className={`mt-1.5 ${errors.localizacao ? "border-red-500" : ""}`}
+              value={localizacao}
+              onChange={(e) => {
+                setLocalizacao(e.target.value);
+                if (errors.localizacao) setErrors({ ...errors, localizacao: "" });
+              }}
+            />
+            {errors.localizacao && (
+              <p className="text-red-500 text-xs mt-1">{errors.localizacao}</p>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2 text-foreground">Quantos leads?</label>
-        <div className="flex gap-2">
+      {/* Orçamento & Alcance */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+            <Calendar className="w-4 h-4 text-green-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">Quantidade de Leads</h3>
+            <p className="text-xs text-muted-foreground">
+              Encontraremos de 0 até {quantidade} leads
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           {[4, 20, 40, 100, 200].map((qty) => (
             <Button
               key={qty}
+              type="button"
               variant={quantidade === qty ? "default" : "outline"}
               onClick={() => setQuantidade(qty as 4 | 20 | 40 | 100 | 200)}
+              className={`min-w-[80px] ${
+                quantidade === qty
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "hover:bg-blue-50 hover:border-blue-300"
+              }`}
             >
-              {qty}
+              {qty} leads
             </Button>
           ))}
         </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-blue-900">Custo estimado</p>
+              <p className="text-xs text-blue-700">
+                Apenas extração de dados (Google Maps)
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-blue-600">
+                {calculateCampaignCost(quantidade, "BASICO")} créditos
+              </p>
+              <p className="text-xs text-blue-700">0.25 créditos por lead</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Button
-        onClick={handleNext}
-        className="w-full"
-      >
-        Continuar
+      <Button onClick={handleNext} className="w-full bg-blue-600 hover:bg-blue-700 h-11">
+        Revisar e Confirmar →
       </Button>
-    </div>
-  );
-}
-
-function EtapaNivelServico() {
-  const { quantidade, nivelServico, setNivelServico, setCurrentStep } =
-    useWizard();
-
-  const custoBasico = calculateCampaignCost(quantidade, "BASICO");
-  const custoCompleto = calculateCampaignCost(quantidade, "COMPLETO");
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-foreground">
-          Encontraremos de 0 à {quantidade} leads. Escolha o nível de serviço:
-        </h3>
-      </div>
-
-      <div className="grid gap-4">
-        <div
-          className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-            nivelServico === "basico"
-              ? "border-blue-500 bg-blue-50"
-              : "border-border hover:border-blue-300"
-          }`}
-          onClick={() => setNivelServico("basico")}
-        >
-          <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg text-foreground">BÁSICO</h4>
-            <span className="text-lg font-bold text-green-600">
-              {custoBasico} créditos
-            </span>
-          </div>
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            <li>✓ Lista com dados do Google Maps</li>
-            <li>✓ Nome, telefone, endereço, avaliações</li>
-            <li>✓ Planilha para download</li>
-          </ul>
-        </div>
-
-        <div
-          className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-            nivelServico === "completo"
-              ? "border-blue-500 bg-blue-50"
-              : "border-border hover:border-blue-300"
-          }`}
-          onClick={() => setNivelServico("completo")}
-        >
-          <div className="flex justify-between items-start mb-3">
-            <h4 className="font-semibold text-lg text-foreground">COMPLETO</h4>
-            <span className="text-lg font-bold text-green-600">
-              {custoCompleto} créditos
-            </span>
-          </div>
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            <li>✓ Tudo do Básico</li>
-            <li>✓ Pesquisa detalhada da empresa</li>
-            <li>✓ E-mails personalizados prontos</li>
-            <li>✓ Análise estratégica</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentStep(1)}
-          className="flex-1"
-        >
-          Voltar
-        </Button>
-        <Button onClick={() => setCurrentStep(3)} className="flex-1">
-          Continuar
-        </Button>
-      </div>
     </div>
   );
 }
 
 function EtapaConfirmacao() {
   const {
+    nomeCampanha,
     tipoNegocio,
     localizacao,
     quantidade,
@@ -339,25 +372,22 @@ function EtapaConfirmacao() {
     queryFn: async () => {
       const response = await fetch("/api/users/credits");
 
-      // SECURITY: Validar status HTTP
       if (!response.ok) {
         throw new Error("Failed to fetch credits");
       }
 
       const data = await response.json();
 
-      // SECURITY: Validar tipo de resposta
       if (data.success && typeof data.credits === "number" && isFinite(data.credits)) {
         return Math.max(0, Math.floor(data.credits));
       }
 
       return 0;
     },
-    // SECURITY: Rate limiting
     retry: 2,
   });
 
-  const custo = calculateCampaignCost(quantidade, nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO');
+  const custo = calculateCampaignCost(quantidade, "BASICO");
   const creditosSuficientes = creditos >= custo;
 
   const createCampaign = useMutation({
@@ -365,7 +395,6 @@ function EtapaConfirmacao() {
       const tiposArray = tipoNegocio.split(",").map((s) => s.trim()).filter(Boolean);
       const locaisArray = localizacao.split(",").map((s) => s.trim()).filter(Boolean);
 
-      // SECURITY (OWASP A06:2025): Validar tamanho de arrays (previne DoS)
       if (tiposArray.length > 10) {
         throw new Error("Máximo 10 tipos de negócio permitidos");
       }
@@ -377,7 +406,7 @@ function EtapaConfirmacao() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: `${tipoNegocio} em ${localizacao}`,
+          titulo: nomeCampanha.trim() || `${tipoNegocio} em ${localizacao}`,
           tipoNegocio: tiposArray,
           localizacao: locaisArray,
           quantidade,
@@ -387,39 +416,26 @@ function EtapaConfirmacao() {
 
       const result = await response.json();
       if (!result.success) {
-        // Se houver campos faltando, passar o objeto completo
-        if (result.missingFieldsByPage) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const error: any = new Error(result.error || "Erro ao criar campanha");
-          error.missingFieldsByPage = result.missingFieldsByPage;
-          throw error;
-        }
         throw new Error(result.error || "Erro ao criar campanha");
       }
 
       return result;
     },
-    // SECURITY (OWASP A06:2025): Rate limiting via retry limit
-    retry: 1, // Apenas 1 retry para mutações críticas
+    retry: 1,
     onSuccess: async () => {
-      // Invalida cache para atualizar dados (força refetch imediato)
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["credits"],
-          refetchType: "all" // Força refetch de todas as queries ativas
+          refetchType: "all",
         }),
         queryClient.invalidateQueries({
           queryKey: ["campaigns"],
-          refetchType: "all"
+          refetchType: "all",
         }),
       ]);
 
-      // Reset wizard
       resetWizard();
-
-      // SECURITY FIX (OWASP A06:2025): Remover setTimeout (race condition)
-      // Redirecionar imediatamente após invalidação do cache
-      window.location.href = "/campanhas";
+      window.location.href = "/dashboard/campanhas";
     },
     onError: (error) => {
       console.error("Erro ao criar campanha:", error);
@@ -438,118 +454,77 @@ function EtapaConfirmacao() {
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-semibold text-foreground">Confirme sua configuração</h3>
-      </div>
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 p-6">
+        <h3 className="text-xl font-semibold text-foreground mb-4">
+          Resumo da Campanha
+        </h3>
 
-      <div className="bg-muted/30 p-4 rounded-lg space-y-3 border border-border">
-        <div>
-          <span className="font-medium text-foreground">Tipo de negócio:</span>
-          <span className="ml-2 text-muted-foreground">{tipoNegocio}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <p className="text-xs text-muted-foreground mb-1">Nome da Campanha</p>
+            <p className="font-medium text-foreground">
+              {nomeCampanha.trim() || `${tipoNegocio} em ${localizacao}`}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <p className="text-xs text-muted-foreground mb-1">Tipo de Negócio</p>
+            <p className="font-medium text-foreground">{tipoNegocio}</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <p className="text-xs text-muted-foreground mb-1">Localização</p>
+            <p className="font-medium text-foreground">{localizacao}</p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <p className="text-xs text-muted-foreground mb-1">Quantidade</p>
+            <p className="font-medium text-foreground">{quantidade} leads</p>
+          </div>
         </div>
-        <div>
-          <span className="font-medium text-foreground">Localização:</span>
-          <span className="ml-2 text-muted-foreground">{localizacao}</span>
-        </div>
-        <div>
-          <span className="font-medium text-foreground">Quantidade:</span>
-          <span className="ml-2 text-muted-foreground">{quantidade} leads</span>
-        </div>
-        <div>
-          <span className="font-medium text-foreground">Nível:</span>
-          <span className="ml-2 capitalize text-muted-foreground">{nivelServico}</span>
-        </div>
-        <div className="border-t border-border pt-3">
-          <span className="font-medium text-foreground">Custo total:</span>
-          <span className="ml-2 text-lg font-bold text-green-600">
-            {custo} créditos
-          </span>
-        </div>
-        <div>
-          <span className="font-medium text-foreground">Saldo atual:</span>
-          <span className="ml-2 text-muted-foreground">{creditos} créditos</span>
-        </div>
-        <div>
-          <span className="font-medium text-foreground">Saldo após:</span>
-          <span className="ml-2 text-muted-foreground">{creditos - custo} créditos</span>
+
+        <div className="mt-4 pt-4 border-t border-blue-200">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-foreground">Custo Total:</span>
+            <span className="text-2xl font-bold text-blue-600">{custo} créditos</span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Saldo Atual:</span>
+            <span className="font-medium text-foreground">{creditos} créditos</span>
+          </div>
+          <div className="flex justify-between items-center text-sm mt-1">
+            <span className="text-muted-foreground">Saldo Após:</span>
+            <span className={`font-medium ${creditosSuficientes ? "text-green-600" : "text-red-600"}`}>
+              {creditos - custo} créditos
+            </span>
+          </div>
         </div>
       </div>
 
       {!creditosSuficientes && (
-        <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-          <p className="text-red-700 text-sm">
-            Créditos insuficientes. Você tem {creditos} créditos, mas precisa de{" "}
-            {custo}.
+        <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+          <p className="text-red-700 text-sm font-medium">
+            ⚠️ Créditos insuficientes. Você tem {creditos} créditos, mas precisa de {custo}.
           </p>
         </div>
       )}
 
-      {createCampaign.isError && (() => {
-        // Acessar missingFieldsByPage diretamente do objeto de erro
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const missingFieldsByPage = (createCampaign.error as any)?.missingFieldsByPage;
-
-        if (missingFieldsByPage && Object.keys(missingFieldsByPage).length > 0) {
-          const pageNames: Record<string, string> = {
-            "/configuracoes": "Configurações (Empresa)",
-            "/emails": "E-mails (Templates)",
-            "/emails#settings": "E-mails (Configurações)",
-            "/whatsapp": "WhatsApp (Templates)",
-            "/whatsapp#instances": "WhatsApp (Instâncias)",
-            "/configuracoes#prompts": "Configurações (Prompts IA)"
-          };
-
-          return (
-            <div className="bg-red-50 border border-red-200 p-4 rounded-lg space-y-4">
-              <p className="text-red-700 font-semibold text-sm">
-                Campos obrigatórios não preenchidos:
-              </p>
-
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {Object.entries(missingFieldsByPage).map(([page, fields]: [string, any]) => (
-                <div key={page} className="bg-background p-3 rounded border border-red-200 space-y-2">
-                  <p className="text-red-600 text-sm font-medium">
-                    {pageNames[page] || page}:
-                  </p>
-                  <ul className="list-disc list-inside text-red-600 text-sm space-y-1">
-                    {(fields as string[]).map((field, idx) => (
-                      <li key={idx}>{field}</li>
-                    ))}
-                  </ul>
-                  <a
-                    href={page}
-                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
-                  >
-                    Ir para {pageNames[page] || "Configurações"} →
-                  </a>
-                </div>
-              ))}
-            </div>
-          );
-        }
-
-        // Fallback para erros não estruturados
-        return (
-          <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-            <p className="text-red-700 text-sm">
-              {createCampaign.error?.message || "Erro ao criar campanha"}
-            </p>
-          </div>
-        );
-      })()}
+      {createCampaign.isError && (
+        <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+          <p className="text-red-700 text-sm">
+            {createCampaign.error?.message || "Erro ao criar campanha"}
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentStep(2)}
-          className="flex-1"
-        >
-          Voltar
+        <Button variant="outline" onClick={() => setCurrentStep(1)} className="flex-1 h-11">
+          ← Voltar
         </Button>
         <Button
           onClick={handleGerarCampanha}
           disabled={!creditosSuficientes || createCampaign.isPending}
-          className="flex-1"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 h-11"
         >
           {createCampaign.isPending ? "Criando..." : "Gerar Campanha"}
         </Button>
@@ -561,7 +536,7 @@ function EtapaConfirmacao() {
           <DialogHeader>
             <DialogTitle>Confirmar criação de campanha</DialogTitle>
             <DialogDescription>
-              Você está prestes a criar uma campanha com as seguintes configurações:
+              Você está prestes a criar uma campanha de extração de leads.
             </DialogDescription>
           </DialogHeader>
 
@@ -578,10 +553,6 @@ function EtapaConfirmacao() {
               <span className="text-muted-foreground">Quantidade:</span>
               <span className="font-medium text-foreground">{quantidade} leads</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Nível:</span>
-              <span className="font-medium capitalize text-foreground">{nivelServico}</span>
-            </div>
             <div className="border-t border-border pt-3 mt-3">
               <div className="flex justify-between text-sm font-semibold">
                 <span className="text-foreground">Custo total:</span>
@@ -595,13 +566,10 @@ function EtapaConfirmacao() {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowConfirmDialog(false)}
-            >
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={confirmarGeracao}>
+            <Button onClick={confirmarGeracao} className="bg-blue-600 hover:bg-blue-700">
               Confirmar e Gerar
             </Button>
           </DialogFooter>

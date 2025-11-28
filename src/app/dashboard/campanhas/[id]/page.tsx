@@ -193,7 +193,7 @@ export default function CampaignDetailPage() {
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <p className="text-muted-foreground">Campanha não encontrada</p>
-          <Button onClick={() => router.push("/campanhas")} className="mt-4">
+          <Button onClick={() => router.push("/dashboard/campanhas")} className="mt-4">
             Voltar para Campanhas
           </Button>
         </div>
@@ -201,7 +201,9 @@ export default function CampaignDetailPage() {
     );
   }
 
-  const progressPercentage = (campaign.stats.extracted / campaign.stats.total) * 100;
+  const progressPercentage = campaign.stats.total > 0
+    ? (campaign.stats.extracted / campaign.stats.total) * 100
+    : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -209,7 +211,7 @@ export default function CampaignDetailPage() {
       <div className="mb-8">
         <Button
           variant="ghost"
-          onClick={() => router.push("/campanhas")}
+          onClick={() => router.push("/dashboard/campanhas")}
           className="mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -264,7 +266,7 @@ export default function CampaignDetailPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Leads
+              Leads Extraídos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -273,7 +275,7 @@ export default function CampaignDetailPage() {
             </div>
             <Progress value={progressPercentage} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              {progressPercentage.toFixed(1)}% extraído
+              {progressPercentage.toFixed(1)}% da meta solicitada
             </p>
           </CardContent>
         </Card>
@@ -566,9 +568,30 @@ export default function CampaignDetailPage() {
                       </td>
                     )}
                     <td className="py-3 px-4">
-                      <Badge className={statusColors[lead.status]}>
-                        {statusLabels[lead.status]}
-                      </Badge>
+                      <div className="flex gap-2 items-center">
+                        <Badge className={statusColors[lead.status]}>
+                          {statusLabels[lead.status]}
+                        </Badge>
+                        {lead.email && lead.telefone && (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                            <Mail className="w-3 h-3 mr-1" />
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            Híbrido
+                          </Badge>
+                        )}
+                        {lead.email && !lead.telefone && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            <Mail className="w-3 h-3 mr-1" />
+                            Email
+                          </Badge>
+                        )}
+                        {!lead.email && lead.telefone && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            WhatsApp
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex gap-2">

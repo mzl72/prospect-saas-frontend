@@ -99,13 +99,25 @@ model Campaign {
   // Archive (soft delete)
   isArchived Boolean @default(false) @map("is_archived")
 
+  // Templates para enriquecimento (apenas campanhas COMPLETO)
+  // SECURITY: onDelete: SetNull para não quebrar campanhas se template for deletado
+  templateEmailId    String?   @map("template_email_id")
+  templateWhatsappId String?   @map("template_whatsapp_id")
+  templatePromptId   String?   @map("template_prompt_id")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leads Lead[]
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads            Lead[]
+  templateEmail    Template? @relation("CampaignEmailTemplate", fields: [templateEmailId], references: [id], onDelete: SetNull)
+  templateWhatsapp Template? @relation("CampaignWhatsappTemplate", fields: [templateWhatsappId], references: [id], onDelete: SetNull)
+  templatePrompt   Template? @relation("CampaignPromptTemplate", fields: [templatePromptId], references: [id], onDelete: SetNull)
 
   @@index([userId, isArchived])
+  @@index([templateEmailId])
+  @@index([templateWhatsappId])
+  @@index([templatePromptId])
   @@map("campaigns")
 }
 
@@ -202,6 +214,11 @@ model Template {
 
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relações inversas com campanhas
+  campaignsAsEmail    Campaign[] @relation("CampaignEmailTemplate")
+  campaignsAsWhatsapp Campaign[] @relation("CampaignWhatsappTemplate")
+  campaignsAsPrompt   Campaign[] @relation("CampaignPromptTemplate")
 
   @@index([type, isActive])
   @@index([createdBy])

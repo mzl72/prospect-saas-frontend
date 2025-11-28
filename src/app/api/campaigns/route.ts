@@ -43,9 +43,18 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // 3. Buscar campanhas do usuário
+    // 3. Query params: includeArchived (opcional)
+    const url = new URL(_request.url);
+    const includeArchived = url.searchParams.get('includeArchived') === 'true';
+
+    // 4. Buscar campanhas do usuário
     const campaigns = await prisma.campaign.findMany({
-      where: { userId },
+      where: {
+        userId,
+        // Se includeArchived=true, não filtrar por isArchived (traz todas)
+        // Se false, apenas não arquivadas
+        ...(includeArchived ? {} : { isArchived: false }),
+      },
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
@@ -90,7 +99,16 @@ export async function POST(request: NextRequest) {
     // 1. Autenticação
     const { userId } = await requireAuth();
 
-    // 2. Rate limiting por usuário: 10 campanhas/hora
+    // 2. Validação de Content-Type (SECURITY: A02:2025 - Security Misconfiguration)
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return NextResponse.json(
+        { success: false, error: 'Content-Type deve ser application/json' },
+        { status: 415 }
+      );
+    }
+
+    // 3. Rate limiting por usuário: 10 campanhas/hora
     const rateLimitResult = checkUserRateLimit({
       userId,
       endpoint: 'campaigns:create',
@@ -108,7 +126,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validação de payload size (previne JSON bombing)
+    // 4. Validação de payload size (previne JSON bombing)
     const bodyText = await request.text();
     const payloadValidation = validatePayloadSize(bodyText, 100 * 1024); // 100KB max
 
@@ -155,14 +173,83 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. Calcular custo usando serviço centralizado
-    const validData = sanitizedBody as { quantidade: number; nivelServico: string; tipoNegocio: string[]; localizacao: string[]; titulo?: string };
+    // 7. Validar templates para campanhas COMPLETO
+    const validData = sanitizedBody as {
+      quantidade: number;
+      nivelServico: string;
+      tipoNegocio: string[];
+      localizacao: string[];
+      titulo?: string;
+      templateEmailId?: string | null;
+      templateWhatsappId?: string | null;
+      templatePromptId?: string | null;
+    };
+
+    if (validData.nivelServico === 'completo') {
+      // SECURITY: Verificar se templates existem e pertencem ao usuário ou são defaults
+      const templateIds = [
+        validData.templateEmailId,
+        validData.templateWhatsappId,
+        validData.templatePromptId
+      ].filter(Boolean) as string[];
+
+      if (templateIds.length !== 3) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Templates são obrigatórios para campanhas com enriquecimento',
+            missingTemplates: {
+              email: !validData.templateEmailId,
+              whatsapp: !validData.templateWhatsappId,
+              prompt: !validData.templatePromptId,
+            }
+          },
+          { status: 400 }
+        );
+      }
+
+      const templates = await prisma.template.findMany({
+        where: {
+          id: { in: templateIds },
+          isActive: true,
+          OR: [
+            { createdBy: userId },
+            { isDefault: true }
+          ]
+        }
+      });
+
+      if (templates.length !== 3) {
+        // SECURITY ALERT (A09:2025 - Logging & Alerting)
+        // Log tentativa de acesso a templates não autorizados
+        const foundIds = templates.map(t => t.id);
+        const missingIds = templateIds.filter(id => !foundIds.includes(id));
+
+        logger.warn('Tentativa de uso de templates não autorizados ou inexistentes', {
+          userId,
+          requestedTemplateIds: templateIds,
+          foundTemplateIds: foundIds,
+          missingTemplateIds: missingIds,
+          timestamp: new Date().toISOString(),
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Um ou mais templates selecionados não foram encontrados ou não estão acessíveis'
+          },
+          { status: 404 }
+        );
+      }
+    }
+
+    // 8. Calcular custo usando serviço centralizado
     const custo = calculateCampaignCost(
       validData.quantidade,
       validData.nivelServico.toUpperCase() as 'BASICO' | 'COMPLETO'
     );
 
-    // 8. Transação atômica: criar campanha + debitar créditos
+    // 9. Transação atômica: criar campanha + debitar créditos
     const result = await prisma.$transaction(async (tx) => {
       // Verificar saldo
       const user = await tx.user.findUnique({
@@ -202,15 +289,52 @@ export async function POST(request: NextRequest) {
           timeoutAt: timeoutDate,
           creditsCost: custo,
           leadsRequested: validData.quantidade,
+          // Templates para enriquecimento (apenas se COMPLETO)
+          templateEmailId: validData.nivelServico === 'completo' ? validData.templateEmailId : null,
+          templateWhatsappId: validData.nivelServico === 'completo' ? validData.templateWhatsappId : null,
+          templatePromptId: validData.nivelServico === 'completo' ? validData.templatePromptId : null,
         },
       });
 
       return campaign;
     });
 
-    // 9. Chamar N8N para processar (paralelo, não bloqueia resposta)
+    // AUDIT LOG (A09:2025 - Logging & Alerting)
+    if (validData.nivelServico === 'completo') {
+      logger.info('Campanha COMPLETO criada com templates', {
+        userId,
+        campaignId: result.id,
+        tipo: result.tipo,
+        quantidade: result.quantidade,
+        creditsCost: custo,
+        templates: {
+          emailId: validData.templateEmailId,
+          whatsappId: validData.templateWhatsappId,
+          promptId: validData.templatePromptId,
+        },
+      });
+    } else {
+      logger.info('Campanha BASICO criada', {
+        userId,
+        campaignId: result.id,
+        tipo: result.tipo,
+        quantidade: result.quantidade,
+        creditsCost: custo,
+      });
+    }
+
+    // 10. Chamar N8N para processar (paralelo, não bloqueia resposta)
     // OWASP A10:2025 - Retry com exponential backoff
-    const n8nUrl = process.env.N8N_WEBHOOK_URL || "https://n8n.fflow.site/webhook/interface";
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
+    const n8nSecret = process.env.N8N_WEBHOOK_SECRET;
+
+    if (!n8nUrl || !n8nSecret) {
+      logger.error('N8N_WEBHOOK_URL ou N8N_WEBHOOK_SECRET não configurados', {
+        campaignId: result.id,
+      });
+      throw new Error('Configuração N8N inválida');
+    }
+
     const n8nPayload = {
       campaignId: result.id,
       termos: validData.tipoNegocio.join(","),
@@ -220,14 +344,28 @@ export async function POST(request: NextRequest) {
       consolidado: validData.nivelServico === "completo" ? "true" : "false",
       timestamp: new Date().toLocaleString("pt-BR"),
       titulo: validData.titulo || result.title,
+      // Templates para enriquecimento (apenas se COMPLETO)
+      ...(validData.nivelServico === "completo" && {
+        templates: {
+          emailId: validData.templateEmailId,
+          whatsappId: validData.templateWhatsappId,
+          promptId: validData.templatePromptId,
+        }
+      }),
     };
+
+    // DEBUG: Log sempre visível
+    console.log("🔔 [WEBHOOK] Chamando N8N:", { n8nUrl, campaignId: result.id, payload: n8nPayload });
 
     // Executar N8N call com retry (não bloqueia resposta ao cliente)
     fetchWithRetry(
       n8nUrl,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-secret": n8nSecret,
+        },
         body: JSON.stringify({ query: n8nPayload }),
       },
       {
@@ -237,12 +375,14 @@ export async function POST(request: NextRequest) {
       }
     )
       .then((response) => {
+        console.log("✅ [WEBHOOK] N8N respondeu:", { campaignId: result.id, status: response.status });
         logger.info("N8N webhook called successfully", {
           campaignId: result.id,
           status: response.status,
         });
       })
       .catch(async (error) => {
+        console.error("❌ [WEBHOOK] N8N falhou:", { campaignId: result.id, error: error.message });
         logger.error("N8N webhook failed after retries", error, {
           campaignId: result.id,
           n8nUrl,
@@ -274,12 +414,21 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    // 10. Resposta imediata para frontend
-    return NextResponse.json({
-      success: true,
-      campaignId: result.id,
-      message: "Campanha criada e enviada para processamento!",
-    });
+    // 11. Resposta imediata para frontend com security headers (A02:2025)
+    return NextResponse.json(
+      {
+        success: true,
+        campaignId: result.id,
+        message: "Campanha criada e enviada para processamento!",
+      },
+      {
+        headers: {
+          'X-Content-Type-Options': 'nosniff',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+          'Pragma': 'no-cache',
+        },
+      }
+    );
   } catch (error) {
     // Erros de autenticação/autorização
     if (error instanceof Error && error.message === "UNAUTHORIZED") {

@@ -17,9 +17,21 @@ export function Sidebar() {
 
   const isActive = (path: string) => {
     if (path === "/dashboard" && pathname === "/dashboard") return true;
-    if (path === "/dashboard/campanhas" && pathname.startsWith("/dashboard/campanhas")) return true;
-    if (path === "/dashboard/templates" && pathname.startsWith("/dashboard/templates")) return true;
-    if (path === "/dashboard/configuracoes" && pathname.startsWith("/dashboard/configuracoes")) return true;
+    if (
+      path === "/dashboard/campanhas" &&
+      pathname.startsWith("/dashboard/campanhas")
+    )
+      return true;
+    if (
+      path === "/dashboard/templates" &&
+      pathname.startsWith("/dashboard/templates")
+    )
+      return true;
+    if (
+      path === "/dashboard/configuracoes" &&
+      pathname.startsWith("/dashboard/configuracoes")
+    )
+      return true;
     return false;
   };
 
@@ -27,19 +39,24 @@ export function Sidebar() {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/campanhas", label: "Campanhas", icon: Target },
     { href: "/dashboard/templates", label: "Templates", icon: FileText },
-    { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
+    {
+      href: "/dashboard/configuracoes",
+      label: "Configurações",
+      icon: Settings,
+    },
   ];
 
   // SECURITY (OWASP A05:2025): Sanitizar e validar créditos antes de exibir
-  const sanitizedCredits = typeof credits === "number" && isFinite(credits)
-    ? Math.max(0, Math.floor(credits))
-    : 0;
+  const sanitizedCredits =
+    typeof credits === "number" && isFinite(credits)
+      ? Math.max(0, Math.floor(credits))
+      : 0;
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex flex-col shadow-sm">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-gray-100">
-        <Link href="/" className="text-xl font-bold text-gray-800">
+        <Link href="/dashboard" className="text-xl font-bold text-gray-800">
           Prospect SaaS
         </Link>
       </div>
@@ -61,7 +78,11 @@ export function Sidebar() {
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
-                  <Icon className={`w-5 h-5 ${active ? "text-blue-600" : "text-gray-400"}`} />
+                  <Icon
+                    className={`w-5 h-5 ${
+                      active ? "text-blue-600" : "text-gray-400"
+                    }`}
+                  />
                   {item.label}
                 </Link>
               </li>
@@ -77,7 +98,9 @@ export function Sidebar() {
           <div className="flex-1">
             <div className="text-xs text-gray-500">Créditos</div>
             {/* SECURITY: Usar valor sanitizado */}
-            <div className="text-sm font-semibold text-green-700">{sanitizedCredits.toLocaleString()}</div>
+            <div className="text-sm font-semibold text-green-700">
+              {sanitizedCredits.toLocaleString()}
+            </div>
           </div>
         </div>
       </div>

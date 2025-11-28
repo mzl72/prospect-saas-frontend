@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 /**
  * Schema para criação de campanha
+ * SECURITY: Validação de templates obrigatórios para campanhas COMPLETO
  */
 export const CreateCampaignSchema = z.object({
   titulo: z
@@ -36,7 +37,39 @@ export const CreateCampaignSchema = z.object({
   nivelServico: z.enum(['basico', 'completo'], {
     message: 'Nível de serviço deve ser "basico" ou "completo"',
   }),
-});
+
+  // Templates para enriquecimento (obrigatórios apenas para nivelServico === 'completo')
+  // SECURITY: Validação de CUID para prevenir injection
+  templateEmailId: z
+    .string()
+    .regex(/^c[a-z0-9]{24}$/i, 'Template Email ID inválido')
+    .optional()
+    .nullable(),
+
+  templateWhatsappId: z
+    .string()
+    .regex(/^c[a-z0-9]{24}$/i, 'Template WhatsApp ID inválido')
+    .optional()
+    .nullable(),
+
+  templatePromptId: z
+    .string()
+    .regex(/^c[a-z0-9]{24}$/i, 'Template Prompt ID inválido')
+    .optional()
+    .nullable(),
+}).refine(
+  (data) => {
+    // Se nivelServico é 'completo', templates são obrigatórios
+    if (data.nivelServico === 'completo') {
+      return !!(data.templateEmailId && data.templateWhatsappId && data.templatePromptId);
+    }
+    return true;
+  },
+  {
+    message: 'Templates são obrigatórios para campanhas com enriquecimento',
+    path: ['templateEmailId'], // Mostra erro no primeiro campo
+  }
+);
 
 export type CreateCampaignDto = z.infer<typeof CreateCampaignSchema>;
 

@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { sanitizeForDisplay } from "@/lib/sanitization";
+import { toast } from "sonner";
 
 // Campaign type
 interface Campaign {
@@ -85,7 +86,7 @@ export function CampaignTable({
     } else {
       const toSelect = campaigns.slice(0, MAX_SELECTION).map((c) => c.id);
       if (campaigns.length > MAX_SELECTION) {
-        alert(`Limite máximo de seleção: ${MAX_SELECTION} campanhas. Selecionando as primeiras ${MAX_SELECTION}.`);
+        toast.warning(`Limite máximo de seleção: ${MAX_SELECTION} campanhas. Selecionando as primeiras ${MAX_SELECTION}.`);
       }
       onSelectionChange(toSelect);
     }
@@ -97,7 +98,7 @@ export function CampaignTable({
       onSelectionChange(selectedIds.filter((sid) => sid !== id));
     } else {
       if (selectedIds.length >= MAX_SELECTION) {
-        alert(`Limite máximo de seleção atingido: ${MAX_SELECTION} campanhas`);
+        toast.warning(`Limite máximo de seleção atingido: ${MAX_SELECTION} campanhas`);
         return;
       }
       onSelectionChange([...selectedIds, id]);
@@ -377,7 +378,7 @@ export function CampaignTable({
                                   {leadsCreated}
                                 </span>
                               </div>
-                              {campaign.creditsRefunded && campaign.creditsRefunded > 0 && (
+                              {campaign.creditsRefunded != null && campaign.creditsRefunded > 0 && (
                                 <>
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">Duplicatas:</span>

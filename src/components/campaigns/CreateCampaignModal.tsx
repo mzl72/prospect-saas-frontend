@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Target, Sparkles, Send, ArrowLeft } from "lucide-react";
 import { LeadGenerationWizard } from "@/components/wizard/LeadGenerationWizard";
+import { EnrichmentWizard } from "@/components/wizard/EnrichmentWizard";
 
 interface CampaignTypeCardProps {
   icon: React.ReactNode;
@@ -77,12 +78,22 @@ function CampaignTypeCard({
   );
 }
 
+type WizardType = "extraction" | "enrichment" | null;
+
 export function CreateCampaignModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
+  const [selectedWizard, setSelectedWizard] = useState<WizardType>(null);
 
   const handleExtractionClick = () => {
-    setShowWizard(true);
+    setSelectedWizard("extraction");
+  };
+
+  const handleEnrichmentClick = () => {
+    setSelectedWizard("enrichment");
+  };
+
+  const handleBack = () => {
+    setSelectedWizard(null);
   };
 
   return (
@@ -95,7 +106,7 @@ export function CreateCampaignModal() {
       </DialogTrigger>
 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        {!showWizard ? (
+        {!selectedWizard ? (
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl">Escolha o objetivo da campanha</DialogTitle>
@@ -116,14 +127,14 @@ export function CreateCampaignModal() {
                 onClick={handleExtractionClick}
               />
 
-              {/* Card 2: Extração + IA (Desabilitado) */}
+              {/* Card 2: Extração + IA (Ativo) */}
               <CampaignTypeCard
                 icon={<Sparkles className="w-6 h-6" />}
                 title="Extração + IA"
                 description="Extrair e enriquecer leads com análise de IA"
-                badge="Em Breve"
-                enabled={false}
-                onClick={() => {}}
+                badge="Ativo"
+                enabled={true}
+                onClick={handleEnrichmentClick}
               />
 
               {/* Card 3: Envio (Desabilitado) */}
@@ -140,9 +151,8 @@ export function CreateCampaignModal() {
             {/* Info adicional */}
             <div className="bg-muted/30 p-4 rounded-lg border border-border">
               <p className="text-sm text-muted-foreground">
-                💡 <strong>Dica:</strong> Comece com uma campanha de extração para criar sua base
-                de leads. Em breve você poderá enriquecer os dados com IA e enviar mensagens
-                automatizadas.
+                💡 <strong>Dica:</strong> Use <strong>Extração</strong> para obter dados básicos rapidamente (0.25 créditos/lead).
+                Use <strong>Extração + IA</strong> para análise completa com mensagens personalizadas (1.0 crédito/lead).
               </p>
             </div>
           </>
@@ -154,22 +164,28 @@ export function CreateCampaignModal() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={() => setShowWizard(false)}
+                  onClick={handleBack}
                   className="hover:bg-muted"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                  <DialogTitle className="text-2xl">Criar Campanha de Extração</DialogTitle>
+                  <DialogTitle className="text-2xl">
+                    {selectedWizard === "extraction" ? "Criar Campanha de Extração" : "Criar Campanha com Enriquecimento"}
+                  </DialogTitle>
                   <DialogDescription>
-                    Configure os parâmetros para extrair leads do Google Maps
+                    {selectedWizard === "extraction"
+                      ? "Configure os parâmetros para extrair leads do Google Maps"
+                      : "Configure e selecione templates para enriquecer leads com IA"
+                    }
                   </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
 
             {/* Wizard */}
-            <LeadGenerationWizard />
+            {selectedWizard === "extraction" && <LeadGenerationWizard />}
+            {selectedWizard === "enrichment" && <EnrichmentWizard />}
           </>
         )}
       </DialogContent>
